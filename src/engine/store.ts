@@ -1,0 +1,259 @@
+/**
+ * Cell to Mind — arayüz durum deposu.
+ *
+ * Kare verisi BURAYA yazılmaz; kare, doğrudan sahne bileşenlerine akar.
+ * Depo yalnız düşük frekanslı arayüz durumunu tutar (seçim, paneller, ayarlar).
+ */
+
+import { create } from 'zustand';
+import type { DecisionSnapshot, EvidencePack, LineageSummary, OrganismSummary, SpeedMultiplier } from './client.ts';
+import type { ClientStatus } from './client.ts';
+import type { LocalSummary } from '../worker/evidence.ts';
+
+export type Language = 'tr' | 'en';
+export type PanelId =
+  | 'inspector'
+  | 'microscope'
+  | 'lineage'
+  | 'experiments'
+  | 'observer'
+  | 'data'
+  | 'settings'
+  | null;
+
+export interface HabitatState {
+  size: { x: number; y: number; z: number };
+  rocks: { id: number; pos: { x: number; y: number; z: number }; radius: number; variant: number }[];
+}
+
+export interface SettingsState {
+  light: number;
+  currentStrength: number;
+  selectionPressure: number;
+  learningEnabled: boolean;
+}
+
+export interface Notice {
+  id: number;
+  kind: 'info' | 'error' | 'success';
+  message: string;
+  at: number;
+}
+
+interface StoreState {
+  status: ClientStatus;
+  error: string | null;
+  ready: boolean;
+  simVersion: string;
+  habitat: HabitatState | null;
+
+  running: boolean;
+  speed: SpeedMultiplier;
+  tick: number;
+  simTime: number;
+  population: number;
+  systemEnergy: number;
+  externalInput: number;
+  dissipated: number;
+  initialEnergy: number;
+  largestColony: number;
+  coloniesFour: number;
+  bondCount: number;
+  energyResidual: number;
+  light: number;
+  predator: { active: boolean; energy: number; x: number; y: number; z: number; radius: number };
+  resourcesLeft: number;
+
+  settings: SettingsState;
+  organisms: OrganismSummary[];
+  lineages: LineageSummary[];
+  selectedId: number | null;
+  decision: DecisionSnapshot | null;
+  evidence: EvidencePack | null;
+  localSummary: LocalSummary | null;
+  modelReport: unknown | null;
+  modelState: 'idle' | 'loading' | 'done' | 'error' | 'no-key';
+  modelError: string | null;
+
+  panel: PanelId;
+  language: Language;
+  reducedMotion: boolean;
+  muted: boolean;
+  notices: Notice[];
+  activeBranch: string | null;
+
+  setStatus: (status: ClientStatus, error?: string | null) => void;
+  setReady: (version: string, habitat: HabitatState) => void;
+  setRunning: (running: boolean) => void;
+  setSpeed: (speed: SpeedMultiplier) => void;
+  setTelemetry: (t: {
+    tick: number;
+    simTime: number;
+    population: number;
+    systemEnergy: number;
+    externalInput: number;
+    dissipated: number;
+    initialEnergy: number;
+    largestColony: number;
+    coloniesFour: number;
+    bondCount: number;
+    light: number;
+    predatorActive: boolean;
+    predatorEnergy: number;
+    px: number;
+    py: number;
+    pz: number;
+    pr: number;
+    resourcesLeft: number;
+  }) => void;
+  setSettings: (patch: Partial<SettingsState>) => void;
+  setOrganisms: (organisms: OrganismSummary[]) => void;
+  setLineages: (lineages: LineageSummary[]) => void;
+  select: (id: number | null) => void;
+  setDecision: (decision: DecisionSnapshot | null) => void;
+  setEvidence: (pack: EvidencePack) => void;
+  setLocalSummary: (summary: LocalSummary) => void;
+  setModelState: (state: StoreState['modelState'], error?: string | null) => void;
+  setModelReport: (report: unknown) => void;
+  setPanel: (panel: PanelId) => void;
+  togglePanel: (panel: Exclude<PanelId, null>) => void;
+  setLanguage: (lang: Language) => void;
+  setReducedMotion: (value: boolean) => void;
+  setMuted: (value: boolean) => void;
+  notify: (kind: Notice['kind'], message: string) => void;
+  dismissNotice: (id: number) => void;
+  setBranch: (name: string | null) => void;
+}
+
+let noticeId = 0;
+
+function loadLanguage(): Language {
+  try {
+    const saved = localStorage.getItem('ctm.language');
+    if (saved === 'tr' || saved === 'en') return saved;
+  } catch {
+    /* localStorage yoksa varsayılan */
+  }
+  return 'tr'; // Türkçe varsayılan
+}
+
+function loadReducedMotion(): boolean {
+  try {
+    return localStorage.getItem('ctm.reducedMotion') === '1';
+  } catch {
+    return false;
+  }
+}
+
+export const useStore = create<StoreState>((set, get) => ({
+  status: 'idle',
+  error: null,
+  ready: false,
+  simVersion: '',
+  habitat: null,
+
+  running: true,
+  speed: 1,
+  tick: 0,
+  simTime: 0,
+  population: 0,
+  systemEnergy: 0,
+  externalInput: 0,
+  dissipated: 0,
+  initialEnergy: 0,
+  largestColony: 0,
+  coloniesFour: 0,
+  bondCount: 0,
+  energyResidual: 0,
+  light: 0.62,
+  predator: { active: true, energy: 0, x: 0, y: 0, z: 0, radius: 0.55 },
+  resourcesLeft: 0,
+
+  settings: { light: 0.62, currentStrength: 0.045, selectionPressure: 0.18, learningEnabled: true },
+  organisms: [],
+  lineages: [],
+  selectedId: null,
+  decision: null,
+  evidence: null,
+  localSummary: null,
+  modelReport: null,
+  modelState: 'idle',
+  modelError: null,
+
+  panel: null,
+  language: loadLanguage(),
+  reducedMotion: loadReducedMotion(),
+  muted: false,
+  notices: [],
+  activeBranch: null,
+
+  setStatus: (status, error) => set({ status, error: error ?? get().error }),
+  setReady: (version, habitat) => set({ ready: true, simVersion: version, habitat, status: 'running' }),
+  setRunning: (running) => set({ running }),
+  setSpeed: (speed) => set({ speed }),
+  setTelemetry: (t) =>
+    set({
+      tick: t.tick,
+      simTime: t.simTime,
+      population: t.population,
+      systemEnergy: t.systemEnergy,
+      externalInput: t.externalInput,
+      dissipated: t.dissipated,
+      initialEnergy: t.initialEnergy,
+      largestColony: t.largestColony,
+      coloniesFour: t.coloniesFour,
+      bondCount: t.bondCount,
+      // Korunum değişmezi: (sistem + harcanan) − (başlangıç + dış girdi)
+      energyResidual:
+        t.systemEnergy + t.dissipated - (t.initialEnergy + t.externalInput),
+      light: t.light,
+      resourcesLeft: t.resourcesLeft,
+      predator: {
+        active: t.predatorActive,
+        energy: t.predatorEnergy,
+        x: t.px,
+        y: t.py,
+        z: t.pz,
+        radius: t.pr,
+      },
+    }),
+  setSettings: (patch) => set({ settings: { ...get().settings, ...patch } }),
+  setOrganisms: (organisms) => set({ organisms }),
+  setLineages: (lineages) => set({ lineages }),
+  select: (id) => set({ selectedId: id, decision: null }),
+  setDecision: (decision) => set({ decision }),
+  setEvidence: (pack) => set({ evidence: pack, localSummary: null, modelReport: null, modelState: 'idle' }),
+  setLocalSummary: (summary) => set({ localSummary: summary }),
+  setModelState: (modelState, error) => set({ modelState, modelError: error ?? null }),
+  setModelReport: (modelReport) => set({ modelReport }),
+  setPanel: (panel) => set({ panel }),
+  togglePanel: (panel) => set({ panel: get().panel === panel ? null : panel }),
+  setLanguage: (language) => {
+    try {
+      localStorage.setItem('ctm.language', language);
+      document.documentElement.lang = language;
+    } catch {
+      /* yok sayılır */
+    }
+    set({ language });
+  },
+  setReducedMotion: (value) => {
+    try {
+      localStorage.setItem('ctm.reducedMotion', value ? '1' : '0');
+    } catch {
+      /* yok sayılır */
+    }
+    set({ reducedMotion: value });
+  },
+  setMuted: (muted) => set({ muted }),
+  notify: (kind, message) =>
+    set({ notices: [...get().notices.slice(-4), { id: ++noticeId, kind, message, at: Date.now() }] }),
+  dismissNotice: (id) => set({ notices: get().notices.filter((n) => n.id !== id) }),
+  setBranch: (activeBranch) => set({ activeBranch }),
+}));
+
+/** Sistem hareket azaltma tercihi (kullanıcı ayarı ile birleştirilir). */
+export function systemPrefersReducedMotion(): boolean {
+  if (typeof window === 'undefined' || !window.matchMedia) return false;
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}

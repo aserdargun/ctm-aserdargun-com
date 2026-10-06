@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.vite/
+*.local
+.DS_Store
+test-results/
+playwright-report/
+.playwright/
+# Blender geçici çıktıları
+scripts/blender/out/tmp/
+# Yerel gizli anahtarlar (gözlemci API anahtarı yalnızca sunucu ortamında)
+.env
+.env.*

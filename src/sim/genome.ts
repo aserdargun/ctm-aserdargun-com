@@ -1,0 +1,169 @@
+/**
+ * Cell to Mind — genom: sınırlı kalıtsal parametreler.
+ *
+ * Bu gerçek bir DNA dizisi DEĞİLDİR. Sekiz kalıtsal parametredir ve her birinin
+ * `biology/energy.ts` içinde bir metabolik maliyeti vardır; bu yüzden hiçbir
+ * özellik bedelsiz avantaj sağlamaz.
+ */
+
+import type { Rng } from './rng.ts';
+import type { Genome, Lineage } from './types.ts';
+
+export const GENOME_BOUNDS = {
+  bondAffinity: [0, 1],
+  bondStrength: [0.15, 1],
+  motility: [0, 1],
+  senseRadius: [2, 7],
+  shareEfficiency: [0, 0.6],
+  toleranceA: [0, 1],
+  toleranceB: [0, 1],
+  plasticity: [0, 1],
+} as const satisfies Record<keyof Genome, readonly [number, number]>;
+
+export type GenomeKey = keyof Genome;
+
+/** Parametre başına mutasyon ölçeği (birim mutasyonun eklediği maksimum sapma). */
+export const MUTATION_SCALE: Record<GenomeKey, number> = {
+  bondAffinity: 0.08,
+  bondStrength: 0.06,
+  motility: 0.06,
+  senseRadius: 0.25,
+  shareEfficiency: 0.03,
+  toleranceA: 0.07,
+  toleranceB: 0.07,
+  plasticity: 0.06,
+};
+
+export const GENOME_KEYS = Object.keys(GENOME_BOUNDS) as GenomeKey[];
+
+export function cloneGenome(g: Genome): Genome {
+  return { ...g };
+}
+
+export function clampGenome(g: Genome): Genome {
+  const out = { ...g };
+  for (const key of GENOME_KEYS) {
+    const [lo, hi] = GENOME_BOUNDS[key];
+    const v = out[key];
+    out[key] = Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : (lo + hi) / 2;
+  }
+  return out;
+}
+
+/**
+ * Mutasyon: her parametre bağımsız olarak, verilen olasılıkla normal dağılımlı
+ * bir kayma alır ve sınırlara kırpılır. Ortam değişince genomlar **anında
+ * düzeltilmez**; uyarlanma seçilimden doğar.
+ */
+export function mutateGenome(g: Genome, rng: Rng, rate: number, scale = 1): Genome {
+  const out = cloneGenome(g);
+  for (const key of GENOME_KEYS) {
+    if (rng.float() >= rate) continue;
+    const [lo, hi] = GENOME_BOUNDS[key];
+    out[key] = out[key] + rng.normal() * MUTATION_SCALE[key] * scale;
+    // Sınırların dışına çıkan mutasyonu içeri yansıtır (yansıma simetrisidir).
+    if (out[key] < lo) out[key] = lo + (lo - out[key]);
+    if (out[key] > hi) out[key] = hi - (out[key] - hi);
+  }
+  return clampGenome(out);
+}
+
+/** Rastgele başlangıç genomu. */
+export function randomGenome(rng: Rng): Genome {
+  const g: Genome = {
+    bondAffinity: 0,
+    bondStrength: 0,
+    motility: 0,
+    senseRadius: 0,
+    shareEfficiency: 0,
+    toleranceA: 0,
+    toleranceB: 0,
+    plasticity: 0,
+  };
+  for (const key of GENOME_KEYS) {
+    const [lo, hi] = GENOME_BOUNDS[key];
+    g[key] = lo + rng.float() * (hi - lo);
+  }
+  return g;
+}
+
+/**
+ * Kurucu genomlar: çeşitlilik için birbirine yakın ama farklı başlangıçlar.
+ * Tüm popülasyon tek bir genomla başlamaz; aksi halde ilk soylar ayırt edilemez.
+ */
+export function founderGenomes(rng: Rng, count: number): Genome[] {
+  const base: Genome = {
+    bondAffinity: 0.55,
+    bondStrength: 0.45,
+    motility: 0.5,
+    senseRadius: 4.2,
+    shareEfficiency: 0.25,
+    toleranceA: 0.6,
+    toleranceB: 0.6,
+    plasticity: 0.5,
+  };
+  const out: Genome[] = [];
+  for (let i = 0; i < count; i++) {
+    out.push(mutateGenome(base, rng, 0.35, 1.4));
+  }
+  return out;
+}
+
+/** Ortalama genom (soy defteri uyarlanma gözlemi için). */
+export function meanGenome(list: readonly Genome[]): Genome {
+  if (list.length === 0) {
+    return {
+      bondAffinity: 0,
+      bondStrength: 0,
+      motility: 0,
+      senseRadius: 0,
+      shareEfficiency: 0,
+      toleranceA: 0,
+      toleranceB: 0,
+      plasticity: 0,
+    };
+  }
+  const acc = cloneGenome(list[0] as Genome);
+  for (let i = 1; i < list.length; i++) {
+    const g = list[i] as Genome;
+    for (const key of GENOME_KEYS) acc[key] = acc[key] + g[key];
+  }
+  for (const key of GENOME_KEYS) acc[key] = acc[key] / list.length;
+  return acc;
+}
+
+/** Soy etiketi: G1, G2, ... */
+export function lineageLabel(index: number): string {
+  return `G${index + 1}`;
+}
+
+/** Yeni soy kaydı. */
+export function createLineage(
+  id: number,
+  founderOrganismId: number,
+  founderTick: number,
+  genome: Genome,
+): Lineage {
+  return {
+    id,
+    founderOrganismId,
+    founderTick,
+    label: lineageLabel(id),
+    organismIds: [founderOrganismId],
+    meanGenome: cloneGenome(genome),
+  };
+}
+
+/** İki genom arasındaki ortalama mutlak fark (uyarlanma ölçümü). */
+export function genomeDistance(a: Genome, b: Genome): number {
+  let sum = 0;
+  for (const key of GENOME_KEYS) sum += Math.abs(a[key] - b[key]);
+  return sum / GENOME_KEYS.length;
+}
+
+/** Genomun kısa metin özeti (defter ve kanıt paketi için). */
+export function genomeSummary(g: Genome): Record<GenomeKey, number> {
+  const out = {} as Record<GenomeKey, number>;
+  for (const key of GENOME_KEYS) out[key] = Math.round(g[key] * 1000) / 1000;
+  return out;
+}
