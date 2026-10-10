@@ -85,6 +85,44 @@ export function createNeuralState(thetaInherited: Float64Array): NeuralState {
   };
 }
 
+/**
+ * Koşuya özel öğrenme ayarı.
+ *
+ * **Neden var:** `TRAJECTORY_LIMIT` ve `LEARN_RATE` model sabitleriydi ve
+ * yalnız kaynak kodundan değiştirilebiliyordu. Deney motorunun bunları
+ * ölçülebilir bir eksen olarak sürebilmesi gerekiyordu.
+ *
+ * **Varsayılanlar değişmedi.** Verilmediğinde `C.TRAJECTORY_LIMIT` ve
+ * `C.LEARN_RATE` kullanılır; yani oyunun davranışı bu değişiklikten etkilenmez.
+ * Düzenleme yalnız **duyarlılık analizi** (sensitivity analysis) yapabilmek için
+ * yapıldı: "ağırlık hareketinin hangi büyüklükte davranışa yansıdığını"
+ * ölçmek. Ürün sabitleri değişmiş değildir.
+ */
+export interface PolicyTuning {
+  /** Bir gradyan adımı için toplanacak karar sayısı. */
+  trajectoryLimit?: number;
+  /** Gradyan adım büyüklüğü (yörüngenin uzunluğuna bölünür). */
+  learnRate?: number;
+  /**
+   * Avantajları yörünge içinde z-skoruna çevir (ortalama 0, sapma 1).
+   *
+   * Ölçüm gerekçesi (`docs/VALIDATION.md` §4.7–4.9): REINFORCE'ın gradyanı
+   * burada gürültü baskın; 570× büyütmek davranışı kötüleştirdi. Ölçekten
+   * bağımsız bir gradyan, adım büyüklüğünü ayrı ayarlamadan ayarlamaya izin
+   * verir. Varsayılan **kapalı** — oyun davranışı değişmez.
+   */
+  normalizeAdvantage?: boolean;
+  /**
+   * Avantajın yalnız işaretini kullan (`sign(A_t)`).
+   *
+   * Ölçüm gerekçesi: ödülün ölçeği ve dağılımı sorun değil, **yönü** sorun.
+   * İşaret tabanlı güncelleme (evolution-strategies / signSGD geleneği) büyük
+   * pozitif/negatif aykırı değerlerin gradyanı bastırmasını engeller ve
+   * varyansı sert düşürür. Varsayılan **kapalı**.
+   */
+  signAdvantage?: boolean;
+}
+
 export class NeuralPolicy {
   readonly state: NeuralState;
   private readonly trajectory: TrajectoryStep[] = [];
@@ -93,8 +131,17 @@ export class NeuralPolicy {
   /** Yapılan politika güncellemesi sayacı (raporlama). */
   updateCount = 0;
 
-  constructor(thetaInherited: Float64Array) {
+  private readonly trajectoryLimit: number;
+  private readonly learnRate: number;
+  private readonly normalizeAdvantage: boolean;
+  private readonly signAdvantage: boolean;
+
+  constructor(thetaInherited: Float64Array, tuning?: PolicyTuning) {
     this.state = createNeuralState(thetaInherited);
+    this.trajectoryLimit = tuning?.trajectoryLimit ?? C.TRAJECTORY_LIMIT;
+    this.learnRate = tuning?.learnRate ?? C.LEARN_RATE;
+    this.normalizeAdvantage = tuning?.normalizeAdvantage ?? false;
+    this.signAdvantage = tuning?.signAdvantage ?? false;
   }
 
   get trajectoryLength(): number {
@@ -138,8 +185,8 @@ export class NeuralPolicy {
       if (step.obs.length !== MLP_SHAPE.INPUTS) continue;
       this.trajectory.push({ ...step });
     }
-    if (this.trajectory.length > C.TRAJECTORY_LIMIT) {
-      this.trajectory.splice(0, this.trajectory.length - C.TRAJECTORY_LIMIT);
+    if (this.trajectory.length > this.trajectoryLimit) {
+      this.trajectory.splice(0, this.trajectory.length - this.trajectoryLimit);
     }
   }
 
@@ -153,7 +200,7 @@ export class NeuralPolicy {
     const logProb = Math.log(Math.max(1e-12, fwd.probs[action] as number));
 
     this.trajectory.push({ obs, action, logProb, baseline: this.state.baseline, reward: 0 });
-    if (this.trajectory.length > C.TRAJECTORY_LIMIT) {
+    if (this.trajectory.length > this.trajectoryLimit) {
       // Sınır taşarsa en eski adım düşürülür; bu, "küçük ve on-policy" kuralıdır.
       this.trajectory.shift();
     }
@@ -187,8 +234,50 @@ export class NeuralPolicy {
 
   /** Yörünge dolduysa güncelleme yapar. */
   maybeUpdate(learningEnabled: boolean, plasticity: number): UpdateInfo | null {
-    if (this.trajectory.length >= C.TRAJECTORY_LIMIT) return this.update(learningEnabled, plasticity);
+    if (this.trajectory.length >= this.trajectoryLimit) return this.update(learningEnabled, plasticity);
     return null;
+  }
+
+  /**
+   * Avantaj varyansını azaltır.
+   *
+   * Sıralama önemlidir: önce `signAdvantage`, sonra `normalizeAdvantage`.
+   * İşaret tabanlı güncelleme, z-skorlamadan daha güçlü bir müdahaledir
+   * (ölçeği tamamen atar, yalnız sıralamayı korur); ikisi birlikte
+   * istendiğinde z-skorlama işareti bozmaz (z-skorlanmış bir dizinin
+   * işareti, işaretlenmiş dizinin z-skorlanmışına eşittir).
+   *
+   * Sabit sapma (epsilon) bölme, tek adımlık yörüngelerde veya neredeyse
+   * sabit avantajlarda z-skorlamanın NaN üretmesini engeller.
+   */
+  private reduceAdvantageVariance(raw: Float64Array, steps: number): Float64Array {
+    const out = Float64Array.from(raw);
+    if (steps === 0) return out;
+
+    if (this.signAdvantage) {
+      for (let t = 0; t < steps; t++) out[t] = Math.sign(out[t] as number);
+    }
+
+    if (this.normalizeAdvantage) {
+      let mean = 0;
+      for (let t = 0; t < steps; t++) mean += out[t] as number;
+      mean /= steps;
+      let variance = 0;
+      for (let t = 0; t < steps; t++) {
+        const d = (out[t] as number) - mean;
+        variance += d * d;
+      }
+      variance /= steps;
+      const std = Math.sqrt(variance);
+      if (std > 1e-8) {
+        for (let t = 0; t < steps; t++) out[t] = ((out[t] as number) - mean) / std;
+      } else {
+        // Sapma yoksa avantajlar ayrım gücü taşımıyor; gradyanı sıfırlama yerine
+        // merkezlemek, saf gürültüyü adımlamaktan iyidir.
+        for (let t = 0; t < steps; t++) out[t] = (out[t] as number) - mean;
+      }
+    }
+    return out;
   }
 
   /** Ölümde kalan yörüngeyi kapatır ve güncelleme yapar. */
@@ -233,11 +322,23 @@ export class NeuralPolicy {
     const single = createTheta();
     let advantageSum = 0;
     let signCount = 0;
+
+    // Ham avantajlar önce toplanır; varyans azaltma dönüşümü sonra uygulanır.
+    // Dönüşüm uygulanmadan önce "ortalama avantaj" **ham** avantajların ortalaması
+    // olarak raporlanır — aksi halde raporlanan değer dönüşümün artefaktı olurdu.
+    const rawAdvantages = new Float64Array(steps);
     for (let t = 0; t < steps; t++) {
       const step = this.trajectory[t] as TrajectoryStep;
-      const advantage = (returns[t] as number) - step.baseline;
-      advantageSum += advantage;
-      if (advantage > 0) signCount++;
+      rawAdvantages[t] = (returns[t] as number) - step.baseline;
+      advantageSum += rawAdvantages[t] as number;
+      if ((rawAdvantages[t] as number) > 0) signCount++;
+    }
+
+    const advantages = this.reduceAdvantageVariance(rawAdvantages, steps);
+
+    for (let t = 0; t < steps; t++) {
+      const step = this.trajectory[t] as TrajectoryStep;
+      const advantage = advantages[t] as number;
       // L = -sum(A_t * log pi). Gradyan: -A_t * d log pi / d theta
       logProbAndGrad(this.state.thetaLive, step.obs, step.action, single);
       for (let p = 0; p < MLP_SHAPE.PARAM_COUNT; p++) {
@@ -247,7 +348,7 @@ export class NeuralPolicy {
 
     // 3) Gradyan normu sınırla + ortalama
     const gradNorm = clipGradNorm(totalGrad, C.GRAD_CLIP);
-    const scale = (C.LEARN_RATE * (0.25 + 0.75 * plasticity)) / steps;
+    const scale = (this.learnRate * (0.25 + 0.75 * plasticity)) / steps;
     let anyNaN = false;
     for (let p = 0; p < MLP_SHAPE.PARAM_COUNT; p++) {
       const delta = (totalGrad[p] as number) * scale;

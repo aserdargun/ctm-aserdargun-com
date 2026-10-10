@@ -1,0 +1,326 @@
+/**
+ * Cell to Mind — deney koşucusu (headless).
+ *
+ * Kullanım:
+ *   npm run experiments           # tam paket (ağır)
+ *   npm run experiments -- --quick # hızlı duman testi (küçük n)
+ *   npm run experiments -- --out docs/EXPERIMENTS.md
+ *
+ * Bu betik tarayıcıda değil, Node'da koşar. Gerekçe:
+ * `docs/VALIDATION.md` §6.8 çapraz cihaz determinizminin **test edilmediğini**
+ * söyler; tarayıcıda tohumlu istatistik kirletilir. Aynı ölçüm mimarisi
+ * `VALIDATION.md` §2–3'te zaten `vite-node` ile alınmıştır — burada da aynı
+ * yol kullanılır.
+ *
+ * Çıktı: okunabilir rapor (stdout) + istenirse Markdown dosyası.
+ * Bu çıktının **ham koşu değerleri** de dosyaya yazılır; hiçbir koşu
+ * düşürülmez (JMLR 2024).
+ */
+
+import { writeFileSync } from 'node:fs';
+import {
+  calibrateArena,
+  experiment1,
+  experiment2,
+  experiment3,
+  formatDifficulty,
+  evolvePolicy,
+  formatEvolution,
+  formatExperiment,
+  formatInvariant,
+  formatLearningSweep,
+  formatPolicySurvey,
+  formatSignalSweep,
+  formatRewardSignal,
+  formatSignStep,
+  formatVarianceSweep,
+  runInvariants,
+  surveyPolicySpace,
+  sweepLearning,
+  sweepLearningSignal,
+  measureRewardSignal,
+  sweepSignStep,
+  sweepVarianceReduction,
+  type ExperimentReport,
+} from '../src/sim/experiments/index.ts';
+import { fmt } from '../src/sim/stats.ts';
+
+interface Args {
+  quick: boolean;
+  out: string | null;
+}
+
+function parseArgs(argv: readonly string[]): Args {
+  let quick = false;
+  let out: string | null = null;
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === '--quick') quick = true;
+    else if (a === '--out') out = argv[++i] ?? null;
+  }
+  return { quick, out };
+}
+
+function reportBlock(report: ExperimentReport, rawValues: boolean): string {
+  const lines: string[] = [formatExperiment(report)];
+  if (rawValues) {
+    lines.push(`   kontrol ham : [${report.control.values.map((v) => fmt(v, 4)).join(', ')}]`);
+    lines.push(`   tedavi ham  : [${report.treatment.values.map((v) => fmt(v, 4)).join(', ')}]`);
+  }
+  return lines.join('\n');
+}
+
+function main(): void {
+  const args = parseArgs(process.argv.slice(2));
+  const started = Date.now();
+
+  const scale = args.quick
+    ? { seeds: 3, colonyTicks: 600, trainTicks: 900, evalTicks: 600, resourceCount: 14 }
+    : { seeds: 20, colonyTicks: 4000, trainTicks: 6000, evalTicks: 4000, resourceCount: 14 };
+
+  process.stdout.write(`Cell to Mind · deney paketi ${args.quick ? '(HIZLI TEST)' : '(tam)'}\n\n`);
+  process.stdout.write(`1/7  değişmez kontroller…\n`);
+  const invariants = runInvariants();
+  process.stdout.write(`${formatInvariant(invariants)}\n\n`);
+
+  process.stdout.write(`2/7  arena zorluk kalibrasyonu…\n`);
+  const difficulty = calibrateArena({
+    seeds: args.quick ? 3 : 8,
+    ticks: args.quick ? 600 : 4000,
+    resourceCounts: args.quick ? [8, 34] : [4, 8, 14, 22, 34],
+  });
+  process.stdout.write(`${formatDifficulty(difficulty)}\n\n`);
+
+  process.stdout.write(`3/7  Deney 1 · bağ gücü…\n`);
+  const exp1 = experiment1({ seeds: args.quick ? 3 : 12, ticks: scale.colonyTicks });
+
+  process.stdout.write(`4/7  Deney 2 · evrim…\n`);
+  const exp2 = experiment2({ seeds: args.quick ? 3 : 12, ticks: scale.colonyTicks });
+
+  process.stdout.write(`5/7  Deney 3 · öğrenme…\n`);
+  const exp3 = experiment3({
+    seeds: args.quick ? 3 : scale.seeds,
+    trainTicks: scale.trainTicks,
+    evalTicks: scale.evalTicks,
+    resourceCount: scale.resourceCount,
+  });
+
+  process.stdout.write(`\n6/7  öğrenme · zorluk taraması (önceden kaydedilmiş eksen)…\n`);
+  const sweep = args.quick
+    ? sweepLearning({ resourceCounts: [8, 34], seeds: 3, trainTicks: 900, evalTicks: 600 })
+    : sweepLearning({
+        resourceCounts: [4, 8, 14, 22, 34],
+        seeds: 12,
+        trainTicks: 6000,
+        evalTicks: 4000,
+      });
+  process.stdout.write(`${formatLearningSweep(sweep)}\n`);
+
+  process.stdout.write(`\n7/7  öğrenme sinyali duyarlılığı (ağırlık hareketi ne zaman davranışa yansır)…\n`);
+  const signal = args.quick
+    ? sweepLearningSignal({ trajectoryLimits: [16], learnRates: [0.02, 0.5], seeds: 2, trainTicks: 900, evalTicks: 600 })
+    : sweepLearningSignal({
+        trajectoryLimits: [64, 16, 8],
+        learnRates: [0.02, 0.1, 0.5],
+        seeds: 8,
+        trainTicks: 6000,
+        evalTicks: 4000,
+      });
+  process.stdout.write(`${formatSignalSweep(signal)}\n`);
+
+  process.stdout.write(`\n8/8  politika uzayı araştırması (öğrenmenin üst sınırı)…\n`);
+  const survey = args.quick
+    ? surveyPolicySpace({ resourceCount: 14, samples: 12, ticks: 600 })
+    : surveyPolicySpace({ resourceCount: 14, samples: 160, ticks: 4000 });
+  process.stdout.write(`${formatPolicySurvey(survey)}\n`);
+
+  process.stdout.write(`\n9/9  evrimsel politika araması (RL ile aynı ölçüm, ayrık tohumlar)…\n`);
+  const evolution = args.quick
+    ? evolvePolicy({ generations: 5, population: 6, offspring: 2, trainSeeds: 2, trainTicks: 1500, evalTicks: 1500 })
+    : evolvePolicy({
+        generations: 12,
+        population: 8,
+        offspring: 3,
+        trainSeeds: 6,
+        trainTicks: 3000,
+        evalTicks: 3000,
+      });
+  process.stdout.write(`${formatEvolution(evolution)}\n`);
+
+  process.stdout.write(`\n10/10 S-1 varyans azaltma (VARSAYILAN adım ayarlarında)…\n`);
+  const variance = args.quick
+    ? sweepVarianceReduction({ seeds: 3, trainTicks: 900, evalTicks: 600 })
+    : sweepVarianceReduction({ seeds: 20, trainTicks: 6000, evalTicks: 4000 });
+  process.stdout.write(`${formatVarianceSweep(variance)}\n`);
+
+  process.stdout.write(`\n11/11 S-1b · işaret avantajı + ölçülü adım artışı…\n`);
+  const signStep = args.quick
+    ? sweepSignStep({ learnRates: [0.02, 0.5], seeds: 3, trainTicks: 900, evalTicks: 600 })
+    : sweepSignStep({ learnRates: [0.02, 0.1, 0.5, 2.0], seeds: 20, trainTicks: 6000, evalTicks: 4000 });
+  process.stdout.write(`${formatSignStep(signStep)}\n`);
+
+  process.stdout.write(`\n12/12 S-2 teşhisi · ödül sinyali politikanın kararlarına bağlı mı?\n`);
+  const rewardSignal = args.quick
+    ? measureRewardSignal({ samples: 10, seedsPerSample: 1, ticks: 900 })
+    : measureRewardSignal({ samples: 48, seedsPerSample: 2, ticks: 4000 });
+  process.stdout.write(`${formatRewardSignal(rewardSignal)}\n`);
+
+  const elapsed = Date.now() - started;
+  const totalRuns =
+    exp1.weak.length + exp1.strong.length + exp2.frozen.length + exp2.evolving.length +
+    exp3.train.length * 5 +
+    sweep.length * 5 * (args.quick ? 3 : 12) +
+    signal.length * 4 * (args.quick ? 2 : 8) +
+    survey.sampled +
+    variance.length * 5 * (args.quick ? 3 : 20) +
+    signStep.length * 5 * (args.quick ? 3 : 20) +
+    rewardSignal.samples * rewardSignal.seedsPerSample +
+    (args.quick
+      ? 0
+      : evolution.generations * evolution.population * (evolution.offspringPerParent + 1) * 6 + evolution.population * 4);
+
+  const body = [
+    formatExperiment(exp1.report),
+    '',
+    formatExperiment(exp2.report),
+    '',
+    formatExperiment(exp3.report),
+  ].join('\n');
+
+  process.stdout.write(`\n${body}\n\n`);
+  process.stdout.write(`toplam koşu: ${totalRuns} · süre: ${(elapsed / 1000).toFixed(1)} s\n`);
+
+  if (args.out) {
+    const md = [
+      '# Cell to Mind — Deney Sonuçları',
+      '',
+      `**Körüldü:** ${new Date().toISOString()}`,
+      `**Toplam koşu:** ${totalRuns} · **duvar süresi:** ${(elapsed / 1000).toFixed(1)} s`,
+      `**Mod:** ${args.quick ? 'hızlı test' : 'tam'}`,
+      '',
+      '> Bu dosya `npm run experiments` ile üretilir. Sayılar ölçülmüştür;',
+      '> hiçbir koşu düşürülmemiştir. Ham koşu değerleri aşağıdadır.',
+      '',
+      '## Değişmez kontroller',
+      '',
+      '```',
+      formatInvariant(invariants),
+      '```',
+      '',
+      '## Arena zorluk kalibrasyonu (headroom)',
+      '',
+      'Öğrenme deneyi ancak rastgele politika tam performans almadığında bilgi taşır.',
+      'Kaynak sayısı arttıkça kontrol kolusunun skoru tırmanır ve ölçüm tavana yapışır.',
+      '',
+      '```',
+      formatDifficulty(difficulty),
+      '```',
+      '',
+      '## Öğrenme · zorluk taraması',
+      '',
+      'Varsayılan habitatta (34 kaynak) ölçüm headroom u yalnız 0.072 olduğu için',
+      'deney ölçemiyordu. Aşağıdaki tarama, **önceden kaydedilmiş** zorluk ekseninde',
+      'tam protokolü koşar: her noktada ayrık eğitim/değerlendirme tohumları,',
+      'eşleştirilmiş fark ve bootstrap güven aralığı vardır. Tüm eğri raporlanır —',
+      'yalnız elverişli nokta seçilmez.',
+      '',
+      '```',
+      formatLearningSweep(sweep),
+      '```',
+      '',
+      '## Öğrenme sinyali duyarlılığı',
+      '',
+      '§4.5 teşhisinin doğrulaması: davranış etkisizliği ağır görevden mi yoksa',
+      'çok küçük ağırlık hareketinden mi kaynaklanıyor? Model sabitleri',
+      '**değiştirilmez** — bu bir duyarlılık analizidir, ürün kararı değildir.',
+      'Oyun her zaman varsayılan sabitlerle çalışır.',
+      '',
+      '```',
+      formatSignalSweep(signal),
+      '```',
+      '',
+      '## Politika uzayı araştırması (öğrenmenin üst sınırı)',
+      '',
+      '"Öğrenme işe yaramıyor" iki şeyden olabilir: politika öğrenemiyor, ya da',
+      'politika sınıfı zaten tıkanmış. Rastgele (eğitimsiz) politikaların skor',
+      'dağılımı ikisini ayırır: yayılım varsa öğrenilecek bir davranış vardır.',
+      '',
+      '```',
+      formatPolicySurvey(survey),
+      '```',
+      '',
+      '## Evrimsel politika araması — RL ile aynı ölçüm',
+      '',
+      'Ayırıcı soru: politika sınıfındaki 0.118\'lik açıklığı **arama** bulabiliyor mu?',
+      'Bulabiliyorsa RL\'in kusuru kanıtlanmış olur; bulamıyorsa görev zordur.',
+      'Aynı arena, aynı ölçüm, aynı tohum ayrımı — tek fark arama yöntemi.',
+      '',
+      '```',
+      formatEvolution(evolution),
+      '```',
+      '',
+      '## S-1 · Varyans azaltma (varsayılan adım ayarlarında)',
+      '',
+      'Önceden kaydedilmiş hipotez: darboğaz ölçek değil **varyans**; avantaj',
+      'dönüşümü (z-skor / işaret) gradyanın sinyal/gürültü oranını artırır.',
+      'Tarama `TRAJECTORY_LIMIT` ve `LEARN_RATE` değerlerini **varsayılanlarda',
+      'tutar** (64 / 0.02) — §4.7 bölümünde adımı büyütmenin kötüleştirdiği',
+      'ölçüldüğü için S-1 en zor koşulda sınanır.',
+      '',
+      '**Başarı ölçütü (önceden kaydedildi):** en az bir varyantta farkın güven',
+      'aralığı sıfırdan ayrışmalı (p < 0.05) ve iyileşme olasılığı > %80 olmalı.',
+      '',
+      '```',
+      formatVarianceSweep(variance),
+      '```',
+      '',
+      '## S-1b · İşaret avantajı + ölçülü adım artışı',
+      '',
+      '§4.7 büyük adımı **dönüşümsüz**, §4.10 dönüşümü tek başına denedi.',
+      'Bileşimi listede açık olarak yazılıydı ve denenmemişti. İşaret avantajı',
+      'gradyan büyüklüğünü sınırladığı için büyük adımın gürültüyü değil sinyali',
+      'ölçeklemesi beklenir.',
+      '',
+      '**Başarı ölçütü (S-1 ile aynı eşik):** en az bir noktada p < 0.05 ve',
+      'iyileşme olasılığı > %80.',
+      '',
+      '```',
+      formatSignStep(signStep),
+      '```',
+      '',
+      '## S-2 teşhisi · Ödül sinyali',
+      '',
+      'Buraya kadar yalnızca *sonuçlar* ölçüldü (politika daha mı iyi davranıyor).',
+      'Öğrenmenin çalışıp çalışmadığını belirleyen şey **sinyalin kendisidir**:',
+      'ödül, politikanın kararlarına duyarlı mı?',
+      '',
+      '**Yorum kuralı önceden yazıldı:** pay < %5 → pratikte sabit sinyal, hiçbir',
+      'optimizer çalışamaz; %5–%20 → zayıf; ≥ %20 → sinyal var, sorun optimizer tarafındadır.',
+      '',
+      '```',
+      formatRewardSignal(rewardSignal),
+      '```',
+      '',
+      ...[exp1.report, exp2.report, exp3.report].flatMap((r) => [
+        `## ${r.title}`,
+        '',
+        `**Soru:** ${r.question}`,
+        '',
+        `**Protokol (sonuçtan önce sabitlendi):** ${r.protocol}`,
+        '',
+        '```',
+        reportBlock(r, true),
+        '```',
+        '',
+        '**Notlar:**',
+        '',
+        ...r.notes.map((n) => `- ${n}`),
+        '',
+      ]),
+    ].join('\n');
+    writeFileSync(args.out, md, 'utf8');
+    process.stdout.write(`rapor yazıldı: ${args.out}\n`);
+  }
+}
+
+main();

@@ -34,8 +34,10 @@ Anahtar yoksa uygulama **çalışır** ve gözlemci panelinde dürüstçe
 | `npm run dev` | Geliştirme sunucusu (port 5183) |
 | `npm run build` | Tip denetimi + üretim derlemesi |
 | `npm run preview` | Üretim çıktısını sunar (port 4173) |
-| `npm test` | Vitest — 36 test |
+| `npm test` | Vitest — 112 test |
 | `npm run typecheck` | `tsc --noEmit` |
+| `npm run experiments` | Deney paketini headless koşar (4.128 simülasyon) → `docs/EXPERIMENTS.md` |
+| `npm run experiments:quick` | Deney paketinin duman testi (~2 sn) |
 | `npm run assets:build` | Blender 5.1.1 ile varlıkları yeniden üretir |
 | `npm run server` | Gözlemci sunucu rotası |
 
@@ -74,8 +76,22 @@ baskısını değiştirip sonucu izler; bir canlıyı ve soyunu takip eder.
 | Algı/temsil/hafıza/dünya modeli yönü | Algı modülü gerçek; V1/V2 planı | ⚠️ kısmen (bkz. PROGRESS) |
 | Dil/görsel model gözlemcisi | Kanıt paketi + yerel özet + sunucu rotası | ⚠️ yerel tam, canlı model doğrulanmadı |
 
-**Üç deneyin motoru yazılmadı.** Panel düğmeleri var, sonuç alanı "henüz
-gözlenmedi" diyor. Ayrıntı: `docs/PROGRESS.md`.
+**Deney paketi yazıldı ve koşuyor.** `npm run experiments` 4.128 simülasyonu
+headless koşturur; sonuçlar `docs/EXPERIMENTS.md` içinde ham koşu değerleriyle
+durur.
+
+| Deney | Sonuç |
+|---|---|
+| Bağ gücü → koloni büyüklüğü | ✅ **2.33 → 21.25**, p < 0.0001, %100 iyileşme |
+| Mutasyon + seçilim → uyarlanma | ⚪ sonuçsuz (p = 0.097), 3 nesle yetmiyor |
+| Yaşam içi öğrenme → davranış | ❌ **etki yok** (p = 0.333) |
+| Evrimsel politika araması (kontrol) | ✅ **+0.161** görülmemiş dünyalarda |
+
+Son satır önemli: aynı ölçümde evrimsel arama +0.161 kazancı bulurken
+REINFORCE +0.020 (gürültü) buluyor. Darboğaz görevde değil, **öğrenme
+algoritmasında.** Tam teşhis zinciri: `docs/VALIDATION.md` §4.5–4.9.
+
+Ayrıntı ve sonraki seçenekler: `docs/PROGRESS.md` §3.
 
 ---
 
@@ -84,7 +100,12 @@ gözlenmedi" diyor. Ayrıntı: `docs/PROGRESS.md`.
 - **Bilinç veya genel zekâ üretilmiyor.** Organizmaların içindeki ağ soyut bir
   hesaplama modelidir; fiziksel hücrelerle aynı şey değildir.
 - **Görsel/grafik başarısı için sahte sayı veya ekran görüntüsü yok.**
-- **Eksik doğrulamalar gizlenmedi.** `docs/VALIDATION.md` §6'da açıkça listelendi.
+- **Eksik doğrulamalar gizlenmedi.** `docs/VALIDATION.md` §7'de açıkça listelendi.
+- **Öğrenmenin işe yaradığı iddia edilmiyor.** Mekanizma çalışıyor ve
+  gradyanı doğrulanmış, ama ölçülebilir bir davranış etkisi **bulunamadı**
+  (`VALIDATION.md` §4.5). Nedeni dört bağımsız ölçümle saptandı (§4.5–4.9):
+  ne güncelleme sıklığı, ne habitat zorluğu, ne politika sınıfı — aynı ölçümde
+  evrimsel arama +0.161 kazandığı için darboğaz REINFORCE'un kendisinde.
 - **Canlı LLM/VLM çağrısı yapılmadı** (anahtar yoktu). Uyarlayıcı yapılandırılmış
   bir varsayımdır.
 
@@ -147,7 +168,10 @@ indirilmez (`docs/ASSETS.md`).
 | Dosya | İçerik |
 |---|---|
 | `docs/MODEL.md` | Simülasyonun ne yaptığı, tüm formüller, işletimsel tanımlar |
-| `docs/VALIDATION.md` | Gerçek test sonuçları **ve doğrulanmayanlar** |
+| `docs/VALIDATION.md` | Gerçek test sonuçları, **deney sonuçları** ve doğrulanmayanlar |
+| `docs/EXPERIMENTS.md` | `npm run experiments` çıktısı — ham koşu değerleriyle (üretilmiş) |
 | `docs/PROGRESS.md` | Ne yapıldı, ne eksik, sonraki adım |
+| `docs/LITERATURE.md` | Tasarım kararlarını dayandıran literatür haritası (~45 okunmuş kaynak) |
+| `docs/ROADMAP.md` | 5 fazlı geliştirme yol planı ve yapılmayacaklar listesi |
 | `docs/ASSETS.md` | Varlık üretimi ve lisans kaydı |
 | `CELL_TO_MIND_GELISTIRME_PLANI.md` | Uygulama planı ve teknoloji kararları |

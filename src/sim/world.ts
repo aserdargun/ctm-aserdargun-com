@@ -68,6 +68,27 @@ export interface WorldOptions {
   currentStrength?: number;
   selectionPressure?: number;
   learningEnabled?: boolean;
+  /**
+   * Duyarlılık analizi kancası: bir gradyan adımı için toplanacak karar
+   * sayısı. Verilmezse `C.TRAJECTORY_LIMIT` kullanılır. Ürün davranışı
+   * değişmez; yalnız deney motoru bu ekseni ölçebilir.
+   */
+  trajectoryLimit?: number;
+  /**
+   * Duyarlılık analizi kancası: gradyan adım büyüklüğü. Verilmezse
+   * `C.LEARN_RATE` kullanılır. Ürün davranışı değişmez.
+   */
+  learnRate?: number;
+  /**
+   * Duyarlılık analizi kancası: avantajları z-skoruna çevir. Varsayılan **kapalı**.
+   * Bkz. `VALIDATION.md` §4.7–4.9. Ürün davranışı değişmez.
+   */
+  normalizeAdvantage?: boolean;
+  /**
+   * Duyarlılık analizi kancası: avantajın yalnız işaretini kullan. Varsayılan
+   * **kapalı**. Bkz. `VALIDATION.md` §4.7–4.9. Ürün davranışı değişmez.
+   */
+  signAdvantage?: boolean;
   bondsEnabled?: boolean;
   /** Deney kısıtları. */
   growthEnabled?: boolean;
@@ -146,7 +167,26 @@ export class World {
    */
   private aliveOrderCache: number[] | null = null;
 
+  /**
+   * Duyarlılık analizi kancaları. Verilmezse `undefined` kalır ve her
+   * `NeuralPolicy` model sabitlerini kullanır — yani oyunun davranışı
+   * etkilenmez. Yalnız deney motoru bunları doldurur.
+   */
+  private readonly policyTuning: {
+    trajectoryLimit?: number;
+    learnRate?: number;
+    normalizeAdvantage?: boolean;
+    signAdvantage?: boolean;
+  };
+
   constructor(options: WorldOptions) {
+    this.rng = new RngBundle(options.seed);
+    this.policyTuning = {
+      ...(options.trajectoryLimit === undefined ? {} : { trajectoryLimit: options.trajectoryLimit }),
+      ...(options.learnRate === undefined ? {} : { learnRate: options.learnRate }),
+      ...(options.normalizeAdvantage === undefined ? {} : { normalizeAdvantage: options.normalizeAdvantage }),
+      ...(options.signAdvantage === undefined ? {} : { signAdvantage: options.signAdvantage }),
+    };
     this.rng = new RngBundle(options.seed);
     const size = options.size ?? DEFAULT_SIZE;
     this.settings = {
@@ -311,7 +351,7 @@ export class World {
     const id = this.nextOrganismId++;
     const rng = this.rng;
     const theta = initTheta(() => rng.inherit.float());
-    const policy = new NeuralPolicy(theta);
+    const policy = new NeuralPolicy(theta, this.policyTuning);
     const org: Organism = {
       id,
       lineageId: 0,
