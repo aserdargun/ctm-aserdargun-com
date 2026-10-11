@@ -1264,18 +1264,28 @@ Chromium'da `vite preview` (port 4188) üzerinden doğrulandı:
 |---|---|
 | Uygulama açılıyor, WebGL2 sahne kuruluyor | ✅ |
 | Worker modülü yükleniyor, dünya başlıyor | ✅ |
-| HUD türkçe, tick artıyor | ✅ tick 374'te ölçüldü |
-| Canlı listesi doluyor, 59 organizma listeleniyor | ✅ |
-| **Çok hücreli organizmalar listede görünüyor** (`#7 → 2 hücre`, `#9 → 2 hücre`, …) | ✅ |
-| **Muhasebe farkı ≈ 0.004 e** (ölçüm sonrası −0.001…0.004) | ✅ |
+| HUD türkçe, tick artıyor | ✅ tick 278 ölçüldü |
+| Canlı listesi doluyor | ✅ 59 organizma |
+| **Çok hücreli organizmalar listede** (`#7 → 4 hücre`, `#23 → 3`, `#31 → 3`, `#33 → 3`) | ✅ |
+| **Muhasebe farkı** | ✅ 0,004 e |
 | Kayalar, kaynak düğümleri, besin alanı küreleri, avcı, ışık huzmeleri, deniz karı çiziliyor | ✅ |
-| Boş hücre listesi / konsol hatası yok | ✅ |
+| **Konsol hatası yok** | ✅ 0 hata |
+| **"Dal oluştur" butonu çalışıyor** | ✅ "Dal oluşturuldu" bildirimi |
+| Dal sonrası simülasyon kesintisiz sürüyor | ✅ tick 474 → 765 |
 
-Tarayıcıda doğrulanmayanlar: mikroskop panelinin etkileşimi, dal oluşturma,
-JSON içe/dışa aktarma, IndexedDB kayıt/yükleme, gözlemci panelinin model
-çağrısı. Bunlar **test edilmedi** (§9).
+### 7.1 `branch` yolu uçtan uca doğrulandı
 
----
+Bu, §6.8'de bulunan ve düzeltilen `fromState` hatasının **gerçek üründe**
+çalıştığının kanıtıdır. Üç regresyon testi yeşil olmak yetmezdi; buton
+tıklandı ve davranış tarayıcıda gözlemlendi.
+
+Tarayıcı doğrulaması sırasında bulunan ikinci küçük kusur: `/favicon.ico`
+404'ü (konsoldaki tek hata). `index.html`'e gömülü SVG favicon eklendi; istek
+başına dosya okunmuyor ve konsol **tamamen temiz**.
+
+Tarayıcıda doğrulanmayanlar: mikroskop panelinin etkileşimi, JSON içe/dışa
+aktarma, IndexedDB kaydet/yükle, gözlemci panelinin model çağrısı. Bunlar
+**test edilmedi** (§9).
 
 ## 8. Gözlemci sunucusu
 
@@ -1357,6 +1367,8 @@ Bunlar testlerin bulduğu, düzeltildiği ve **yeniden test edildiği** hatalard
 | 11 | `probabilityOfImprovement` **merkezlenmiş** veriden hesaplanıyordu | Her koşuda ≈ 0.5 dönüyor, hiçbir bilgi taşımıyordu | İkinci bir yeniden örnekleme geçişi merkezlenmemiş veriye ayrıldı |
 | 12 | Deney altyapısı `vite-node`'u paket içinden değil `npx` üzerinden çözüyordu | `npm run experiments` → `vite-node: command not found` | `vite-node@6.0.0` devDependency olarak sabit sürümle eklendi |
 | 13 | Deney betiği `node` ile çalışmıyordu | `ring.ts` parametre özelliği kullanıyor; Node'un strip-only modu desteklemiyor | `vite-node` beyan edildi (bkz. #12) |
+| 21 | Tarayıcı konsolunda `/favicon.ico` **404** veriyordu | Tek konsol hatasıydı; sekme ikonu kırıktı. `index.html`'e gömülü SVG favicon eklendi, istek başına dosya okunmuyor | `index.html` |
+| 20 | Dal testi **iki dalı** karşılaştırıyordu | İkisi de ilerlediği için enerjileri zaten değişir → yanlış "çapraz karışma" raporlanıyordu. Doğrusu üçüncü bir referans dal; ayrıca referans dal ilk döngüde ilerletilmemişti | `verifyBranchIndependence` |
 | 19 | Belge sayıları **raporun üretmediği koşulardan** alınmıştı | §5.11'in bud sayıları 112/169 derken rapor 110/144 diyordu: sayılar daha ince örnekleme (2000 tick) ile ad-hoc koşulmuş bir versiyondan gelmişti. Bağımsız denetim yakaladı; tümü `docs/EXPERIMENTS-DEEP.md`ye hizalandı |
 | 18 | Enerji rezidülü **formülünde `externalInput` işareti tersti** | Doğru denklem `current + dissipated = initialTotal + externalInput`. Yazdığım `initialTotal − current − externalInput − dissipated` **20+ deneyde görünmedi**, çünkü `DEFAULT_REGEN = 0` olduğu için `externalInput` hep 0'dı. Rejenerasyon açılınca −26.958 e sahte ihlal göründü. Üç dosyada düzeltildi, regresyon testi eklendi (§5.17) |
 | 17 | Kümülatif doğumun yataylaması **"doygunluk"** sanıldı | Yataylama, doğumların **durduğu** anlamına gelir; popülasyon doygunluğa değil **çöküşe** gidiyordu (166 → 41). İki ölçüm birlikte okunmalıydı (§5.11) |
