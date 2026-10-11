@@ -14,7 +14,7 @@ Bu raporda **yalnızca gerçekten çalıştırılan** kontroller yer alır.
 
 ```
 Test Files  4 passed (4)
-     Tests  126 passed (126)
+     Tests  137 passed (137)
 ```
 
 ### 1.1 MLP sayısal doğruluğu (`tests/mlp.test.ts`, 14 test)
@@ -78,7 +78,7 @@ Test Files  4 passed (4)
 | **Eşleştirilmiş fark aralığı, ayrı kol aralıklarından daha dar** | ✅ |
 | `mean(differences) == mean(treatment) − mean(control)` | ✅ |
 
-### 1.4 Deney altyapısı (`tests/experiments.test.ts`, 62 test)
+### 1.4 Deney altyapısı (`tests/experiments.test.ts`, 71 test)
 
 Bunlar kütüphaneyi değil **deney yükünün doğruluğunu** doğrular. Yanlış çalışan
 bir deney kodu, yanlış sayılar üretir ve bu rapor yanıltıcı hâle gelir.
@@ -147,7 +147,7 @@ Headless ölçüm (`vite-node`), 48 kurucu organizma, standart habitat:
 
 Bu, 1× hızda (20 tick/sn) saniyede ~8–11 ms CPU demektir; 60 FPS bütçesinde
 anlamlı bir pay bırakır. 256 hücrelik standart kapasitede 60 FPS **hedef**
-olarak konuldu; tarayıcıda kare hızı ölçülmedi (bkz. §8 açık doğrulamalar).
+olarak konuldu; tarayıcıda kare hızı ölçülmedi (bkz. §9 açık doğrulamalar).
 
 Optimizasyon notu: yaşayan organizma sırası önbelleklendi, uzamsal ızgara
 3.2 → 1.2 mb sıklaştırıldı. Bu iki değişiklik birlikte ~0.76 → ~0.38 ms/tick
@@ -160,7 +160,7 @@ Deney paketinin tam koşumu **108 simülasyon, 84.4 saniye** sürdü (bkz. §4).
 ## 4. Deney paketi — gerçekten koşuldu
 
 **Komut:** `npm run experiments` (headless, `vite-node`)
-**Kapsam:** 76.159 simülasyon · 506 sn (standart pencere) · 5 değişmez kontrol ·
+**Kapsam:** 1.920 simülasyon · 516.6 sn (standart pencere)n (standart pencere) · 5 değişmez kontrol ·
 3 deney + kalibrasyon + 5 tarama + ödül teşhisi + evrimsel karşılaştırma +
 Faz B teşhisleri (sönümlenme, üreme tıkanması, uzun vadeli dayanıklılık,
 kaynak rejenerasyonu)
@@ -1084,7 +1084,101 @@ B3 (somatik mutasyon) için önkoşul hâlâ: yeterli üreme çevrimi. Ancak bu 
 sebep "nesil derinliği yok" değil, **avcının popülasyonu düzenlemesi**.
 
 
-## 6. Tarayıcı akışı — gerçekten yapıldı
+## 6. Popülasyon-ES — seçilen öğrenme yönünün testi
+
+**Komut:** `npm run experiments` · `src/sim/experiments/ecology.ts` · `src/sim/world.ts`
+
+### 6.1 Neden bu yöntem
+
+§4.12–4.13'ün kızdığı teşhis şuydu: **ödül sinyali sağlam** (epimizik toplam
+performansla r = 0.70, toplam varyansın %97.9'u politika farklarından), **ama
+REINFORCE onu kullanamıyor** çünkü 64 adımlık yörüngeye yayarken bilgi
+kaybediyor. Evrimsel arama ise yalnızca epimizik toplamı kullandığı için aynı
+görevde +0.161 buldu.
+
+Popülasyon-ES aynı ilkeyi **yaşam içinde** uygulamayı dener: birey kendi
+ağırlıklarını doğrudan değiştirmez, onun yerine *son dönem getiri hızı*
+popülasyondaki eşitlerine göre sıralandığına göre ağırlıklarının
+**getiriye ağırlıklı popülasyon ortalamasına** doğru çekilir. Adım-içi kredi
+ataması hiç yapılmaz.
+
+Kanca `populationUpdate` **varsayılan kapalıdır**; 137 test ürün davranışının
+değişmediğini doğruluyor.
+
+### 6.2 Tasarım
+
+- **REINFORCE her iki kolda da kapalı.** Ölçülen fark yalnız popülasyon-ES'in.
+- **Eşleştirilmiş:** aynı tohum, iki kol.
+- **Birincil ölçüm — ödül hızı** (`lifetimeReward / yaş`). Kümülatif ödül
+  kullanılmaz: o ölçüt yaşamayı ödüllendirir ve §5.9'daki hatanın aynısıdır.
+- Güncelleme her 500 tick'te, `η = 0.06 × (0.25 + 0.75 × plastisite)` ile.
+
+### 6.3 Sonuç — **başarısız**
+
+8 eşleştirilmiş tohum, 20.000 tick, 12 kaynaklı habitat (rejenerasyon 0.002):
+
+| | Ödül hızı (e/tick) | Ort. enerji | Popülasyon | En büyük küme |
+|---|---|---|---|---|
+| Kontrol (yok) | 0.32958 | 0.304 | 89.4 | 2 |
+| Tedavi (var) | 0.32808 | 0.318 | 90.0 | 2 |
+
+**Eşleştirilmiş fark: −0.00150 [−0.00430, +0.00174], p = 0.339,
+iyileşme olasılığı %16.5.** Uygulanan güncelleme: 40.
+Önceden kaydedilen ölçüt (güven aralığı sıfırdan ayrışmalı) **karşılanmadı.**
+
+### 6.4 Neden? — iki açıklama, bir ölçümle ayrıldı
+
+Başarısızlığın iki açıklaması vardı:
+
+- **(a)** Paylaşılan dünyada bireylerin getirileri ayrışmaz (konum şansı baskın),
+  dolayısıyla ağırlıklandırma anlamsızlaşır.
+- **(b)** Sinyal vardır ama **ortalama alma** onu harcamaz: popülasyon mevcut
+  ortalamasına yakınsar ve ortalama, ortalamanın en iyisini bulamaz.
+
+| Ölçüm | Değişim katsayısı |
+|---|---|
+| Paylaşılan dünyada bireyler arası | **%9.0** |
+| Bağımsız dünyalar arasında | %7.4 |
+
+**Paylaşılan dünya sinyali silmiyor** — hatta yayılım bağımsız dünyalardan
+*daha yüksek* (1.22×). **(a) yanlıştır.**
+
+### 6.5 Doğru teşhis: formülasyonum bir arama yöntemi değil
+
+Uyguladığım güncelleme **anti-drift** mekanizmasıdır: kötüye giden bireyi iyi
+eşitlerine çeker, çeşitliliği azaltır, **korur**. Arama yapmaz.
+
+Bunu bir evrimsel strateji (ES) olarak adlandırmam hataydı. Gerçek ES şunu
+yapar:
+1. θ etrafında **pertürbasyonlar** üretir,
+2. her birini **ayrı ortamda** değerlendirir,
+3. θ'yi getiriye ağırlıklı pertürbasyon ortalaması boyunca kaydırır.
+
+**2. adım tek organizma için imkânsızdır.** Tek bir canlı, kendisinin
+değiştirilmiş kopyalarını ayrı dünyalarda çalıştıramaz — dünyayı çatallayamaz.
+
+Bu tam olarak gözlemi açıklıyor:
+
+| Yöntem | Dünya çatallıyor mu? | Sonuç |
+|---|---|---|
+| Evrimsel arama (μ+λ) | **Evet** — her aday ayrı koşu | ✅ +0.161 |
+| Popülasyon-ES (bu) | **Hayır** — ağırlık ortalaması | ❌ etkisiz |
+| REINFORCE | Hayır — ama adım-içi gradyan kullanıyor | ❌ etkisiz |
+
+**Mimari sonuç:** yaşam içi öğrenme, yalnızca **epimizik** getiriyi kullanarak
+arama yapamaz; çünkü arama için kendi kopyalarını değerlendirecek ortam
+çatallaması gerekir. Bu, `docs/ROADMAP.md` Faz E'deki önerilerin aksine
+mimari bir kısıttır ve tasarım kararı gerektirir.
+
+### 6.6 Bu turda düzeltilen bir yanlış açıklama
+
+Bu bölümü yazarken popülasyon-ES'in başarısızlığını "paylaşılan dünyada
+sinyal zayıflıyor" diye açıkladım. **§6.4 ölçümü bunu çürüttü** ve gerçek
+sebep formülasyonun kendisiydi. Yanlış açıklama hiçbir yere yazılmadı;
+ölçüm yapılmadan önce elde edildiği için düzeltilecek bir metin de olmadı.
+
+
+## 7. Tarayıcı akışı — gerçekten yapıldı
 
 Chromium'da `vite preview` (port 4188) üzerinden doğrulandı:
 
@@ -1101,11 +1195,11 @@ Chromium'da `vite preview` (port 4188) üzerinden doğrulandı:
 
 Tarayıcıda doğrulanmayanlar: mikroskop panelinin etkileşimi, dal oluşturma,
 JSON içe/dışa aktarma, IndexedDB kayıt/yükleme, gözlemci panelinin model
-çağrısı. Bunlar **test edilmedi** (§8).
+çağrısı. Bunlar **test edilmedi** (§9).
 
 ---
 
-## 7. Gözlemci sunucusu
+## 8. Gözlemci sunucusu
 
 `node server/index.ts` ile gerçekten çalıştırıldı:
 
@@ -1127,7 +1221,7 @@ MiniMax'e gerçek bir istek gönderilmedi. Bu nedenle:
 
 ---
 
-## 8. Doğrulanmayanlar — açıkça
+## 9. Doğrulanmayanlar — açıkça
 
 Bu maddeler **yapılmadı** ve dokümana sayı uydurulmadı:
 
@@ -1161,7 +1255,7 @@ Bu maddeler **yapılmadı** ve dokümana sayı uydurulmadı:
 
 ---
 
-## 9. Geliştirme sırasında yakalanan gerçek hatalar
+## 10. Geliştirme sırasında yakalanan gerçek hatalar
 
 Bunlar testlerin bulduğu, düzeltildiği ve **yeniden test edildiği** hatalardır:
 
@@ -1189,15 +1283,15 @@ Bunlar testlerin bulduğu, düzeltildiği ve **yeniden test edildiği** hatalard
 
 ---
 
-## 10. Tekrarlanabilirlik
+## 11. Tekrarlanabilirlik
 
 ```bash
 npm ci
-npm test                      # 126 test (4 dosya)
+npm test                      # 137 test (4 dosya)
 npm run typecheck             # tsc --noEmit, temiz
 npm run build                 # vite build, başarılı
 
-npm run experiments           # standart paket (12.000 tick pencereleri)
+npm run experiments           # standart paket (12.000 tick pencereleri, ~9 dk)
 npm run experiments -- --deep # derin paket (40.000 tick — ekolojik çöküş görünür, yavaş)
 npm run experiments:quick     # duman testi (~40 sn)
 npm run assets:build          # Blender 5.1.1 ile 10 varlık üretir
@@ -1214,7 +1308,7 @@ aralıkları sabit bootstrap tohumuyla tekrarlanabilir. `npm run experiments`
 | Kademe | Komut | Süre | Pencere |
 |---|---|---|---|
 | Duman testi | `npm run experiments:quick` | ~40 sn | küçük örneklem, tüm bölümler |
-| **Standart** | `npm run experiments` | **~8.5 dk** | 12.000 tick |
+| **Standart** | `npm run experiments` | **~9 dk** | 12.000 tick |
 | Derin | `npm run experiments -- --deep` | ~20 dk | 40.000 tick (ekolojik çöküş görünür) |
 
 12.000 tick'lik standart pencere kısa vadeli bulguları (§5.4) kapsar;

@@ -1,7 +1,7 @@
 # Cell to Mind — Deney Sonuçları
 
-**Körüldü:** 2026-10-11T11:31:15.152Z
-**Toplam koşu:** 76159 · **duvar süresi:** 379.2 s
+**Körüldü:** 2026-10-11T12:28:46.189Z
+**Toplam koşu:** 1920 · **duvar süresi:** 516.6 s
 **Mod:** standart
 **Pencere:** 12.000 tick (40.000 tick'lik ekolojik çöküşü kapsamak için `--deep` kullanın)
 
@@ -282,6 +282,34 @@ popülasyon kalıcı hâle geliyor mu?
   0.000000        248       137   137.00000000000   45.3007079467%   31.105018252   11.67883         95       10       hayır   -0.000000016
   0.002000        252       130   130.00000000000   45.8637016205%   32.438470883   6.15385         91       15       hayır   0.000000011
   0.010000        245       135   135.00000000000   48.8528625377%   29.314859647   11.85185         86       13       hayır   -0.000000034
+```
+
+## Popülasyon-ES — seçilen öğrenme yönünün testi
+
+REINFORCE her iki kolda da **kapalıdır**; ölçülen fark yalnız
+popülasyon-ES katkısıdır. Birincil ölçüm **ödül hızıdır**
+(`lifetimeReward / yaş`) — kümülatif ödül yaşamayı ödüllendirir ve
+ölçüm yanlılığı yaratır.
+
+```
+  20000 tick · 8 eşleştirilmiş tohum · REINFORCE her iki kolda da KAPALI
+  kontrol (popülasyon-ES yok): ödül hızı 0.32958 e/tick · enerji 0.304 · pop 89.375 · küme 2
+  tedavi  (popülasyon-ES var): ödül hızı 0.32808 e/tick · enerji 0.318 · pop 90 · küme 2
+  uygulanan güncelleme: 40 · enerji rezidülü: 0.000000192 e
+  eşleştirilmiş fark -0.00150 [-0.00430, 0.00174] · p = 0.3388 · iyileşme olasılığı 16.5%
+  → Popülasyon-ES **ölçülebilir etki üretmedi**: fark -0.00150 [-0.00430, 0.00174], p = 0.3388.
+```
+
+## Ödül hızı yayılımı — paylaşılan dünya sinyali siler mi?
+
+Popülasyon-ES başarısızlığının iki açıklamasını ayıran ölçüm.
+
+```
+  15000 tick
+  paylaşılan dünyada bireyler arası CV: %9.0
+  bağımsız dünyalar arası ortalama CV: %7.4
+  oran: 1.22×
+  → Paylaşılan dünya sinyali **silmüyor**: bireyler arası CV %9.0, bağımsız dünyalar arası %7.4 (1.22×). Yani popülasyon içi ayrışma **vardır**; ortalama-alma güncellemesinin başarısızlığı arama eksikliğidir, sinyal yokluğu değil.
 ```
 
 ## Bağ gücü koloni büyüklüğünü artırıyor mu?

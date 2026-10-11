@@ -104,6 +104,25 @@ export interface WorldOptions {
    */
   strainDecayK?: number;
   /**
+   * **Popülasyon-ES kancası.** Varsayılan **kapalı**.
+   *
+   * Gerekçe (`VALIDATION.md` §4.12–4.13): yaşam içi REINFORCE'ın başarısız
+   * olmasının nedeni ödül değil **kredi ataması**: epimizik toplam performansla
+   * güçlü biçimde korele (r = 0.70) ama bu toplamı 64 adımlık yörüngeye yayarken
+   * bilgi kayboluyor. Evrimsel arama ise yalnızca epimizik toplamı kullandığı
+   * için aynı görevde +0.161 buldu.
+   *
+   * Popülasyon-ES aynı ilkeyi **yaşam içinde** uygular: birey kendi ağırlıklarını
+   * doğrudan değiştirmez; onun yerine, *son dönem getiri hızı* popülasyondaki
+   * eşitlerine göre sıralandığında, ağırlıklarının **getiriye ağırlıklı popülasyon
+   * ortalamasına** doğru çekilir. Adım-içi kredi ataması hiç yapılmaz.
+   */
+  populationUpdate?: boolean;
+  /** Çekme katsayısı (temel değer; plastisite ile ölçeklenir). Varsayılan 0.06. */
+  populationUpdateRate?: number;
+  /** Kaç tick'te bir güncelleme. Varsayılan 500. */
+  populationUpdateInterval?: number;
+  /**
    * **Y-2 kancası — bağ yorgunluğunu genoma bağla.** Varsayılan **kapalı**.
    *
    * Gerekçe (`docs/VALIDATION.md` §5): uzama terimi `bond.strength` ile
@@ -199,6 +218,17 @@ export class World {
    * `NeuralPolicy` model sabitlerini kullanır — yani oyunun davranışı
    * etkilenmez. Yalnız deney motoru bunları doldurur.
    */
+  /** Popülasyon-ES ayarları (kapalıysa alanlar undefined). */
+  private readonly populationUpdateConfig: {
+    enabled: boolean;
+    rate: number;
+    interval: number;
+  };
+  /** Popülasyon-ES için son kontrol noktasındaki kümülatif ödül. */
+  private readonly esCheckpointReward = new Map<number, number>();
+  /** Popülasyon-ES tarafından son güncellemede çekilen organizma sayısı (ölçüm). */
+  private populationUpdateCount = 0;
+
   private readonly bondTuning: {
     bondFatigue?: number;
     strainDecayK?: number;
@@ -213,6 +243,11 @@ export class World {
 
   constructor(options: WorldOptions) {
     this.rng = new RngBundle(options.seed);
+    this.populationUpdateConfig = {
+      enabled: options.populationUpdate ?? false,
+      rate: options.populationUpdateRate ?? 0.06,
+      interval: Math.max(1, options.populationUpdateInterval ?? 500),
+    };
     this.bondTuning = {
       ...(options.bondFatigue === undefined ? {} : { bondFatigue: options.bondFatigue }),
       ...(options.strainDecayK === undefined ? {} : { strainDecayK: options.strainDecayK }),
@@ -459,6 +494,7 @@ export class World {
     if (this.constraints.reproductionEnabled) this.buddingPhase();
     this.deathPhase();
     this.resourceRegenPhase();
+    if (this.populationUpdateConfig.enabled) this.populationUpdatePhase();
 
     if (decision) this.rewardPhase();
     this.recordMetrics(t);
@@ -1328,6 +1364,93 @@ export class World {
       node.reserve += amount;
       this.ledger.addExternal(amount);
     }
+  }
+
+  /**
+   * **Popülasyon-ES — adım-içi kredi ataması olmadan yaşam içi öğrenme.**
+   *
+   * Her `interval` tick'te:
+   *   1. Her canlı organizmanın **son dönem getiri hızı** ölçülür
+   *      (`Δ(lifetimeReward) / interval`). Kümülatif ödül kullanılmaz: o
+   *      ölçüt yaşamayı ödüllendirir ve seçilim yanlılığı yaratır.
+   *   2. Hızlar softmax ile ağırlıklandırılır (yüksek hız → yüksek ağırlık).
+   *   3. Ağırlıklanmış popülasyon ortalaması θ* hesaplanır.
+   *   4. Her organizma kendi ağırlıklarını θ*'ye doğru çeker:
+   *      `θ ← θ + η·(0.25 + 0.75·plastisite)·(θ* − θ)`
+   *
+   * Bu bir **anti-drift** mekanizmasıdır: kötüye giden bir organizma iyi
+   * eşitlerinin ağırlıklarına geri çekilir. Kredi ataması yoktur; tek kullanılan
+   * sinyal epimiziktir.
+   *
+   * **Enerji muhasebesini etkilemez:** yalnız ağırlık değişir, enerji
+   * yaratılmaz veya harcanmaz.
+   */
+  private populationUpdatePhase(): void {
+    const { rate, interval } = this.populationUpdateConfig;
+    if (this.tick % interval !== 0) return;
+
+    const alive: { id: number; speed: number }[] = [];
+    for (const id of this.organismOrder()) {
+      const org = this.organisms.get(id);
+      if (!org || !org.alive || org.cells.length === 0) continue;
+      const prev = this.esCheckpointReward.get(id) ?? org.lifetimeReward;
+      alive.push({ id, speed: (org.lifetimeReward - prev) / interval });
+      this.esCheckpointReward.set(id, org.lifetimeReward);
+    }
+    if (alive.length < 2) return;
+
+    // Softmax ağırlıkları. Sapma çok küçükse dağılım tek noktaya çöker;
+    // bunu önlemek için sapma tabanı kullanılır.
+    let meanSpeed = 0;
+    for (const a of alive) meanSpeed += a.speed;
+    meanSpeed /= alive.length;
+    let variance = 0;
+    for (const a of alive) variance += (a.speed - meanSpeed) ** 2;
+    const sd = Math.sqrt(variance / alive.length);
+    const denom = Math.max(sd, 1e-6);
+
+    let sumWeight = 0;
+    const weights: number[] = [];
+    for (const a of alive) {
+      // z-skoru [-3, 3] aralığına kırp → aşırı baskın birey olamaz.
+      const z = Math.max(-3, Math.min(3, (a.speed - meanSpeed) / denom));
+      const w = Math.exp(z);
+      weights.push(w);
+      sumWeight += w;
+    }
+    if (sumWeight <= 0) return;
+
+    // Ağırlıklı popülasyon ortalaması.
+    const target = new Float64Array(MLP_SHAPE.PARAM_COUNT);
+    for (let i = 0; i < alive.length; i++) {
+      const entry = alive[i] as { id: number; speed: number };
+      const policy = this.policies.get(entry.id);
+      if (!policy) continue;
+      const share = (weights[i] as number) / sumWeight;
+      const theta = policy.state.thetaLive;
+      for (let p = 0; p < MLP_SHAPE.PARAM_COUNT; p++) {
+        target[p] = (target[p] as number) + share * (theta[p] as number);
+      }
+    }
+
+    // Her organizmayı hedefe çek.
+    for (let i = 0; i < alive.length; i++) {
+      const entry = alive[i] as { id: number; speed: number };
+      const policy = this.policies.get(entry.id);
+      const org = this.organisms.get(entry.id);
+      if (!policy || !org) continue;
+      const eta = rate * (0.25 + 0.75 * org.genome.plasticity);
+      const theta = policy.state.thetaLive;
+      for (let p = 0; p < MLP_SHAPE.PARAM_COUNT; p++) {
+        theta[p] = (theta[p] as number) + eta * ((target[p] as number) - (theta[p] as number));
+      }
+    }
+    this.populationUpdateCount++;
+  }
+
+  /** Kaç kez popülasyon-ES güncellemesi yapıldı (ölçüm). */
+  populationUpdatesApplied(): number {
+    return this.populationUpdateCount;
   }
 
   /** Ödül kapanışı yalnızca karar adımında yapılır (decisionPhase içinde). */

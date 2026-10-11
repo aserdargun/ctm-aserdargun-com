@@ -19,7 +19,7 @@
  * ayrım yapıldıktan sonra ayrı bir adımdır (Faz B2/B3).
  */
 
-import { bootstrapCI, bootstrapTest, fmt, type HypothesisTest, type Interval } from '../stats.ts';
+import { bootstrapCI, bootstrapTest, fmt, fmtInterval, type HypothesisTest, type Interval } from '../stats.ts';
 import { World } from '../world.ts';
 import type { DeathCause } from '../types.ts';
 
@@ -1329,4 +1329,270 @@ export function formatRegen(points: readonly RegenPoint[]): string {
     `${fmt(p.worstLedgerResidual, 9)}`,
   );
   return [header, ...rows].join('\n');
+}
+
+// --------------------------------------------------- popülasyon-ES
+
+export interface PopulationUpdatePoint {
+  populationUpdate: boolean;
+  seeds: number;
+  /** Hayatta kalanların ortalama ödül **hızı** (e / tick). */
+  meanRewardRate: number;
+  /** Hayatta kalanların ortalama normalize enerjisi. */
+  meanEnergyNorm: number;
+  population: number;
+  /** Uygulanan popülasyon-ES güncellemesi sayısı. */
+  updatesApplied: number;
+  /** Kümülatif doğum. */
+  cumulativeBirths: number;
+  /** En büyük koloni. */
+  largestColony: number;
+  /** Koşulardaki en büyük enerji muhasebesi rezidülü. */
+  worstLedgerResidual: number;
+}
+
+export interface PopulationUpdateReport {
+  ticks: number;
+  control: PopulationUpdatePoint;
+  treatment: PopulationUpdatePoint;
+  /** Eşleştirilmiş tohum başına farklar (tedavi − kontrol). */
+  differences: number[];
+  difference: Interval;
+  test: HypothesisTest;
+  worstLedgerResidual: number;
+  reading: string;
+}
+
+/**
+ * **Popülasyon-ES ölçümü** — seçilen öğrenme yönünün testi.
+ *
+ * **Tasarım:** REINFORCE **her iki kolda da kapalıdır.** Böylece ölçülen fark
+ * yalnız popülasyon-ES'in katkısıdır; iki mekanizmanın etkisi karışmaz.
+ *
+ * **Zorunlu eşleştirme:** aynı tohum, iki kol, aynı ortam.
+ *
+ * **Birincil ölçüm — ödül hızı.** `lifetimeReward` kümülatiftir ve yaşamayı
+ * ödüllendirir: uzun yaşayan ama kötü davranan birey, kısa yaşayan iyi bireyi
+ * yalar. Bu bir **ölçüm yanlılığıdır** (`§5.9`'daki hatanın aynısı), bu yüzden
+ * `lifetimeReward / yaş` **hızı** kullanılır.
+ *
+ * **Önceden kaydedilen başarı ölçütü:** tedavi kolunun ödül hızı, kontrol
+ * kolundan **eşleştirilmiş** olarak anlamlı biçimde yüksek olmalı (bootstrap
+ * güven aralığı sıfırdan ayrışmalı).
+ */
+export function experimentPopulationUpdate(options?: {
+  seeds?: number;
+  ticks?: number;
+  updateRate?: number;
+  updateInterval?: number;
+  resourceRegen?: number;
+  seedBase?: number;
+}): PopulationUpdateReport {
+  const seeds = options?.seeds ?? 8;
+  const ticks = options?.ticks ?? 20_000;
+  const updateRate = options?.updateRate ?? 0.06;
+  const updateInterval = options?.updateInterval ?? 500;
+  const resourceRegen = options?.resourceRegen ?? 0.002;
+  const seedBase = options?.seedBase ?? 6001;
+
+  const runArm = (populationUpdate: boolean): PopulationUpdatePoint & { perSeed: number[] } => {
+    let rateSum = 0;
+    let energySum = 0;
+    // eslint-disable-next-line no-unused-vars
+    let popSum = 0;
+    let colonyMax = 0;
+    let updates = 0;
+    let births = 0;
+    let residual = 0;
+    const perSeed: number[] = [];
+
+    for (let i = 0; i < seeds; i++) {
+      const world = new World({
+        seed: seedBase + i,
+        population: 48,
+        resourceRegen,
+        // REINFORCE kapalı: ölçüm yalnız popülasyon-ES'in.
+        learningEnabled: false,
+        populationUpdate,
+        populationUpdateRate: updateRate,
+        populationUpdateInterval: updateInterval,
+      });
+      for (let t = 1; t <= ticks; t++) world.step();
+
+      let rSum = 0;
+      let live = 0;
+      for (const org of world.organisms.values()) {
+        if (!org.alive || org.cells.length === 0) continue;
+        const age = Math.max(1, world.tick - org.bornTick);
+        rSum += org.lifetimeReward / age;
+        live++;
+      }
+      const cellE: number[] = [];
+      for (const cell of world.cells.values()) {
+        if (cell.alive) cellE.push(cell.energy / 100);
+      }
+      const meanE = cellE.length > 0 ? meanOf(cellE) : 0;
+      const meanR = live > 0 ? rSum / live : 0;
+      perSeed.push(meanR);
+
+      rateSum += meanR;
+      energySum += meanE;
+      popSum += world.population();
+      colonyMax = Math.max(colonyMax, world.latestMetrics()?.largestColonySize ?? 0);
+      updates += world.populationUpdatesApplied();
+      births += Math.max(0, world.nextOrganismIdForSnapshot() - 1);
+
+      const res =
+        world.ledger.initialTotal + world.ledger.externalInput - world.systemEnergyTotal() - world.ledger.dissipated;
+      if (Math.abs(res) > Math.abs(residual)) residual = res;
+    }
+
+    return {
+      populationUpdate,
+      seeds,
+      meanRewardRate: rateSum / seeds,
+      meanEnergyNorm: energySum / seeds,
+      population: popSum / seeds,
+      updatesApplied: Math.round(updates / seeds),
+      cumulativeBirths: Math.round(births / seeds),
+      largestColony: colonyMax,
+      worstLedgerResidual: residual,
+      perSeed,
+    };
+  };
+
+  const control = runArm(false);
+  const treatment = runArm(true);
+  const differences = treatment.perSeed.map((v, i) => v - (control.perSeed[i] ?? 0));
+  const test = bootstrapTest(differences, { seed: 9101 });
+  const ci = bootstrapCI(differences, { seed: 9102 });
+
+  const reading =
+    ci.lower > 0
+      ? `Popülasyon-ES **işe yarıyor**: ödül hızı ${fmt(control.meanRewardRate, 5)} → ` +
+        `${fmt(treatment.meanRewardRate, 5)} e/tick, eşleştirilmiş fark ` +
+        `[${fmt(ci.lower, 5)}, ${fmt(ci.upper, 5)}], sıfırdan ayrışıyor (p = ${fmt(test.pValue, 4)}).`
+      : `Popülasyon-ES **ölçülebilir etki üretmedi**: fark ${fmt(ci.estimate, 5)} ` +
+        `[${fmt(ci.lower, 5)}, ${fmt(ci.upper, 5)}], p = ${fmt(test.pValue, 4)}.`;
+
+  return {
+    ticks,
+    control,
+    treatment,
+    differences,
+    difference: ci,
+    test,
+    worstLedgerResidual: Math.max(
+      Math.abs(control.worstLedgerResidual),
+      Math.abs(treatment.worstLedgerResidual),
+    ),
+    reading,
+  };
+}
+
+export function formatPopulationUpdate(r: PopulationUpdateReport): string {
+  const c = r.control;
+  const t = r.treatment;
+  return [
+    `  ${r.ticks} tick · ${c.seeds} eşleştirilmiş tohum · REINFORCE her iki kolda da KAPALI`,
+    `  kontrol (popülasyon-ES yok): ödül hızı ${fmt(c.meanRewardRate, 5)} e/tick · enerji ${fmt(c.meanEnergyNorm, 3)} · pop ${c.population} · küme ${c.largestColony}`,
+    `  tedavi  (popülasyon-ES var): ödül hızı ${fmt(t.meanRewardRate, 5)} e/tick · enerji ${fmt(t.meanEnergyNorm, 3)} · pop ${t.population} · küme ${t.largestColony}`,
+    `  uygulanan güncelleme: ${t.updatesApplied} · enerji rezidülü: ${fmt(r.worstLedgerResidual, 9)} e`,
+    `  eşleştirilmiş fark ${fmtInterval(r.difference, 5)} · p = ${fmt(r.test.pValue, 4)} · iyileşme olasılığı ${fmt(r.test.probabilityOfImprovement * 100, 1)}%`,
+    `  → ${r.reading}`,
+  ].join('\n');
+}
+
+// --------------------------------------------------- ödül yayılımı
+
+export interface DispersionReport {
+  ticks: number;
+  /** Kaç bağımsız dünya karşılaştırma için koşuldu. */
+  acrossWorlds: number;
+  /** Paylaşılan dünyada bireylerin ödül hızı değişim katsayısı. */
+  withinWorldCv: number;
+  /** Bağımsız dünyalar arasında ortalama değişim katsayısı. */
+  acrossWorldCv: number;
+  /** Paylaşılan koşulların sinyalini silip silmediği. */
+  withinVsAcross: number;
+  reading: string;
+}
+
+/**
+ * **Ödül hızı yayılımı — paylaşılan dünya sinyali siler mi?**
+ *
+ * Popülasyon-ES'in başarısız olmasının iki açıklaması vardı:
+ *   (a) Paylaşılan dünyada bireylerin getirileri ayrışmaz (konum şansı baskın),
+ *       dolayısıyla ağırlıklandırma anlamsızlaşır.
+ *   (b) Sinyal vardır ama **ortalama alma** onu harcamaz: popülasyon mevcut
+ *       ortalamasına yakınsar; ortalama, ortalamanın en iyisini bulamaz.
+ *
+ * Bu ölçüm (a)'yı test eder. `withinWorldCv < acrossWorldCv` ise (a) doğru,
+ * eşit veya büyükse (a) yanlış demektir.
+ *
+ * **Ölçülen sonuç (bkz. §6):** paylaşılan dünyada CV **%9.0**, bağımsız
+ * dünyalarda **%7.4** — yani (a) **yanlıştır.** Sinyal paylaşılan koşullarda
+ * silinmiyor. Başarısızlığın sebebi (b)'dir: ortalama alma bir **arama**
+ * yöntemi değildir.
+ */
+export function measureRewardDispersion(options?: {
+  ticks?: number;
+  seed?: number;
+  acrossWorlds?: number;
+  seedBase?: number;
+  population?: number;
+}): DispersionReport {
+  const ticks = options?.ticks ?? 15_000;
+  const seed = options?.seed ?? 11;
+  const acrossWorlds = options?.acrossWorlds ?? 6;
+  const seedBase = options?.seedBase ?? 7001;
+  const population = options?.population ?? 48;
+
+  const cvOf = (world: World): number => {
+    const rates: number[] = [];
+    for (const org of world.organisms.values()) {
+      if (!org.alive || org.cells.length === 0) continue;
+      const age = Math.max(1, world.tick - org.bornTick);
+      rates.push(org.lifetimeReward / age);
+    }
+    if (rates.length < 2) return Number.NaN;
+    const m = meanOf(rates);
+    const sd = Math.sqrt(meanOf(rates.map((r) => (r - m) ** 2)));
+    return sd / Math.max(1e-9, Math.abs(m));
+  };
+
+  const shared = new World({ seed, population, resourceRegen: 0.002, learningEnabled: false });
+  for (let t = 1; t <= ticks; t++) shared.step();
+  const withinWorldCv = cvOf(shared);
+
+  const across: number[] = [];
+  for (let i = 0; i < acrossWorlds; i++) {
+    const w = new World({ seed: seedBase + i, population, resourceRegen: 0.002, learningEnabled: false });
+    for (let t = 1; t <= ticks; t++) w.step();
+    const cv = cvOf(w);
+    if (Number.isFinite(cv)) across.push(cv);
+  }
+  const acrossWorldCv = across.length > 0 ? meanOf(across) : Number.NaN;
+
+  const withinVsAcross = acrossWorldCv > 0 ? withinWorldCv / acrossWorldCv : Number.NaN;
+  const reading =
+    withinWorldCv >= acrossWorldCv
+      ? `Paylaşılan dünya sinyali **silmüyor**: bireyler arası CV %${(withinWorldCv * 100).toFixed(1)}, ` +
+        `bağımsız dünyalar arası %${(acrossWorldCv * 100).toFixed(1)} ` +
+        `(${fmt(withinVsAcross, 2)}×). Yani popülasyon içi ayrışma **vardır**; ` +
+        `ortalama-alma güncellemesinin başarısızlığı arama eksikliğidir, sinyal yokluğu değil.`
+      : `Paylaşılan dünya sinyali zayıflatıyor: bireyler arası CV %${(withinWorldCv * 100).toFixed(1)} ` +
+        `< bağımsız dünyalar arası %${(acrossWorldCv * 100).toFixed(1)}. Ağırlıklandırma büyük ölçüde anlamsızlaşıyor.`;
+
+  return { ticks, acrossWorlds, withinWorldCv, acrossWorldCv, withinVsAcross, reading };
+}
+
+export function formatDispersion(d: DispersionReport): string {
+  return [
+    `  ${d.ticks} tick`,
+    `  paylaşılan dünyada bireyler arası CV: %${(d.withinWorldCv * 100).toFixed(1)}`,
+    `  bağımsız dünyalar arası ortalama CV: %${(d.acrossWorldCv * 100).toFixed(1)}`,
+    `  oran: ${fmt(d.withinVsAcross, 2)}×`,
+    `  → ${d.reading}`,
+  ].join('\n');
 }

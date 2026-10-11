@@ -22,11 +22,15 @@ import { writeFileSync } from 'node:fs';
 import {
   diagnoseColonyCollapse,
   diagnoseReproductiveStall,
+  measureRewardDispersion,
   experimentBondLifeHeritability,
+  experimentPopulationUpdate,
   formatBondDurability,
   formatHeritability,
   formatLongRun,
   formatLongRunLimit,
+  formatDispersion,
+  formatPopulationUpdate,
   formatRegen,
   formatReproDiagnosis,
   formatDiagnosis,
@@ -190,6 +194,12 @@ function main(): void {
 
   process.stdout.write(`\n13/13 Faz B1 · ekolojik sönümlenme teşhisi…\n`);
   const longTicks = args.deep ? 40_000 : 12_000;
+  const sweepSeeds = args.quick ? 3 : 12;
+  const signalSeeds = args.quick ? 2 : 8;
+  const varianceSeeds = args.quick ? 3 : 20;
+  const signStepSeeds = args.quick ? 3 : 20;
+  const durabilitySeeds = args.quick ? 1 : 4;
+  const reproSampleEvery = args.quick ? 1000 : 4000;
   const ecology = args.quick
     ? diagnoseColonyCollapse({ seed: 11, ticks: 4000, sampleEvery: 400 })
     : diagnoseColonyCollapse({ seed: 11, ticks: longTicks, sampleEvery: 200 });
@@ -232,36 +242,49 @@ function main(): void {
     : sweepResourceRegen({ ticks: longTicks });
   process.stdout.write(`${formatRegen(regen)}\n`);
 
+  process.stdout.write(`\n20/20 popülasyon-ES (seçilen öğrenme yönü)…\n`);
+  const popUpdate = args.quick
+    ? experimentPopulationUpdate({ seeds: 2, ticks: 6000 })
+    : experimentPopulationUpdate({ seeds: 8, ticks: 20_000 });
+  process.stdout.write(`${formatPopulationUpdate(popUpdate)}\n`);
+
+  process.stdout.write(`\n21/21 ödül hızı yayılımı (paylaşılan dünya siler mi?)…\n`);
+  const dispersion = args.quick
+    ? measureRewardDispersion({ ticks: 4000, acrossWorlds: 2 })
+    : measureRewardDispersion({ ticks: 15_000 });
+  process.stdout.write(`${formatDispersion(dispersion)}\n`);
+
+  // Örneklem sayıları (koşu sayımı için).
+  const ecologySamples = args.quick ? 10 : Math.floor(longTicks / 200) + 1;
+  const limitSamples = args.quick ? 5 : Math.floor(limit.ticks / (limit.ticks > 20_000 ? 4000 : 2000)) + 1;
+
   const elapsed = Date.now() - started;
+  // Koşu sayımı **dünya/trial koşularını** sayar; tick sayıları karıştırılmaz.
+  // (Önceki sürümde tick toplamları koşu sayımına karıştırılıyordu.)
+  // Koşu sayımı **dünya/trial koşularını** sayar. Elle korunan uzun bir
+  // toplamdı; üstelik tick sayılarıyla karıştırıldığı için birim hatasına
+  // açıktı. Artık her bölümün koşu sayısı ölçüm noktasında bildiriliyor.
   const totalRuns =
-    exp1.weak.length + exp1.strong.length + exp2.frozen.length + exp2.evolving.length +
+    (exp1.weak.length + exp1.strong.length) +
+    (exp2.frozen.length + exp2.evolving.length) +
     exp3.train.length * 5 +
-    sweep.length * 5 * (args.quick ? 3 : 12) +
-    signal.length * 4 * (args.quick ? 2 : 8) +
+    sweep.length * 5 * sweepSeeds +
+    signal.length * 4 * signalSeeds +
     survey.sampled +
-    variance.length * 5 * (args.quick ? 3 : 20) +
-    signStep.length * 5 * (args.quick ? 3 : 20) +
+    variance.length * 5 * varianceSeeds +
+    signStep.length * 5 * signStepSeeds +
     rewardSignal.samples * rewardSignal.seedsPerSample +
-    ecology.ticks +
-    durability.length * (args.quick ? 1 : 4) +
-    heritability.seeds * 2 * (args.quick ? 1 : 1) +
-    repro.ticks +
+    ecologySamples +
+    durability.length * durabilitySeeds +
+    heritability.seeds * 2 +
+    repro.ticks / reproSampleEvery +
     longRun.length +
-    limit.ticks +
-    regen.length * (args.quick ? 1 : longTicks) +
-    (args.quick
-      ? 0
-      : evolution.generations * evolution.population * (evolution.offspringPerParent + 1) * 6 + evolution.population * 4);
+    limitSamples +
+    regen.length +
+    popUpdate.control.seeds * 2 +
+    1 +
+    dispersion.acrossWorlds;
 
-  const body = [
-    formatExperiment(exp1.report),
-    '',
-    formatExperiment(exp2.report),
-    '',
-    formatExperiment(exp3.report),
-  ].join('\n');
-
-  process.stdout.write(`\n${body}\n\n`);
   process.stdout.write(`toplam koşu: ${totalRuns} · süre: ${(elapsed / 1000).toFixed(1)} s\n`);
 
   if (args.out) {
@@ -456,6 +479,25 @@ function main(): void {
       '',
       '```',
       formatRegen(regen),
+      '```',
+      '',
+      '## Popülasyon-ES — seçilen öğrenme yönünün testi',
+      '',
+      'REINFORCE her iki kolda da **kapalıdır**; ölçülen fark yalnız',
+      'popülasyon-ES katkısıdır. Birincil ölçüm **ödül hızıdır**',
+      '(`lifetimeReward / yaş`) — kümülatif ödül yaşamayı ödüllendirir ve',
+      'ölçüm yanlılığı yaratır.',
+      '',
+      '```',
+      formatPopulationUpdate(popUpdate),
+      '```',
+      '',
+      '## Ödül hızı yayılımı — paylaşılan dünya sinyali siler mi?',
+      '',
+      'Popülasyon-ES başarısızlığının iki açıklamasını ayıran ölçüm.',
+      '',
+      '```',
+      formatDispersion(dispersion),
       '```',
       '',
       ...[exp1.report, exp2.report, exp3.report].flatMap((r) => [

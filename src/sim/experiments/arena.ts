@@ -67,6 +67,10 @@ export interface TrialOptions {
   learnRate?: number;
   normalizeAdvantage?: boolean;
   signAdvantage?: boolean;
+  /** Popülasyon-ES kancası (varsayılan kapalı). */
+  populationUpdate?: boolean;
+  populationUpdateRate?: number;
+  populationUpdateInterval?: number;
 }
 
 export interface TracePoint {
@@ -170,6 +174,9 @@ export function runTrial(options: TrialOptions): TrialResult {
     learnRate,
     normalizeAdvantage,
     signAdvantage,
+    populationUpdate,
+    populationUpdateRate,
+    populationUpdateInterval,
   } = options;
 
   const world = new World({
@@ -181,6 +188,9 @@ export function runTrial(options: TrialOptions): TrialResult {
     ...(learnRate === undefined ? {} : { learnRate }),
     ...(normalizeAdvantage === undefined ? {} : { normalizeAdvantage }),
     ...(signAdvantage === undefined ? {} : { signAdvantage }),
+    ...(populationUpdate === undefined ? {} : { populationUpdate }),
+    ...(populationUpdateRate === undefined ? {} : { populationUpdateRate }),
+    ...(populationUpdateInterval === undefined ? {} : { populationUpdateInterval }),
     learningEnabled: learning,
     growthEnabled,
     reproductionEnabled,

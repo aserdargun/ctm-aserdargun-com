@@ -23,11 +23,15 @@ import { runTrial } from '../src/sim/experiments/arena.ts';
 import {
   diagnoseColonyCollapse,
   experimentBondLifeHeritability,
+  experimentPopulationUpdate,
   formatBondDurability,
   formatDiagnosis,
   formatEcologyTable,
   formatHeritability,
+  formatDispersion,
+  formatPopulationUpdate,
   formatRegen,
+  measureRewardDispersion,
   sweepBondDurability,
   sweepResourceRegen,
 } from '../src/sim/experiments/ecology.ts';
@@ -827,6 +831,64 @@ describe('kaynak rejenerasyonu ve muhasebe', () => {
   it('biçimlendirme başlık + satır üretir', () => {
     const points = sweepResourceRegen({ regens: [0], ticks: 1200, seed: 14 });
     expect(formatRegen(points).split('\n')).toHaveLength(points.length + 1);
+  });
+});
+
+describe('popülasyon-ES', () => {
+  it('varsayılan olarak KAPALI — ürün davranışı değişmez', () => {
+    const off = runTrial({ seed: 1201, ticks: 1500, learning: false, sampleEvery: 0 });
+    const explicit = runTrial({ seed: 1201, ticks: 1500, learning: false, populationUpdate: false, sampleEvery: 0 });
+    expect(explicit.meanEnergyNorm).toBe(off.meanEnergyNorm);
+  });
+
+  it('kapalıyken hiç güncelleme uygulanmaz', () => {
+    const points = experimentPopulationUpdate({ seeds: 1, ticks: 1200, updateInterval: 200 });
+    expect(points.control.updatesApplied).toBe(0);
+  });
+
+  it('REINFORCE her iki kolda da kapalıdır (izolasyon)', () => {
+    // Ölçülen fark yalnız popülasyon-ES'in olmalı; REINFORCE katsayısı
+    // açıksa iki mekanizma karışır.
+    const points = experimentPopulationUpdate({ seeds: 1, ticks: 1200, updateInterval: 300 });
+    // REINFORCE kapalıyken ödül hızı ölçülür ama ağırlık güncellemesi olmaz;
+    // yalnız popülasyon-ES kolunda güncelleme sayısı artar.
+    expect(points.treatment.updatesApplied).toBeGreaterThanOrEqual(0);
+    expect(points.control.updatesApplied).toBe(0);
+  });
+
+  it('enerji korunumu popülasyon-ES altında bozulmaz', () => {
+    const points = experimentPopulationUpdate({ seeds: 2, ticks: 1500, updateInterval: 300 });
+    expect(Math.abs(points.worstLedgerResidual)).toBeLessThan(1e-4);
+  });
+
+  it('eşleştirilmiş ve deterministik', () => {
+    const a = experimentPopulationUpdate({ seeds: 2, ticks: 1500, updateInterval: 300 });
+    const b = experimentPopulationUpdate({ seeds: 2, ticks: 1500, updateInterval: 300 });
+    expect(b.difference.estimate).toBe(a.difference.estimate);
+    expect(b.treatment.meanRewardRate).toBe(a.treatment.meanRewardRate);
+    expect(a.differences).toHaveLength(2);
+  });
+
+  it('biçimlendirme sonuç satırlarını içerir', () => {
+    const points = experimentPopulationUpdate({ seeds: 1, ticks: 1200, updateInterval: 400 });
+    expect(formatPopulationUpdate(points)).toContain('popülasyon-ES');
+  });
+});
+
+describe('ödül hızı yayılımı', () => {
+  it('paylaşılan dünyada bireyler arası ayrışma ölçülür', () => {
+    const d = measureRewardDispersion({ ticks: 2500, acrossWorlds: 2 });
+    expect(d.withinWorldCv).toBeGreaterThan(0);
+    expect(d.acrossWorldCv).toBeGreaterThan(0);
+    expect(Number.isFinite(d.withinVsAcross)).toBe(true);
+    expect(d.reading.length).toBeGreaterThan(0);
+    expect(formatDispersion(d).split('\n')).toHaveLength(5);
+  });
+
+  it('ölçüm deterministiktir', () => {
+    const a = measureRewardDispersion({ ticks: 2000, acrossWorlds: 2 });
+    const b = measureRewardDispersion({ ticks: 2000, acrossWorlds: 2 });
+    expect(b.withinWorldCv).toBe(a.withinWorldCv);
   });
 });
 

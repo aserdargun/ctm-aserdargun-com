@@ -34,9 +34,9 @@ Anahtar yoksa uygulama **çalışır** ve gözlemci panelinde dürüstçe
 | `npm run dev` | Geliştirme sunucusu (port 5183) |
 | `npm run build` | Tip denetimi + üretim derlemesi |
 | `npm run preview` | Üretim çıktısını sunar (port 4173) |
-| `npm test` | Vitest — 126 test |
+| `npm test` | Vitest — 137 test |
 | `npm run typecheck` | `tsc --noEmit` |
-| `npm run experiments` | Deney paketini headless koşar (12.000 tick pencereleri) → `docs/EXPERIMENTS.md` |
+| `npm run experiments` | Deney paketini headless koşar — 21 bölüm, 1.920 koşu, ~9 dk → `docs/EXPERIMENTS.md` |
 | `npm run experiments -- --deep` | Derin paket: 40.000 tick pencereleri, ekolojik çöküş görünür (yavaş) |
 | `npm run experiments:quick` | Deney paketinin duman testi (~40 sn) |
 | `npm run assets:build` | Blender 5.1.1 ile varlıkları yeniden üretir |
@@ -86,6 +86,7 @@ durur.
 | Bağ gücü → koloni büyüklüğü | ✅ **2.33 → 21.25**, p < 0.0001, %100 iyileşme |
 | Mutasyon + seçilim → uyarlanma | ⚪ sonuçsuz (p = 0.097), 3 nesle yetmiyor |
 | Yaşam içi öğrenme → davranış | ❌ **etki yok** (p = 0.333) |
+| Popülasyon-ES (yaşam içi) | ❌ etkisiz — anti-drift, arama değil (p = 0.80) |
 | Evrimsel politika araması (kontrol) | ✅ **+0.161** görülmemiş dünyalarda |
 | Koloni sönümlenmesi (Faz B1) | ⚪ **teşhis edildi:** kaynak/avcı elendi, sınırlayıcı **bağ ömrü** (~2.100 tick) |
 | Bağ ömrü duyarlılığı (Faz B1b) | ✅ ölçüt karşılandı: ömür ×4 → 4+ hücreli yapılar 0 → 0.25 |

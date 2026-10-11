@@ -13,7 +13,7 @@ doğrulanmıştır.
 
 | Alan | Durum | Kanıt |
 |---|---|---|
-| Saf TS simülasyon çekirdeği | ✅ | 126 test, 4 dosya, ~39 sn |
+| Saf TS simülasyon çekirdeği | ✅ | 137 test, 4 dosya, ~90 sn |
 | Enerji korunumu (kapalı sistem) | ✅ | rezidüel = **0.0000** (arena'da 0.0 e, kolonide 1.7e-8 e) |
 | Bölünme / parçalanma / paylaşım muhasebesi | ✅ | testler |
 | Bağ grafiği → gerçek çok hücrelilik | ✅ | 4+ hücreli yapılar test edildi |
@@ -209,30 +209,43 @@ tarayıcı içinden tetiklenen deneyler **bağlanmadı** — panel düğmeleri h
 
 ## 3. Sonraki adım
 
-Teşhis tamamlandı ve **S-2 gereksiz çıktı:** ödül zaten yeterli
-(`VALIDATION.md` §4.12). Yeni fark şu — sorun **kredi atamasında**, yani
-`pendingE` ödülünü 64 adımlık yörüngeye yayma adımında. Bunu düzeltmek iki
-yol ister:
+**Seçilen öğrenme yönü (popülasyon-ES) uygulandı ve BAŞARISIZ oldu**
+(`VALIDATION.md` §6). Fark −0.00065 [−0.00429, +0.00423], p = 0.80.
 
-| Seçenek | Ne yapar | Bedeli | Kanıt durumu |
-|---|---|---|---|
-| **R-1 · Epimizik toplamı doğrudan kullanan yöntem** | Evolution strategies / popülasyon tabanlı gradyan: adım-içi avantaj yerine toplam getiri | Düşük-orta | **Evrim +0.161 ile çalıştığı ölçüldü** (§4.9) |
-| **R-2 · Yörüngede tek atım** | Yörüngedeki **ilk** eyleme tüm getiriyi atamak (bandit benzeri, kredi ataması yok) | Orta; `MODEL.md` §4 ve `tests/mlp.test.ts` güncellenir | Denenmedi — en ucuz ilk adım |
-| **R-3 · Ürüne evrimsel arama** | §4.9'daki (μ+λ) arama organizmaların ağırlıklarını iyileştirir | **"yaşam öğrenir" anlatısı değişir** | Çalıştığı kanıtlandı |
+**Ölçülen sebep formülasyonun kendisiydi:** Uyguladığım güncelleme bir
+**anti-drift** mekanizmasıdır (kötü bireyi iyiye çeker), bir **arama**
+yöntemi değil. Gerçek ES, θ etrafında pertürbasyon üretip her birini **ayrı
+ortamda** değerlendirmeyi gerektirir; tek bir canlı dünyayı çatallayamaz.
 
-**Önerilen sıra: R-2 → R-1 → (anlatı değişikliği kabul edilirse) R-3.**
+Ölçüm bunu doğruladı: paylaşılan dünyada bireyler arası ödül hızı CV'si
+**%9.0**, bağımsız dünyalarda %7.4 — yani **sinyal var**, paylaşılan koşullar
+onu silmiyor. Yanlış olan, onu arama için kullandığım yöntemdi.
 
-R-2 en ucuzdur ve "yaşam öğrenir" anlatısını korur: hâlâ yaşam içi öğrenme
-vardır, yalnızca kredi ataması basitleştirilir.
+| Yöntem | Dünya çatallıyor mu? | Sonuç |
+|---|---|---|
+| Evrimsel arama (μ+λ) | **Evet** — her aday ayrı koşu | ✅ **+0.161** |
+| Popülasyon-ES | Hayır — ağırlık ortalaması | ❌ etkisiz |
+| REINFORCE | Hayır — adım-içi gradyan | ❌ etkisiz |
 
-R-3 artık bir geri çekilme değil, ölçümle desteklenen bir seçenektir: ödül ve
-görev sağlam çıktığı için, kredi ataması yapmayan yöntemlerin burada çalışması
-**beklenen** sonuçtur.
+### Kalan seçenekler
 
-**Her adım önceden kaydedilmiş hipotez + başarı ölçütüyle** ve aynı protokolle
-raporlanmalı. Şimdiye kadarki disiplinin bu aşamada ne kadar gerekli olduğu
-kanıtlandı: iki yanlış çıkarım (§4.11'in ödül teşhisi) yalnızca ölçümle
-yakalandı.
+| Seçenek | Durum |
+|---|---|
+| S-1 varyans azaltma | ❌ denendi, ölçütü karşılamadı (§4.10) |
+| S-1b işaret + adım | ❌ denendi, ölçütü karşılamadı (§4.11) |
+| S-2 ödülü değiştir | ❌ **gereksiz** — ödül zaten yeterli (§4.12) |
+| Popülasyon-ES | ❌ denendi, ölçütü karşılamadı (§6) |
+| **S-3 evrimsel arama** | ✅ **çalıştığı kanıtlandı** (+0.161) — tek kanıtlı yol |
+
+**Mimari kısıt (yeni):** yaşam içi öğrenme yalnızca **epimizik** getiriyi
+kullanarak arama yapamaz; arama için dünya çatallaması gerekir. Bu, ürün
+kararını basitleştirir: ya "yaşam öğrenir" iddiasından vazgeçip evrimi
+ürüne alırız, ya da çatallanabilir bir ortam (deney/branch altyapısı vardır)
+üzerinden yaşam içi arama kurarız.
+
+**Öneri:** S-3'ü ürüne almak. Kanıtlanmış tek yol o, ve mimari kısıt artık
+belgede. Bu bir **anlatı kararıdır** ("yaşam öğrenir" → "yaşam evrimleşir") ve
+kullanıcının onayını gerektirir.
 
 ---
 
