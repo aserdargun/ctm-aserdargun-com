@@ -21,6 +21,15 @@ import { MLP_SHAPE, copyTheta } from '../src/sim/behavior/mlp.ts';
 import { runColony, genomeDistance } from '../src/sim/experiments/colony.ts';
 import { runTrial } from '../src/sim/experiments/arena.ts';
 import {
+  diagnoseColonyCollapse,
+  experimentBondLifeHeritability,
+  formatBondDurability,
+  formatDiagnosis,
+  formatEcologyTable,
+  formatHeritability,
+  sweepBondDurability,
+} from '../src/sim/experiments/ecology.ts';
+import {
   calibrateArena,
   evolvePolicy,
   experiment3,
@@ -626,6 +635,164 @@ describe('ödül sinyali ölçümü', () => {
     const strong = measureRewardSignal({ samples: 8, seedsPerSample: 1, ticks: 900 });
     expect(strong.reading).toMatch(/sinyal var|çalışamaz|zayıf/);
     expect(formatRewardSignal(strong).split('\n')).toHaveLength(5);
+  });
+});
+
+describe('ekolojik sönümlenme teşhisi', () => {
+  it('zaman serisi üretir ve hipotez alanlarını doldurur', () => {
+    const d = diagnoseColonyCollapse({ seed: 12, ticks: 3000, sampleEvery: 500 });
+    expect(d.seed).toBe(12);
+    expect(d.samples.length).toBeGreaterThan(5);
+    for (const s of d.samples) {
+      expect(s.reserveFraction).toBeGreaterThanOrEqual(0);
+      expect(s.reserveFraction).toBeLessThanOrEqual(1.0001);
+      expect(s.bondCount).toBeGreaterThanOrEqual(0);
+      expect(s.meanBondIntegrity).toBeGreaterThanOrEqual(0);
+      expect(s.meanBondIntegrity).toBeLessThanOrEqual(1);
+      expect(s.meanBondStrain).toBeGreaterThanOrEqual(0);
+      expect(s.maxBondStrain).toBeGreaterThanOrEqual(s.meanBondStrain);
+      expect(s.largestColony).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it('ölüm nedenleri yalnız meşru değerlerden gelir', () => {
+    const d = diagnoseColonyCollapse({ seed: 13, ticks: 2500, sampleEvery: 500 });
+    const legal = ['starvation', 'predation', 'age', 'experiment-end', null];
+    expect(legal).toContain(d.dominantDeathCause);
+    const last = d.samples[d.samples.length - 1];
+    expect(last?.deathsStarvation ?? 0).toBeGreaterThanOrEqual(0);
+    expect(last?.deathsPredation ?? 0).toBeGreaterThanOrEqual(0);
+  });
+
+  it('sönümlenme tespit edildiğinde zirveden sonra ve eşiğin altında olur', () => {
+    const d = diagnoseColonyCollapse({ seed: 11, ticks: 12_000, sampleEvery: 200 });
+    expect(d.collapseTick).not.toBeNull();
+    if (d.collapseTick !== null && d.atPeak && d.atCollapse) {
+      expect(d.collapseTick).toBeGreaterThan(d.atPeak.tick);
+      expect(d.atCollapse.largestColony).toBeLessThan(d.atPeak.largestColony * 0.25);
+    }
+  });
+
+  it('enerji muhasebesi korunur (teşhis değiştirmez)', () => {
+    const d = diagnoseColonyCollapse({ seed: 14, ticks: 2000, sampleEvery: 500 });
+    // Sönümlenme anında rezerv tükenmiş OLMAMALI — teşhisin asıl bulgusu bu.
+    // Eğer ileride bir düzeltme rezervi tüketmeye başlarsa bu test uyarır.
+    if (d.atCollapse) {
+      expect(d.atCollapse.reserveFraction).toBeGreaterThan(0.1);
+    }
+  });
+
+  it('biçimlendirme okunabilir tablo üretir', () => {
+    const d = diagnoseColonyCollapse({ seed: 15, ticks: 2000, sampleEvery: 500 });
+    expect(formatDiagnosis(d)).toContain('tohum 15');
+    const table = formatEcologyTable(d, 1000);
+    expect(table.split('\n').length).toBeGreaterThan(1);
+    expect(table).toContain('rezerv');
+  });
+});
+
+describe('bağ ömrü duyarlılığı', () => {
+  it('varsayılan ayarlarda koloniler uzun vadede kalıcı değil', () => {
+    // Önceden kaydedilen ölçütün karşı tarafı: varsayılan ayarlarda pencerenin
+    // sonunda 4+ hücreli yapı 0'dır. Pencere **kasten uzun** seçildi: 4.000
+    // tick'te koloniler hâlâ var (zirve ~3.200), sönümlenme ancak ~6.000'da
+    // görünür. Kısa pencerede test yanlış negatif verirdi.
+    const points = sweepBondDurability({
+      settings: [{ strainDecayK: 0.02, bondFatigue: 2e-5 }],
+      ticks: 8000,
+      seeds: 1,
+    });
+    const p = points[0];
+    expect(p).toBeDefined();
+    expect(p?.coloniesPersist).toBe(false);
+    expect(p?.finalMultiCellColonies ?? 1).toBe(0);
+    expect(p?.estimatedBondLifeTicks).toBeGreaterThan(0);
+  });
+
+  it('bağ ömrü uzatıldığında kalıcılık değişir (ölçütün kendisi)', () => {
+    const points = sweepBondDurability({
+      settings: [
+        { strainDecayK: 0.02, bondFatigue: 2e-5 },
+        { strainDecayK: 0.002, bondFatigue: 1e-6 },
+      ],
+      ticks: 3000,
+      seeds: 1,
+    });
+    expect(points).toHaveLength(2);
+    const shortLived = points[0];
+    const longLived = points[1];
+    expect(longLived?.estimatedBondLifeTicks ?? 0).toBeGreaterThan(shortLived?.estimatedBondLifeTicks ?? Infinity);
+  });
+
+  it('enerji korunumu duyarlılık ayarlarında da sarsılmaz', () => {
+    const points = sweepBondDurability({
+      settings: [{ strainDecayK: 0.005, bondFatigue: 5e-6 }],
+      ticks: 2500,
+      seeds: 1,
+    });
+    expect(points[0]?.finalReserveFraction ?? 0).toBeGreaterThan(0);
+    expect(points[0]?.finalReserveFraction ?? 1).toBeLessThanOrEqual(1.0001);
+  });
+
+  it('biçimlendirme başlık + satır üretir', () => {
+    const points = sweepBondDurability({
+      settings: [{ strainDecayK: 0.02, bondFatigue: 2e-5 }],
+      ticks: 1500,
+      seeds: 1,
+    });
+    const text = formatBondDurability(points);
+    expect(text.split('\n')).toHaveLength(points.length + 1);
+    expect(text).toContain('bağ ömrü');
+  });
+});
+
+describe('Y-2 · bağ ömrünün kalıtılabilirliği', () => {
+  it('iki kol aynı tohumlarda ve yalnız kalıtılabilirlik farklı', () => {
+    const r = experimentBondLifeHeritability({ seeds: 3, ticks: 3000 });
+    expect(r.control).toHaveLength(3);
+    expect(r.treatment).toHaveLength(3);
+    // Kümülatif doğum sayısı yalnız doğru ölçülen nesil derinliğidir
+    for (const p of [...r.control, ...r.treatment]) {
+      expect(p.generationsPerFounder).toBeCloseTo(p.cumulativeBirths / 48, 10);
+    }
+    // Eşleştirme: aynı tohumda aynı kurucu genomu (kalıtsız olan değişmez)
+    for (let i = 0; i < 3; i++) {
+      expect(r.treatment[i]?.founderBondStrength).toBeCloseTo(r.control[i]?.founderBondStrength ?? 0, 10);
+    }
+    expect(r.control.every((c) => !c.coupled)).toBe(true);
+    expect(r.treatment.every((c) => c.coupled)).toBe(true);
+  });
+
+  it('kurucu ortalama bağ dayanımı genom sınırı içindedir', () => {
+    const r = experimentBondLifeHeritability({ seeds: 3, ticks: 2000 });
+    for (const p of [...r.control, ...r.treatment]) {
+      expect(p.founderBondStrength).toBeGreaterThanOrEqual(0.15);
+      expect(p.founderBondStrength).toBeLessThanOrEqual(1);
+      expect(p.survivorBondStrength).toBeGreaterThanOrEqual(0.15);
+      expect(p.survivorBondStrength).toBeLessThanOrEqual(1);
+      expect(p.shift).toBeCloseTo(p.survivorBondStrength - p.founderBondStrength, 10);
+      expect(p.cumulativeBirths).toBeGreaterThanOrEqual(0);
+      expect(p.generationsPerFounder).toBeGreaterThanOrEqual(0);
+      expect(p.maxGeneration).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it('enerji korunumu Y-2 kancasıyla bozulmaz', () => {
+    const r = experimentBondLifeHeritability({ seeds: 2, ticks: 1500 });
+    expect(Math.abs(r.worstLedgerResidual)).toBeLessThan(1e-6);
+  });
+
+  it('deterministiktir', () => {
+    const a = experimentBondLifeHeritability({ seeds: 2, ticks: 2000 });
+    const b = experimentBondLifeHeritability({ seeds: 2, ticks: 2000 });
+    expect(b.treatment[0]?.shift).toBe(a.treatment[0]?.shift);
+    expect(b.difference.estimate).toBe(a.difference.estimate);
+  });
+
+  it('biçimlendirme sonuç satırlarını içerir', () => {
+    const r = experimentBondLifeHeritability({ seeds: 2, ticks: 1500 });
+    expect(formatHeritability(r)).toContain('tedavi');
+    expect(r.reading.length).toBeGreaterThan(0);
   });
 });
 

@@ -89,6 +89,33 @@ export interface WorldOptions {
    * **kapalı**. Bkz. `VALIDATION.md` §4.7–4.9. Ürün davranışı değişmez.
    */
   signAdvantage?: boolean;
+  /**
+   * Duyarlılık analizi kancası: **bağ yorgunluğu** (tick başına bütünlük kaybı).
+   * Verilmezse `C.BOND_FATIGUE` kullanılır. Ürün davranışı değişmez.
+   *
+   * Gerekçe (`docs/VALIDATION.md` §5): ölçüldü ki koloniler kaynak bitmeden
+   * bağ yorgunluğuyla dağılıyor; koptukları andaki medyan uzama yalnız 0.079.
+   * Yani sınırlayıcı olan **bağ ömrü**, geometri değil.
+   */
+  bondFatigue?: number;
+  /**
+   * Duyarlılık analizi kancası: **uzamaya bağlı bütünlük kaybı** katsayısı.
+   * Verilmezse `C.STRAIN_DECAY_K` kullanılır. Ürün davranışı değişmez.
+   */
+  strainDecayK?: number;
+  /**
+   * **Y-2 kancası — bağ yorgunluğunu genoma bağla.** Varsayılan **kapalı**.
+   *
+   * Gerekçe (`docs/VALIDATION.md` §5): uzama terimi `bond.strength` ile
+   * çarpılıyor, **yorgunluk terisi hiç genoma bakmıyor** — her bağ, sahibi ne
+   * genom taşırsa taşısın aynı yorulma hızına sahip. Yani bağ ömrünün bir
+   * kısmı kalıtsız. Bu kanca açıldığında yorgunluk da `bond.strength` ile
+   * çarpılır ve bağ ömrü seçilime açık hâle gelir.
+   *
+   * Ölçüm amaçlı: seçilim dayanıklılığı artırıyor mu? Bkz.
+   * `experiments/ecology.ts → experimentBondLifeHeritability`.
+   */
+  coupleFatigueToGenome?: boolean;
   bondsEnabled?: boolean;
   /** Deney kısıtları. */
   growthEnabled?: boolean;
@@ -172,6 +199,11 @@ export class World {
    * `NeuralPolicy` model sabitlerini kullanır — yani oyunun davranışı
    * etkilenmez. Yalnız deney motoru bunları doldurur.
    */
+  private readonly bondTuning: {
+    bondFatigue?: number;
+    strainDecayK?: number;
+    coupleFatigueToGenome?: boolean;
+  };
   private readonly policyTuning: {
     trajectoryLimit?: number;
     learnRate?: number;
@@ -181,6 +213,11 @@ export class World {
 
   constructor(options: WorldOptions) {
     this.rng = new RngBundle(options.seed);
+    this.bondTuning = {
+      ...(options.bondFatigue === undefined ? {} : { bondFatigue: options.bondFatigue }),
+      ...(options.strainDecayK === undefined ? {} : { strainDecayK: options.strainDecayK }),
+      ...(options.coupleFatigueToGenome === undefined ? {} : { coupleFatigueToGenome: options.coupleFatigueToGenome }),
+    };
     this.policyTuning = {
       ...(options.trajectoryLimit === undefined ? {} : { trajectoryLimit: options.trajectoryLimit }),
       ...(options.learnRate === undefined ? {} : { learnRate: options.learnRate }),
@@ -743,8 +780,13 @@ export class World {
       const strain = Math.max(0, (d - bond.restLength) / bond.restLength);
       bond.strain = strain;
       // Uzama bütünlüğü daha hızlı yiyip, bağ temel dayanımına göre dayanır.
-      bond.integrity -= strain * C.STRAIN_DECAY_K * (1.6 - bond.strength);
-      bond.integrity -= C.BOND_FATIGUE;
+      const strainK = this.bondTuning.strainDecayK ?? C.STRAIN_DECAY_K;
+      const fatigue = this.bondTuning.bondFatigue ?? C.BOND_FATIGUE;
+      bond.integrity -= strain * strainK * (1.6 - bond.strength);
+      // Y-2 kancası: kapalıyken yorgunluk genenden bağımsızdır (ürün davranışı).
+      bond.integrity -= this.bondTuning.coupleFatigueToGenome
+        ? fatigue * (1.6 - bond.strength)
+        : fatigue;
       if (bond.integrity <= 0 || d > C.BOND_BREAK_DISTANCE) {
         toRemove.push(bond.id);
       }

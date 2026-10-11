@@ -13,7 +13,7 @@ doğrulanmıştır.
 
 | Alan | Durum | Kanıt |
 |---|---|---|
-| Saf TS simülasyon çekirdeği | ✅ | 112 test, 4 dosya, ~24 sn |
+| Saf TS simülasyon çekirdeği | ✅ | 126 test, 4 dosya, ~39 sn |
 | Enerji korunumu (kapalı sistem) | ✅ | rezidüel = **0.0000** (arena'da 0.0 e, kolonide 1.7e-8 e) |
 | Bölünme / parçalanma / paylaşım muhasebesi | ✅ | testler |
 | Bağ grafiği → gerçek çok hücrelilik | ✅ | 4+ hücreli yapılar test edildi |
@@ -34,7 +34,8 @@ doğrulanmıştır.
 | Prodüksiyon derlemesi | ✅ | `vite build` başarılı |
 | **Deney motoru (arena + koloni koşucuları)** | ✅ | 48 test |
 | **İstatistik katmanı (bootstrap CI, IQM, bootstrap test)** | ✅ | 24 test |
-| **3 deney + 5 tarama + ödül teşhisi + evrimsel karşılaştırma + 5 değişmez kontrol** | ✅ | 4.128 koşu, 105.6 sn, `docs/EXPERIMENTS.md` |
+| **3 deney + 5 tarama + ödül teşhisi + evrimsel karşılaştırma** | ✅ | `docs/EXPERIMENTS.md` |
+| **Faz B1 · ekolojik sönümlenme teşhisi + bağ ömrü duyarlılığı** | ✅ | `VALIDATION.md` §5 |
 
 ---
 
@@ -111,7 +112,59 @@ Bu yüzden +0.161 buluyor.
 
 Tam çıktı: `VALIDATION.md` §4.5–4.9.
 
-### 2.2 Gözlemci: canlı model doğrulanmadı
+### 2.2 Koloni sönümlenmesi — teşhis edildi, düzeltme **kararı bekliyor**
+
+Faz B1 (`VALIDATION.md` §5) beş rakip açıklamayı ayırdı:
+
+| Hipotez | Sonuç |
+|---|---|
+| Kaynak tükenmesi | ❌ elendi — sönümlenmede rezerv **%54.7** |
+| Avcı baskısı | ❌ elendi — ölümlerin %30'u, 7.000 tick'ten sonra |
+| Enerji bütçesi | ⚠️ sonuç (kaynak varken açlık), neden değil |
+| **Bağ ömrü** | ✅ **baskın** |
+
+Bağlar ~2.100 tick sonra bütünlüklerini yitiriyor (kopanların **%100'ü**
+tükenerek, medyan uzama 0.079). Koloniler bu kaybı yeniden üretemiyor.
+
+**Doğrulama:** bağ ömrü ×4 uzatıldığında (2.083 → 8.333) pencerenin sonunda
+4+ hücreli yapılar **0 → 0.25** çıkıyor. Popülasyon (~128) ve rezerv (~%35)
+değişmiyor — etki özgül olarak koloni kalıcılığında.
+
+**İki yol, ikisi de uygulanmadı:**
+
+| Yol | Ne yapar | Bedeli |
+|---|---|---|
+| **Y-1 Kalibrasyon** | Varsayılan `STRAIN_DECAY_K`/`BOND_FATIGUE` değerlerini ölçülen optimuma taşımak | Ürünün görünür davranışı değişir; gerekçesi ölçülmüş ama **ürün kararıdır** |
+| **Y-2 Seçilime açmak** | Bağ ömrünü sabit olmaktan çıkarıp `bondStrength` genomuna bağlamak | Daha derli toplu; kolonilerin neden daha dayanıklı olmadığını **ölçülebilir** kılar |
+
+**Y-2 denendi ve BAŞARISIZ oldu** (`VALIDATION.md` §5.6–5.10). Bağ yorgunluğunu
+genoma bağlayan kanca eklendi (varsayılan **kapalı**, ürün davranışı aynı),
+ancak seçilim `bondStrength` yükseltmedi: kayma −0.0056 [−0.0140, +0.0021],
+p = 0.343.
+
+Sınırlama ölçüldü ve **pencere artefaktı değil** — ama sebebi sandığımdan farklı.
+Pencereyi 4 katına çıkarmak çevrimi 5.46'dan yalnız 5.85'e çıkarıyor;
+kümülatif doğumun yataylaması **doygunluk değil, doğumların bitmesi**
+(§5.11: son çeyrekte 1 doğum, popülasyon 166 → 41).
+
+**En derin yapısal kısıt adayı (düzeltilmiş):** evrimsel süreçler yetersiz
+nesil derinliğine ulaşamıyor — ama **sebebi pencere değil, popülasyonun
+çökmesi.** §5.11–5.12: popülasyon 8.000 tick'te 166'dan çıkıp 40.000 tick'te
+**41'e** düşüyor; son çeyrekte **1 doğum** var. Kümülatif doğumun 246'da
+yataylaması "doygunluk" değil, **doğumların bitmesi.**
+
+**Ve §5.4'ün etkisi 40.000 tick'e genellenmiyor** (§5.13): 10× dayanıklı bağ
+son popülasyonu 36'dan 52'ye çıkarıyor, son çeyrek kümesi 1.0 → 3.7 oluyor —
+kısmi hafifletme, ama 4+ hücreli yapılar yine sıfır ve popülasyon zirvenin
+beşte biri. Kalibrasyon sönümlenmeyi **geciktiriyor**, çöküşü **engellemiyor.**
+
+**Önerilen sıra:** önce **40.000 tick'te sınırlayıcı olan ne** — avcı dinamiği mi,
+enerji muhasebesi mi, doğum/ölüm dengesi mi? Üçü de test edilmemiş
+(`VALIDATION.md` §5.14). B3 bu yanıtlanmadan yapılmamalı.
+
+Y-1 kalibrasyon "çözüm" değil, kısmi hafifletme olarak yeniden çerçevelendi.
+
+### 2.3 Gözlemci: canlı model doğrulanmadı
 
 - Hiçbir API anahtarı yoktu; **gerçek bir sağlayıcı çağrısı yapılmadı**.
 - MiniMax'in güncel görsel istek şeması canlı belgeden doğrulanmadı.
@@ -119,18 +172,18 @@ Tam çıktı: `VALIDATION.md` §4.5–4.9.
 - Sonraki adım: `CTM_API_KEY` ile gerçek çağrı, şemanın resmî belgeden
   doğrulanması, `sourceMode: "vision-assisted"` yolunun gerçek kareyle çalıştırılması.
 
-### 2.3 Tarayıcıda test edilmemiş yollar
+### 2.4 Tarayıcıda test edilmemiş yollar
 
 Mikroskop etkileşimi (gizli birim susturma, tek karar adımı), dal oluşturma,
 JSON içe/dışa aktarma, IndexedDB kaydet/yükle, gözlemci paneli. Kod yazılı, tipleri
 geçiyor, **kullanıcı akışı olarak denenmedi**.
 
-### 2.4 Ölçülmemiş performans
+### 2.5 Ölçülmemiş performans
 
 Tarayıcıda kare hızı ölçülmedi. Simülasyonun CPU payı ölçüldü (0.38–0.57 ms/tick)
 ama GPU/çizim maliyeti ile toplam FPS ölçülmedi.
 
-### 2.5 Deneyler tarayıcıya bağlı değil
+### 2.6 Deneyler tarayıcıya bağlı değil
 
 Deney motoru headless Node'da koşuyor (`npm run experiments`). Worker komutlarıyla
 tarayıcı içinden tetiklenen deneyler **bağlanmadı** — panel düğmeleri hâlâ
@@ -184,9 +237,11 @@ yakalandı.
 
 ## 5. Bilinen riskler
 
-1. **Koloni kalıcılığı:** ~6.000 tick sonrası bağlı yapılar çoğunlukla dağılıyor.
-   Kaynak tükenmesi ve avcı baskısıyla açıklanıyor; **ölçüldü ve gizlenmedi**.
-   Oyuncu müdahalesiyle sürdürülebiliyor.
+1. **Koloni kalıcılığı ve ekosistem çöküşü:** ~6.000 tick sonrası bağlı yapılar
+   dağılıyor, ~8.000 tick sonrası popülasyon **çöküyor** (166 → 41 @ 40.000).
+   **Teşhis edildi ve ölçüldü** (`VALIDATION.md` §5): kısa vadede sınırlayıcı
+   **bağ ömrüdür** (~2.100 tick); uzun vadede sınırlayıcı **henüz belirlenmemiştir**.
+   Kalibrasyon kısmi hafifletiyor, çöküşü engellemiyor.
 2. **Ekosistem yavaş sönümleniyor:** 20.000 tick'te 78 hücre. Kapalı enerji
    sisteminde bu beklenen; dış besin eklemek mümkün ve defterde kaydediliyor.
 3. **Varsayılan habitat ölçüm için çok kolay:** rastgele politika 0.928. Ürün

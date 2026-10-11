@@ -34,9 +34,9 @@ Anahtar yoksa uygulama **çalışır** ve gözlemci panelinde dürüstçe
 | `npm run dev` | Geliştirme sunucusu (port 5183) |
 | `npm run build` | Tip denetimi + üretim derlemesi |
 | `npm run preview` | Üretim çıktısını sunar (port 4173) |
-| `npm test` | Vitest — 112 test |
+| `npm test` | Vitest — 126 test |
 | `npm run typecheck` | `tsc --noEmit` |
-| `npm run experiments` | Deney paketini headless koşar (4.128 simülasyon) → `docs/EXPERIMENTS.md` |
+| `npm run experiments` | Deney paketini headless koşar (56.159 koşu, ~326 sn) → `docs/EXPERIMENTS.md` |
 | `npm run experiments:quick` | Deney paketinin duman testi (~2 sn) |
 | `npm run assets:build` | Blender 5.1.1 ile varlıkları yeniden üretir |
 | `npm run server` | Gözlemci sunucu rotası |
@@ -76,8 +76,8 @@ baskısını değiştirip sonucu izler; bir canlıyı ve soyunu takip eder.
 | Algı/temsil/hafıza/dünya modeli yönü | Algı modülü gerçek; V1/V2 planı | ⚠️ kısmen (bkz. PROGRESS) |
 | Dil/görsel model gözlemcisi | Kanıt paketi + yerel özet + sunucu rotası | ⚠️ yerel tam, canlı model doğrulanmadı |
 
-**Deney paketi yazıldı ve koşuyor.** `npm run experiments` 4.128 simülasyonu
-headless koşturur; sonuçlar `docs/EXPERIMENTS.md` içinde ham koşu değerleriyle
+**Deney paketi yazıldı ve koşuyor.** `npm run experiments` deney paketi
+(56.159 koşu) headless koşturur; sonuçlar `docs/EXPERIMENTS.md` içinde ham koşu değerleriyle
 durur.
 
 | Deney | Sonuç |
@@ -86,6 +86,11 @@ durur.
 | Mutasyon + seçilim → uyarlanma | ⚪ sonuçsuz (p = 0.097), 3 nesle yetmiyor |
 | Yaşam içi öğrenme → davranış | ❌ **etki yok** (p = 0.333) |
 | Evrimsel politika araması (kontrol) | ✅ **+0.161** görülmemiş dünyalarda |
+| Koloni sönümlenmesi (Faz B1) | ⚪ **teşhis edildi:** kaynak/avcı elendi, sınırlayıcı **bağ ömrü** (~2.100 tick) |
+| Bağ ömrü duyarlılığı (Faz B1b) | ✅ ölçüt karşılandı: ömür ×4 → 4+ hücreli yapılar 0 → 0.25 |
+| Y-2 bağ ömrünü seçilime açma | ❌ başarısız — kayma −0.006 [−0.014, +0.002], p = 0.343 |
+| Üreme tıkanması | ❌ değil tıkanma, **çöküş**: son çeyrekte 1 doğum, pop 166 → 41 |
+| Uzun vadeli dayanıklılık | ❌ §5.4 40.000 tick'e **genellenmiyor** — kalibrasyon kısmi hafifletiyor |
 
 Son satır önemli: aynı ölçümde evrimsel arama +0.161 kazancı bulurken
 REINFORCE +0.020 (gürültü) buluyor. Darboğaz görevde değil, **öğrenme

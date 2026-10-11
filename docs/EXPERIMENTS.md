@@ -1,7 +1,7 @@
 # Cell to Mind — Deney Sonuçları
 
-**Körüldü:** 2026-10-10T20:33:53.446Z
-**Toplam koşu:** 4128 · **duvar süresi:** 105.6 s
+**Körüldü:** 2026-10-10T21:36:19.921Z
+**Toplam koşu:** 56159 · **duvar süresi:** 325.6 s
 **Mod:** tam
 
 > Bu dosya `npm run experiments` ile üretilir. Sayılar ölçülmüştür;
@@ -147,6 +147,110 @@ optimizer çalışamaz; %5–%20 → zayıf; ≥ %20 → sinyal var, sorun optim
     ödül ↔ performans: Pearson 0.696 · Spearman 0.733
     politikaya bağlı ödül varyansı payı: 97.92%
     → Ödülün %97.9'i politika farklarından geliyor → **sinyal var**. Sorun optimizer tarafındadır.
+```
+
+## Faz B1 · Ekolojik sönümlenme teşhisi
+
+Koloniler neden dağılıyor? `docs/ROADMAP.md` Faz B1 kuralı: ayrım yapılmadan
+parametre değiştirilmez. Beş rakip açıklama beş ölçümle ayrıldı.
+
+```
+  tohum 11 · 12000 tick
+  zirve: tick 3200 · en büyük küme 8 · bağ 77 · bütünlük 0.561 · uzama 0.018
+  sönümlenme: tick 8400 · küme 1 · bağ 0 · bütünlük 0.000 · uzama 0.000
+  rezerv (sönümlenmede): %54.7
+  ölüm payları: açlık %70 · avcı %30
+  yorgunluk tek başına açıklayabileceği kayıp: 0.24
+  kopma anındaki uzama: medyan 0.079 · kopan 83 bağ · tükenerek %100 · uzayarak %0
+  koptukları andaki medyan dayanım: 0.450
+  → Baskın açıklama: **koloni geometrisi / bağ uzaması**. Kaynak bitmemiş (rezerv doluluğu %54.7), ortalama bağ uzaması 0.000 (dinlenme uzunluğunun 1.00 katı). Yorgunluk tek başına en fazla 0.24 bütünlük yiyebilirdi. Kopan 83 bağdan 83 tanesi bütünlüğü tükenerek (%100), 0 tanesi uzama sınırını aşarak koptu (%0); koptukları andaki medyan uzama 0.079 — hayatta kalanların 0.000 ortalamasının 79000 katı.
+```
+
+```
+   tick   pop   org   küme   4+   bağ  bütünlük   uzama   rezerv%   enerji   açlık   avcı
+      0    48    48      0    0     0  0.000   0.000     100.0  108763      0      0
+   1000   100    72      3    0    28  0.782   0.026      96.7  107527      0      0
+   2000   157   107      4    1    50  0.642   0.012      91.4  104973      0      0
+   3000   225   150      7    9    75  0.573   0.010      83.6   99041      0      0
+   4000   254   198      8    6    56  0.530   0.017      74.9   90161      3      2
+   5000   247   219      5    2    28  0.414   0.011      67.9   80447     12      2
+   6000   217   207      3    0    10  0.208   0.029      62.8   72908     37      3
+   7000   175   174      2    0     1  0.820   0.000      59.0   67950     73     10
+   8000   163   162      2    0     1  0.265   0.174      55.6   64176     78     19
+   9000   153   152      2    0     1  0.933   0.000      52.9   60880     82     26
+  10000   142   141      2    0     1  0.647   0.003      50.5   58145     87     33
+  11000   139   137      2    0     2  0.278   0.089      48.1   55622     90     35
+  12000   130   129      2    0     1  0.484   0.010      46.5   53355     95     40
+```
+
+## Faz B1b · Bağ ömrü duyarlılığı
+
+B1 teşhisinin doğrudan sınaması: bağ ömrü uzatılınca koloniler kalıcı hale geliyor mu?
+
+**Başarı ölçütü (önceden kaydedildi):** yorgunluk ve strain katsayısı
+düşürüldüğünde pencerenin sonunda **4+ hücreli yapıların sıfırdan çıkması**
+(varsayılan ayarlarda pencerenin sonunda 0).
+
+```
+  strainK   yorgunluk   bağ ömrü   zirve küme   son çeyrek   son 4+   son pop   son rezerv   sönüml.   kalıcı
+  0.0200000   0.00002000      2083         17            2   0.000000   128.5000000   36.19344083%      4200   HAYIR
+  0.0100000   0.00001000      4167         24            3   0.000000   128.2500000   35.13807477%      9800   HAYIR
+  0.0050000   0.00000500      8333         24           10   0.250000   131.5000000   34.96256427%      5200   evet
+  0.0020000   0.00000100     21277         24            6   0.250000   128.2500000   34.63571636%      7000   evet
+```
+
+## Y-2 · Bağ ömrünün kalıtılabilirliği
+
+Yorgunluk terimi genoma bakmıyor: her bağ, sahibi ne genom taşırsa taşsın
+aynı yorulma hızına sahip. Kanca açıldığında yorgunluk da `bond.strength`
+ile çarpılır ve dayanıklılık seçilime açık hâle gelir.
+
+İki kol **aynı** kalıcı-bağ ayarını kullanır, tek fark kalıtılabilirliktir.
+
+**Başarı ölçütü (önceden kaydedildi):** tedavi kolunun seçilim kayması
+sıfırdan ayrışmalı ve kontrol kolundan büyük olmalı.
+
+```
+  6 eşleştirilmiş tohum · 40000 tick · strainK 0.005 (iki kolda da koloniler ayakta)
+  kontrol  (yorgunluk genoma bağlı DEĞİL): kurucu 0.4489 → hayatta kalan 0.4378 · kayma -0.0112
+  tedavi   (yorgunluk genoma BAĞLI):    kurucu 0.4489 → hayatta kalan 0.4434 · kayma -0.0056
+  tedavi kayması [-0.0056, -0.0140, 0.0021] · iki kol farkı 0.0056 [-0.0044, 0.0180] · p = 0.3426
+  üreme çevrimi (kurucu başına): kontrol 5.89 · tedavi 5.85
+  enerji rezidüelü: 0.000000000 e
+  → Seçilim kayması sıfırdan **ayrışmadı**: -0.0056 [-0.0140, 0.0021]. Kurucu başına 5.85 üreme çevrimi gerçekleşti (kümülatif 281 doğum).
+```
+
+## Üreme tıkanması teşhisi
+
+Popülasyonun neden ~5.5 çevrimde doyduğu sorusu. Kümülatif doğumun
+yataylaması **"doygunluk" sanıldı; ölçüm aslında doğumların durmasını**
+gösteriyordu — kümülatif sayı artmayı bırakınca çoğalm da bitmiştir.
+
+```
+  tohum 11 · 40000 tick
+  tomurcuklama 110 · parçalanma 74 · kurucu soyun canlı hücrelerdeki payı 100.0%
+  → Doğum hızı **çöktü**: ilk çeyrekte 144, son çeyrekte 1 doğum. Üreme döngüsü tıkanmış.
+
+   tick   pop   org   küm.dğ   bud   frag   kurucu soy   kurucu hücre   soy hücre   kol.nesil   küme
+       0    48    48      48     0      0          48           48          0           0      0
+   16000   106   103     240   108      9         103          106          0          57      2
+   32000    56    56     246   110      1          56           56          0          27      1
+   40000    41    41     246   110      0          41           41          0          18      1
+```
+
+## Uzun vadeli dayanıklılık — §5.4 genelleniyor mu?
+
+Bölüm 5.4 bağ dayanıklılığının 12.000 tick penceresinde 4+ hücreli
+yapıları geri getirdiğinin **ölçüldüğünü** ve ölçütü karşıladığını yazar.
+Bu tarama aynı ayarları 40.000 tick boyunca sınar: kalibrasyon sönümlenmeyi
+erteliyor mu, yoksa uzun vadeli çöküşü gerçekten önlüyor mu?
+uzun vadeli çöküşü gerçekten önlüyor mu?
+
+```
+  strainK   bağ ömrü   son pop   çöküş oranı   son çeyrek küme   son 4+   son bağ   son rezerv   geç açlık%   geç avcı%
+  0.0200000     2083        36   7.13888889    1.1960784314        0        0   26.74465043%   37.50000000   62.50000000
+  0.0050000     8333        35   7.40000000    1.0000000000        0        0   26.59328683%   45.45454545   54.54545455
+  0.0020000    21277        52   4.98076923    4.0784313725        0       13   22.88021607%   100.00000000   0.00000000
 ```
 
 ## Bağ gücü koloni büyüklüğünü artırıyor mu?

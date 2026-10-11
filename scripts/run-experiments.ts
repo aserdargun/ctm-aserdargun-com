@@ -19,6 +19,19 @@
 
 import { writeFileSync } from 'node:fs';
 import {
+  diagnoseColonyCollapse,
+  diagnoseReproductiveStall,
+  experimentBondLifeHeritability,
+  formatBondDurability,
+  formatHeritability,
+  formatLongRun,
+  formatReproDiagnosis,
+  formatDiagnosis,
+  formatEcologyTable,
+  sweepBondDurability,
+  sweepLongRunDurability,
+} from '../src/sim/experiments/ecology.ts';
+import {
   calibrateArena,
   experiment1,
   experiment2,
@@ -165,6 +178,37 @@ function main(): void {
     : measureRewardSignal({ samples: 48, seedsPerSample: 2, ticks: 4000 });
   process.stdout.write(`${formatRewardSignal(rewardSignal)}\n`);
 
+  process.stdout.write(`\n13/13 Faz B1 · ekolojik sönümlenme teşhisi…\n`);
+  const ecology = args.quick
+    ? diagnoseColonyCollapse({ seed: 11, ticks: 4000, sampleEvery: 400 })
+    : diagnoseColonyCollapse({ seed: 11, ticks: 12_000, sampleEvery: 200 });
+  process.stdout.write(`${formatDiagnosis(ecology)}\n\n`);
+  process.stdout.write(`${formatEcologyTable(ecology, args.quick ? 1000 : 1000)}\n`);
+
+  process.stdout.write(`\n14/14 Faz B1b · bağ ömrü duyarlılığı (teşhisin doğrudan sınaması)…\n`);
+  const durability = args.quick
+    ? sweepBondDurability({ settings: [{ strainDecayK: 0.02, bondFatigue: 2e-5 }, { strainDecayK: 0.005, bondFatigue: 5e-6 }], ticks: 4000, seeds: 1 })
+    : sweepBondDurability({ ticks: 12_000, seeds: 4 });
+  process.stdout.write(`${formatBondDurability(durability)}\n`);
+
+  process.stdout.write(`\n15/15 Y-2 · bağ ömrünün kalıtılabilirliği…\n`);
+  const heritability = args.quick
+    ? experimentBondLifeHeritability({ seeds: 2, ticks: 4000 })
+    : experimentBondLifeHeritability({ seeds: 6, ticks: 40_000 });
+  process.stdout.write(`${formatHeritability(heritability)}\n`);
+
+  process.stdout.write(`\n16/16 üreme tıkanması teşhisi…\n`);
+  const repro = args.quick
+    ? diagnoseReproductiveStall({ seed: 11, ticks: 8000, sampleEvery: 1000 })
+    : diagnoseReproductiveStall({ seed: 11, ticks: 40_000, sampleEvery: 4000 });
+  process.stdout.write(`${formatReproDiagnosis(repro)}\n`);
+
+  process.stdout.write(`\n17/17 uzun vadeli dayanıklılık (§5.4 genelleniyor mu?)…\n`);
+  const longRun = args.quick
+    ? sweepLongRunDurability({ settings: [{ strainDecayK: 0.02, bondFatigue: 2e-5 }], ticks: 6000 })
+    : sweepLongRunDurability({ ticks: 40_000 });
+  process.stdout.write(`${formatLongRun(longRun)}\n`);
+
   const elapsed = Date.now() - started;
   const totalRuns =
     exp1.weak.length + exp1.strong.length + exp2.frozen.length + exp2.evolving.length +
@@ -175,6 +219,11 @@ function main(): void {
     variance.length * 5 * (args.quick ? 3 : 20) +
     signStep.length * 5 * (args.quick ? 3 : 20) +
     rewardSignal.samples * rewardSignal.seedsPerSample +
+    ecology.ticks +
+    durability.length * (args.quick ? 1 : 4) +
+    heritability.seeds * 2 * (args.quick ? 1 : 1) +
+    repro.ticks +
+    longRun.length +
     (args.quick
       ? 0
       : evolution.generations * evolution.population * (evolution.offspringPerParent + 1) * 6 + evolution.population * 4);
@@ -299,6 +348,68 @@ function main(): void {
       '',
       '```',
       formatRewardSignal(rewardSignal),
+      '```',
+      '',
+      '## Faz B1 · Ekolojik sönümlenme teşhisi',
+      '',
+      'Koloniler neden dağılıyor? `docs/ROADMAP.md` Faz B1 kuralı: ayrım yapılmadan',
+      'parametre değiştirilmez. Beş rakip açıklama beş ölçümle ayrıldı.',
+      '',
+      '```',
+      formatDiagnosis(ecology),
+      '```',
+      '',
+      '```',
+      formatEcologyTable(ecology, 1000),
+      '```',
+      '',
+      '## Faz B1b · Bağ ömrü duyarlılığı',
+      '',
+      'B1 teşhisinin doğrudan sınaması: bağ ömrü uzatılınca koloniler kalıcı hale geliyor mu?',
+      '',
+      '**Başarı ölçütü (önceden kaydedildi):** yorgunluk ve strain katsayısı',
+      'düşürüldüğünde pencerenin sonunda **4+ hücreli yapıların sıfırdan çıkması**',
+      '(varsayılan ayarlarda pencerenin sonunda 0).',
+      '',
+      '```',
+      formatBondDurability(durability),
+      '```',
+      '',
+      '## Y-2 · Bağ ömrünün kalıtılabilirliği',
+      '',
+      'Yorgunluk terimi genoma bakmıyor: her bağ, sahibi ne genom taşırsa taşsın',
+      'aynı yorulma hızına sahip. Kanca açıldığında yorgunluk da `bond.strength`',
+      'ile çarpılır ve dayanıklılık seçilime açık hâle gelir.',
+      '',
+      'İki kol **aynı** kalıcı-bağ ayarını kullanır, tek fark kalıtılabilirliktir.',
+      '',
+      '**Başarı ölçütü (önceden kaydedildi):** tedavi kolunun seçilim kayması',
+      'sıfırdan ayrışmalı ve kontrol kolundan büyük olmalı.',
+      '',
+      '```',
+      formatHeritability(heritability),
+      '```',
+      '',
+      '## Üreme tıkanması teşhisi',
+      '',
+      'Popülasyonun neden ~5.5 çevrimde doyduğu sorusu. Kümülatif doğumun',
+      'yataylaması **"doygunluk" sanıldı; ölçüm aslında doğumların durmasını**',
+      'gösteriyordu — kümülatif sayı artmayı bırakınca çoğalm da bitmiştir.',
+      '',
+      '```',
+      formatReproDiagnosis(repro),
+      '```',
+      '',
+      '## Uzun vadeli dayanıklılık — §5.4 genelleniyor mu?',
+      '',
+      'Bölüm 5.4 bağ dayanıklılığının 12.000 tick penceresinde 4+ hücreli',
+      'yapıları geri getirdiğinin **ölçüldüğünü** ve ölçütü karşıladığını yazar.',
+      'Bu tarama aynı ayarları 40.000 tick boyunca sınar: kalibrasyon sönümlenmeyi',
+      'erteliyor mu, yoksa uzun vadeli çöküşü gerçekten önlüyor mu?',
+      'uzun vadeli çöküşü gerçekten önlüyor mu?',
+      '',
+      '```',
+      formatLongRun(longRun),
       '```',
       '',
       ...[exp1.report, exp2.report, exp3.report].flatMap((r) => [

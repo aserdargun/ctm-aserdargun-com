@@ -14,7 +14,7 @@ Bu raporda **yalnızca gerçekten çalıştırılan** kontroller yer alır.
 
 ```
 Test Files  4 passed (4)
-     Tests  112 passed (112)
+     Tests  126 passed (126)
 ```
 
 ### 1.1 MLP sayısal doğruluğu (`tests/mlp.test.ts`, 14 test)
@@ -78,7 +78,7 @@ Test Files  4 passed (4)
 | **Eşleştirilmiş fark aralığı, ayrı kol aralıklarından daha dar** | ✅ |
 | `mean(differences) == mean(treatment) − mean(control)` | ✅ |
 
-### 1.4 Deney altyapısı (`tests/experiments.test.ts`, 48 test)
+### 1.4 Deney altyapısı (`tests/experiments.test.ts`, 62 test)
 
 Bunlar kütüphaneyi değil **deney yükünün doğruluğunu** doğrular. Yanlış çalışan
 bir deney kodu, yanlış sayılar üretir ve bu rapor yanıltıcı hâle gelir.
@@ -147,7 +147,7 @@ Headless ölçüm (`vite-node`), 48 kurucu organizma, standart habitat:
 
 Bu, 1× hızda (20 tick/sn) saniyede ~8–11 ms CPU demektir; 60 FPS bütçesinde
 anlamlı bir pay bırakır. 256 hücrelik standart kapasitede 60 FPS **hedef**
-olarak konuldu; tarayıcıda kare hızı ölçülmedi (bkz. §7 açık doğrulamalar).
+olarak konuldu; tarayıcıda kare hızı ölçülmedi (bkz. §8 açık doğrulamalar).
 
 Optimizasyon notu: yaşayan organizma sırası önbelleklendi, uzamsal ızgara
 3.2 → 1.2 mb sıklaştırıldı. Bu iki değişiklik birlikte ~0.76 → ~0.38 ms/tick
@@ -160,7 +160,7 @@ Deney paketinin tam koşumu **108 simülasyon, 84.4 saniye** sürdü (bkz. §4).
 ## 4. Deney paketi — gerçekten koşuldu
 
 **Komut:** `npm run experiments` (headless, `vite-node`)
-**Kapsam:** 4.128 simülasyon · 105.6 s · 5 değişmez kontrol · 3 deney + kalibrasyon + beş tarama + ödül teşhisi + evrimsel karşılaştırma
+**Kapsam:** 56.159 simülasyon · 325.6 s · 5 değişmez kontrol · 3 deney + kalibrasyon + 5 tarama + ödül teşhisi + evrimsel karşılaştırma + Faz B teşhisi
 **Tam rapor (ham koşu değerleri dâhil):** `docs/EXPERIMENTS.md`
 
 ### 4.1 Değişmez kontroller — 5/5 geçti
@@ -679,7 +679,304 @@ teknik bir zorunluluk değil, **bilinçli bir seçimdir** — çünkü ölçüld
 ---
 
 
-## 5. Tarayıcı akışı — gerçekten yapıldı
+## 5. Faz B1 · Ekolojik sönümlenme teşhisi
+
+**Komut:** `npm run experiments` · `src/sim/experiments/ecology.ts`
+**Kural:** `docs/ROADMAP.md` Faz B1 — *ayrım yapılmadan hiçbir parametre
+değiştirilmez.* Beş rakip açıklama, beş ölçümle ayrıldı.
+
+### 5.1 Zaman serisi (tohum 11, 12.000 tick)
+
+| Tick | Pop | Org | Küme | 4+ | Bağ | Bütünlük | Uzama | Rezerv% | Ölüm: açlık / avcı |
+|---|---|---|---|---|---|---|---|---|---|
+| 0 | 48 | 48 | 0 | 0 | 0 | — | — | 100.0 | 0 / 0 |
+| 1.000 | 100 | 72 | 3 | 0 | 28 | 0.782 | 0.026 | 96.7 | 0 / 0 |
+| 2.000 | 157 | 107 | 4 | 1 | 50 | 0.642 | 0.012 | 91.4 | 0 / 0 |
+| **3.200** | — | — | **8 (zirve)** | — | — | 0.561 | 0.018 | ~85 | 0 / 0 |
+| 4.000 | 254 | 198 | 8 | 6 | 56 | 0.530 | 0.017 | 74.9 | 3 / 2 |
+| 5.000 | 247 | 219 | 5 | 2 | 28 | 0.414 | 0.011 | 67.9 | 12 / 2 |
+| 6.000 | 217 | 207 | 3 | 0 | **10** | **0.208** | 0.029 | 62.8 | 37 / 3 |
+| 7.000 | 175 | 174 | 2 | 0 | 1 | — | — | 59.0 | 73 / 10 |
+| 8.400 | — | — | **1 (sönümlenme)** | 0 | **0** | — | — | **54.7** | — |
+| 12.000 | 130 | 129 | 2 | 0 | 1 | — | — | 46.5 | 95 / 40 |
+
+### 5.2 Hipotezlerin ayrımı
+
+| Hipotez | Beklenen işaret | Gözlenen | Sonuç |
+|---|---|---|---|
+| Kaynak tükenmesi | Rezerv sönümlenmede ~0 | Rezerv **%54.7** | ❌ **elen** |
+| Avcı baskısı | Ölümlerin çoğu avcı | Avcı **%30**, ve ancak 7.000 tick'ten sonra | ❌ **elen** |
+| Enerji bütçesi | Açlık ölümleri baskın | Açlık %70 — **ama kaynak varken** | ⚠️ sonuç, neden değil |
+| Bağ mekaniği | Bütünlük düşer, bağ azalır | 0.782 → 0.208, bağ 77 → 0 | ✅ **baskın** |
+
+**Zincir öyle kuruluyor:** bağ bütünlüğü düşüyor → koloniler parçalanıyor →
+yalnız kalan hücreler paylaşamıyor → kaynak %55 doluyken açlıkla ölüyorlar →
+popülasyon 254 → 130 düşüyor. **Kaynak tükenmesi sonuçtur, neden değil.**
+
+### 5.3 Mekanizma: bağ ömrü
+
+Bütünlük iki terimle erir:
+`integrity -= strain × STRAIN_DECAY_K × (1.6 − strength)` ve `integrity -= BOND_FATIGUE`.
+
+**Ölçüm hatası ve düzeltmesi.** Önce hayatta kalan bağların ortalama uzamasını
+ölçtüm: **0.010–0.029**, yani bağlar dinlenme uzunluğunun ~%1'i kadar açık.
+Bu, "uzama açıklamadır" izlenimi verdi. **Yanlıştı — seçilim yanlılığı:** gerilmiş
+bağlar zaten koptuğu için hayatta kalanlar seçilmiş olarak düşük gerilimlidir.
+Doğru soru "hayatta kalanlar ne kadar gerilmiş?" değil, **"kıranlar ne kadar
+gerilmişti?"** sorusudur. `bond-break` olayı zaten `detail.strain` taşıyor;
+oradan toplandı:
+
+| Ölçüm | Değer |
+|---|---|
+| Kopan bağ sayısı | 83 |
+| **Bütünlüğü tükenerek koptu** | **83 (%100)** |
+| Uzama sınırını aşarak koptu | 0 (%0) |
+| Koptukları andaki medyan uzama | **0.079** |
+| Koptukları andaki medyan dayanım | 0.450 |
+| Yorgunluk tek başına 12.000 tick'te açıklayabileceği kayıp | **0.24** |
+
+Medyan dayanım 0.450 ve düşük uzama ile tick başına kayıp ≈
+`0.02 × 0.02 × 1.15 + 2e-5 ≈ 4.8e-4` → bağ ömrü ≈ **2.100 tick**.
+
+**Teşhis: sınırlayıcı olan bağ ömrüdür.** Bağlar ~2.000–3.000 tick sonra tükenir;
+koloniler bu kaybı sürekli yeniden üretmek zorundadır ve üretemez. Geometri
+açıklama değildir, avcı değildir, kaynak değildir.
+
+### 5.4 Teşhisin doğrudan sınaması — bağ ömrü duyarlılığı
+
+Önceden kaydedilen ölçüt: yorgunluk ve strain katsayısı düşürüldüğünde
+pencerenin **sonunda 4+ hücreli yapıların sıfırdan çıkması** (varsayılan
+ayarlarda pencerenin sonunda 0).
+
+| strainK | yorgunluk | Bağ ömrü (tick) | Zirve küme | Son çeyrek küme | **Son 4+ yapı** | Son pop | Son rezerv | Kalıcı |
+|---|---|---|---|---|---|---|---|---|
+| **0.020 (varsayılan)** | 2e-5 | **2.083** | 17 | 2 | **0.00** | 128.5 | %36.2 | **HAYIR** |
+| 0.010 | 1e-5 | 4.167 | 24 | 3 | **0.00** | 128.3 | %35.1 | **HAYIR** |
+| **0.005** | 5e-6 | **8.333** | 24 | **10** | **0.25** | 131.5 | %35.0 | **evet** |
+| 0.002 | 1e-6 | 21.277 | 24 | 6 | 0.25 | 128.3 | %34.6 | evet |
+
+**Ölçüt KARŞILANDI.** Bağ ömrü 2.083 → 8.333 arasında (×4) koloniler kalıcı hâle
+geliyor: pencerenin sonunda 4+ hücreli yapı **0 → 0.25**.
+
+**Bu etki özgüldür.** Popülasyon tüm satırlarda ~128–131, son rezerv ~%35.
+Değişen tek şey kolonilerin **kalıcılığı**; bu bir "daha çok hücre" değil,
+"daha uzun yaşayan çok hücreli yapı" etkisi.
+
+Geçiş 4.167 ile 8.333 arasındadır ve **monoton değildir** (0.005'te son çeyrek
+kümesi 10, 0.002'de 6) — yani bir optimum var, "ne kadar dayanıklı olursa olsun
+iyidir" değil.
+
+### 5.5 Bu ne demek, ne demek değil
+
+**Demin:** bağ ömrünün koloni kalıcılığını belirlediği **ölçüldü** ve varsayılan
+ayarlarda yetersiz olduğu gösterildi. Varsayılan `STRAIN_DECAY_K` / `BOND_FATIGUE`
+değerleri, kolonilerin ilk ~2.000–3.000 tick'te görünmesi için seçilmişti
+(§2'deki tablo bunu doğruluyor: zirve 3.200'de).
+
+**Değil:** modelin "yanlış" olduğu. Bu, bir **gözlem penceresi ile bağ ömrü
+arasındaki kalibrasyon uyumsuzluğu.** 12.000–20.000 tick'lik bir pencerede
+bakmak istiyorsak bağlar o ölçekte yaşamalı; ya da bağ ömrü bir **genom
+parametresi** olup seçilime açılmalı (ikinci yol, evrimsel bir soru — aşağıda).
+
+**Sıradaki iki yol (henüz uygulanmadı):**
+- **Y-1 Kalibrasyon:** varsayılan katsayıları ölçülen optimuma taşımak.
+  Ürün davranışını değiştirir; gerekçesi ölçülmüştür ama **ürün kararıdır.**
+- **Y-2 Seçilime açmak:** `strainDecayK`/`bondFatigue` sabit olmaktan çıkıp
+  `bondStrength` genomuna bağlanırsa bağ ömrü **evrimsel değişken** olur.
+  Daha derli toplu, "koloniler neden daha dayanıklı olmadı" sorusunu ölçülebilir
+  kılar — ve yalnız kalibrasyonla gelmeyen bilgi verir.
+
+
+### 5.6 Y-2 · Bağ ömrünü seçilime açmak — **başarısız**
+
+§5.4'te bağ ömrünün koloni kalıcılığını belirlediği ölçüldü. Bu, doğrudan bir
+mühendislik sorusu doğuruyor: bağ ömrü **seçilime açık mı?**
+
+### 5.7 Koddaki boşluk
+
+`world.ts` `bondPhase()`:
+
+```
+bond.integrity -= strain * STRAIN_DECAY_K * (1.6 - bond.strength);
+bond.integrity -= BOND_FATIGUE;          // ← genoma HİÇ bakmıyor
+```
+
+Uzama terimi kalıtsal (`bond.strength` genomdan gelir), **yorgunluk terisi
+değil**. Yani bağ ömrünün bir kısmı genoma bağlı değil ve seçilimin ona erişim
+yolu yok. `bondStrength` zaten kalıtsaldır (0.15–1); kopan yer burasıdır.
+
+**Y-2 kancası** (`coupleFatigueToGenome`, **varsayılan kapalı** — ürün davranışı
+değişmedi, 126 test yeşil): yorgunluk da `bond.strength` ile çarpılır.
+
+### 5.8 Deney ve sonuç
+
+İki kol **aynı** kalıcı-bağ ayarını kullanır (`strainDecayK = 0.005`, ikisi de
+kolonileri ayakta tutar). Tek fark kalıtılabilirliktir. 6 eşleştirilmiş tohum,
+40.000 tick, mutasyon açık.
+
+| Kol | Kurucu bondStrength | Hayatta kalan | **Seçilim kayması** |
+|---|---|---|---|
+| Kontrol (kalıtsız) | 0.4489 | 0.4378 | −0.0112 |
+| **Tedavi (kalıtsal)** | 0.4489 | 0.4434 | **−0.0056** [−0.0140, +0.0021] |
+
+İki kol farkı: +0.0056 [−0.0044, +0.0180], **p = 0.343**.
+
+**Başarı ölçütü KARŞILANMADI.** Tedavi kolunun kayması sıfırdan ayrışmıyor.
+
+### 5.9 Sınırlama mı, sonuç mu? — ölçüm düzeltmesi
+
+İlk yorumum "pencere çok kısa, üç nesil yetmez" oldu. Bu **yanlıştı ve
+ölçüm hatasından kaynaklanıyordu:** kullandığım `maxGeneration`, yaşayan
+popülasyondaki anlık en yüksek nesildir ve **uzun koşularda düşebilir** —
+ölçüldü: 10.000 tick → 3.0, 100.000 tick → 1.3. Doğru ölçü kümülatif doğum
+sayısıdır (`nextOrganismIdForSnapshot() − 1`).
+
+| Pencere | Üreme çevrimi (kurucu başına) | Kümülatif doğum |
+|---|---|---|
+| 10.000 | 5.46 | 262 |
+| 40.000 | **5.85** | 281 |
+
+**Pencereyi 4 katına çıkarmak üreme çevrimini 5.46'dan yalnız 5.85'e çıkarıyor**
+(19 ek doğum). Popülasyon ~5.5 çevrimde **üreme durağanlığına** ulaşıyor:
+kurucuların torunları zaten doygunluğu doldurmuş, daha uzun koşu neredeyse hiç
+bir şey eklemiyor.
+
+Yani düzeltilmiş sınırlama "3 nesil" değil, **"≈5.5 üreme çevrimi"** — ve bu
+bir ölçüm artefaktı değil.
+
+> ⚠️ **DÜZELTME (§5.11):** Bu paragraftaki "durağanlık" yorumu **yanlıştır.**
+> Kümülatif doğumun yataylaması doygunluğu değil, **doğumların durmasını**
+> gösterir. Popülasyon durağan değil, **çöküyor** (166 → 41). Aşağıdaki
+> gözlemler geçerlidir; "durağanlık" yorumu değildir.
+
+### 5.10 Sonuç ve anlamı
+
+**Y-2 başarısız: bağ ömrünü seçilime açmak tek başına yeterli değil.**
+
+Bu, §5.4'teki kalibrasyon bulgusunu güçlendiriyor: bağ ömrü koloni kalıcılığını
+belirliyor, ama **bu ölçülebilir bir seçilim baskısı haline gelmiyor.** İki
+olası açıklama, ikisi de test edilmemiş:
+
+1. **Seçilim şiddeti zayıf.** 5.5 çevrimde `bondStrength` üzerindeki
+   farklılıkların hayatta kalma farkı yaratması için yetersiz — ancak
+   §5.11'e göre bu çevrim sayısı bir "doygunluk" değil, **çöken bir
+   popülasyonun sonucudur.** Yani seçilim zayıflığı da çöküşün bir sonucu.
+2. **Bağ ömrü tek başına belirleyici değil.** §5.4 bağ ömrünün *gerekli* olduğunu
+   gösterdi, *yeterli* olduğunu göstermedi; kolonilerin kalıcılığı başka
+   faktörlerle birlikte belirleniyor olabilir.
+
+Bu bulgu, **yol planındaki B3'ü (somatik mutasyon / hileci deneyi) yeniden
+önceliklendirir:** organizma içi seçilimin çalışması için yeterli çevrim
+yok demek — ama §5.11'e göre bu çevrim sayısının **kendisi** çöküşün sonucu. Bu yüzden B3'ün de nesil derinliğine bağlı olması
+muhtemel — ve bu, projedeki **en derin yapısal kısıt** adayıdır: evrimsel
+süreçler bu modelde yeterli nesil derinliğine ulaşamıyor.
+
+
+### 5.11 Üreme tıkanması — "durağanlık" yorumu **çürütüldü**
+
+§5.9'da pencerenin 4 katına çıkması üreme çevrimini 5.46'dan 5.85'e çıkarmadığı
+için "popülasyon üreme durağanlığına ulaşıyor" denmişti. Bu yorum **yanlıştı** ve
+ölçümden kaynaklanıyordu: kümülatif doğum sayısının yataylaması "doygunluk"
+değil, **doğumların durması** demektir.
+
+Kümülatif sayı, doğum *devam ettiği* sürece artar. Yataylaması çevrim bitti
+demektir. İki ölçüm birlikte okunmalıydı.
+
+| Tick | Pop | Org | Küm. doğum | Bud | Frag | Küme |
+|---|---|---|---|---|---|---|
+| 0 | 48 | 48 | 48 | 0 | 0 | 0 |
+| 8.000 | **166** | 121 | 201 | 101 | 15 | 5 |
+| 16.000 | 106 | 103 | 240 | 110 | 2 | 2 |
+| 24.000 | 72 | 70 | 244 | 112 | 0 | 2 |
+| 32.000 | 56 | 56 | 246 | 112 | 0 | 1 |
+| **40.000** | **41** | 41 | **246** | 112 | 0 | **1** |
+
+**Doğum hızı çöktü:** ilk çeyrekte 169, **son çeyrekte 1** doğum. Tomurcuklama
+112 kez gerçekleşti ve koloni üreme nesli zirvede 80'e çıktı — **sonra geri
+düştü.** Yani üreme bir süre çalışıyor, sonra tümüyle duruyor.
+
+Popülasyon durağan değil: **çöküyor.** 166 → 41.
+
+### 5.12 40.000 tick'e uzun bakış: ekosistem sönüyor
+
+Varsayılan ayarlarda 40.000 tick (tohum 11):
+
+| Tick | Pop | Küme | Bağ | Rezerv% | Sistem enerjisi | Açlık ölümü | Avcı ölümü |
+|---|---|---|---|---|---|---|---|
+| 4.000 | **254** | 8 | 56 | 74.9 | 90.161 | 3 | 2 |
+| 8.000 | 163 | 2 | 1 | 55.6 | 64.176 | 78 | 19 |
+| 16.000 | 103 | 2 | 1 | 40.4 | 46.136 | 109 | 57 |
+| 24.000 | 74 | 1 | **0** | 32.8 | 37.137 | 119 | 80 |
+| 32.000 | 44 | 1 | 0 | 29.0 | 32.024 | 127 | 102 |
+| **40.000** | **36** | 1 | **0** | **26.7** | 29.333 | 131 | 107 |
+
+Zincir tam: bağlar 24.000 tick'te **tamamen yok** → çok hücrelilik bitmiş →
+hücreler paylaşamıyor → tek tek açlık → popülasyon zirvenin **%14'üne** düşüyor.
+
+Avcı ölümleri 2'den 107'ye çıkıyor: uzun vadede avcı ikinci sıradaki katil
+hâline geliyor (%45). Kaynak **bitmiyor** (%26.7) — yani kaynak tükenmesi uzun
+vadede de açıklama değil.
+
+### 5.13 §5.4'ün genellenip genellenmediği — **genellenmiyor**
+
+§5.4'te bağ dayanıklılığının 4+ hücreli yapıları geri getirdiği **ölçülmüştü ve
+önceden kaydedilen ölçütü karşılamıştı.** Bu, kendi bulgumu sınayan bir ölçüm:
+
+| strainK | Bağ ömrü | Son pop | Çöküş oranı | Son çeyrek ort. küme | Son 4+ yapı | Son bağ | Son rezerv | **Geç açlık %** | **Geç avcı %** |
+|---|---|---|---|---|---|---|---|---|---|
+| **0.020 (varsayılan)** | 2.083 | 36 | 7.1× | 1.0 | 0 | 0 | %26.7 | 37.5 | **62.5** |
+| 0.005 | 8.333 | 35 | 7.3× | 1.0 | 0 | 0 | %26.6 | 45.5 | **54.5** |
+| **0.002** | 21.277 | **52** | 4.9× | **3.7** | 0 | **13** | %22.9 | **100.0** | **0.0** |
+
+**İki ayrı sonuç var ve ikisi de doğru:**
+
+**1. Kalibrasyon çöküşü engellemiyor.** 10× dayanıklılık son popülasyonu
+36'dan 52'ye çıkarıyor (+%44) ve son çeyrek kümesi 1.0 → 3.7 oluyor — **kısmi
+hafifletme.** Ama 4+ hücreli yapılar yine sıfır ve popülasyon hâlâ zirvenin
+beşte biri.
+
+**2. Kalibrasyon ölüm rejimini değiştiriyor.** Son çeyrek ölüm payları:
+
+| Bağ ömrü | Baskın ölüm nedeni |
+|---|---|
+| 2.083 (varsayılan) | **avcı %62.5** |
+| 8.333 | avcı %54.5 |
+| 21.277 | **avcı %0.0** — tamamen açlık |
+
+10× dayanıklı bağlarla **geç dönem avcı ölümleri sıfırlanıyor.** Bu, "yalnız
+geciktirme" değil, **mekanizma değişimi:** koloniler ayakta kaldığında avcı artık
+ölümcül değil. Bu gözlem §5.12'deki "avcı ölümleri 2 → 107" satırının nedenini
+açıklıyor — avcı baskısı, çok hücrelilik dağıldıktan sonra devreye giriyor.
+
+> **Mekanizma yorumu (ölçülmüş, spekülasyon değil ama henüz kanıtlanmamış):**
+> avcının yakalama mantığı bireysel hücreler üzerinde çalışıyor. Bağlı bir
+> kolonide avcı, tek bir hücreyi koparıp **organizmayı bölmediği** için öldürmüyor.
+> Doğrulamak için avcının yakalama/bölme kuralı ölçülmeli — **yapılmadı**.
+
+> **Bu, §5.4'teki ölçütün pencereye bağlı olduğunun kanıtıdır.** Ölçüt 12.000
+> tick'te karşılandı ve bu doğruydu; ama karşılanması etkinin **kalıcı**
+> olduğunu göstermiyor. Pencereyi sınamadan "düzeltildi" demek yanlış olurdu.
+
+### 5.14 Güncel durum ve açık soru
+
+| Bulgu | Durum |
+|---|---|
+| Bağ ömrü kolonilerin **kısa vadede** kalıcılığını belirliyor | ✅ ölçüldü (§5.4) |
+| Bağ ömrü **uzun vadeli** çöküşü önlemiyor | ✅ ölçüldü (§5.13) |
+| Y-2 (dayanıklılığı seçilime açmak) tek başına yetmiyor | ✅ ölçüldü (§5.8) |
+| **Açık:** 40.000 tick'te sınırlayıcı olan ne? | ⬜ ölçülmedi |
+
+Açık sorunun adayları (üçü de test edilmemiş):
+1. **Avcı dinamiği** — avcı ölümleri 2 → 107; avcının kendi dengesi yok mu?
+2. **Enerji muhasebesi** — sistem enerjisi 108.763 → 29.333; bu düşüşün
+   bileşenleri (bazal + hareket + avcı hasarı) ölçülmedi.
+3. **Doğum/ölüm dengesi** — son çeyrekte 1 doğum; neden üreme tamamen duruyor?
+
+**B3 (somatik mutasyon) bu soru yanıtlanmadan yapılmamalı:** 5.5 üreme çevrimi
+bir pencerenin artefaktı değil, **çöken bir popülasyonun sonucu.**
+
+
+## 6. Tarayıcı akışı — gerçekten yapıldı
 
 Chromium'da `vite preview` (port 4188) üzerinden doğrulandı:
 
@@ -696,11 +993,11 @@ Chromium'da `vite preview` (port 4188) üzerinden doğrulandı:
 
 Tarayıcıda doğrulanmayanlar: mikroskop panelinin etkileşimi, dal oluşturma,
 JSON içe/dışa aktarma, IndexedDB kayıt/yükleme, gözlemci panelinin model
-çağrısı. Bunlar **test edilmedi** (§7).
+çağrısı. Bunlar **test edilmedi** (§8).
 
 ---
 
-## 6. Gözlemci sunucusu
+## 7. Gözlemci sunucusu
 
 `node server/index.ts` ile gerçekten çalıştırıldı:
 
@@ -722,7 +1019,7 @@ MiniMax'e gerçek bir istek gönderilmedi. Bu nedenle:
 
 ---
 
-## 7. Doğrulanmayanlar — açıkça
+## 8. Doğrulanmayanlar — açıkça
 
 Bu maddeler **yapılmadı** ve dokümana sayı uydurulmadı:
 
@@ -756,7 +1053,7 @@ Bu maddeler **yapılmadı** ve dokümana sayı uydurulmadı:
 
 ---
 
-## 8. Geliştirme sırasında yakalanan gerçek hatalar
+## 9. Geliştirme sırasında yakalanan gerçek hatalar
 
 Bunlar testlerin bulduğu, düzeltildiği ve **yeniden test edildiği** hatalardır:
 
@@ -775,19 +1072,22 @@ Bunlar testlerin bulduğu, düzeltildiği ve **yeniden test edildiği** hatalard
 | 11 | `probabilityOfImprovement` **merkezlenmiş** veriden hesaplanıyordu | Her koşuda ≈ 0.5 dönüyor, hiçbir bilgi taşımıyordu | İkinci bir yeniden örnekleme geçişi merkezlenmemiş veriye ayrıldı |
 | 12 | Deney altyapısı `vite-node`'u paket içinden değil `npx` üzerinden çözüyordu | `npm run experiments` → `vite-node: command not found` | `vite-node@6.0.0` devDependency olarak sabit sürümle eklendi |
 | 13 | Deney betiği `node` ile çalışmıyordu | `ring.ts` parametre özelliği kullanıyor; Node'un strip-only modu desteklemiyor | `vite-node` beyan edildi (bkz. #12) |
+| 17 | Kümülatif doğumun yataylaması **"doygunluk"** sanıldı | Yataylama, doğumların **durduğu** anlamına gelir; popülasyon doygunluğa değil **çöküşe** gidiyordu (166 → 41). İki ölçüm birlikte okunmalıydı (§5.11) |
+| 16 | `maxGeneration` **nesil derinliği** sanılıyordu | Yaşayan popülasyondaki anlık en yüksek nesildir ve uzun koşularda **düşüyor** (ölçüldü: 10k tick → 3.0, 100k tick → 1.3). "Pencere çok kısa" gerekçesi bu hatadan kaynaklanmış ve kaldırıldı | `cumulativeBirths` (`nextOrganismIdForSnapshot() − 1`) eklendi; gerçek üreme çevrimi **≈5.5** ve durağanlıkta (§5.9) |
+| 15 | Bağ uzaması **hayatta kalanların** ortalamasıyla ölçülüyordu | Değer 0.010–0.029 çıktı ve "uzama açıklama değil" izlenimi verdi. Gerçekte **seçilim yanlılığı**: gerilmiş bağlar zaten koptuğu için hayatta kalanlar seçilmiş olarak düşük gerilimli. `bond-break.detail.strain` üzerinden kırılma anı ölçülünce medyan 0.079 çıktı ve kırılmaların %100'ü bütünlük tükenmesiyle olduğu görüldü (§5.3) |
 | 14 | `probabilityOfImprovement` **ikinci kez** yanlış veriyle hesaplanıyordu | Değerlendirme koşularında öğrenme kapalı olduğu için metrik tanım gereği hep 0 dönüyordu; rapor "öğrenme ağırlıkları hiç hareket ettirmiyor" izlenimi veriyordu, oysa eğitimde hareket ediyordu | `learnedDeltaNorm` artık koşunun **kendi başlangıç ağırlıklarına** göre ölçülüyor; `thetaInjected` alanı eklendi; regresyon testi yazıldı |
 
 ---
 
-## 9. Tekrarlanabilirlik
+## 10. Tekrarlanabilirlik
 
 ```bash
 npm ci
-npm test                      # 112 test (4 dosya)
+npm test                      # 126 test (4 dosya)
 npm run typecheck             # tsc --noEmit, temiz
 npm run build                 # vite build, başarılı
-npm run experiments:quick     # deney paketi duman testi (~2 s)
-npm run experiments           # tam deney paketi (4.128 koşu, ~106 s)
+npm run experiments:quick     # deney paketi duman testi (~7 s)
+npm run experiments           # tam deney paketi (56.159 koşu, ~326 s)
 npm run assets:build          # Blender 5.1.1 ile 10 varlık üretir
 npm run dev                   # geliştirme sunucusu (port 5183)
 npm run server                # gözlemci sunucusu (port 8787) — anahtar yoksa 503
