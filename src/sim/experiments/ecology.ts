@@ -330,7 +330,7 @@ export function diagnoseColonyCollapse(options?: {
   };
 }
 
-function medianOf(values: readonly number[]): number {
+export function medianOf(values: readonly number[]): number {
   if (values.length === 0) return Number.NaN;
   const s = [...values].sort((a, b) => a - b);
   const mid = Math.floor(s.length / 2);
@@ -632,7 +632,7 @@ export function experimentBondLifeHeritability(options?: {
       });
       for (let t = 1; t < 400; t++) world.step();
       const residual =
-        world.ledger.initialTotal - world.systemEnergyTotal() - world.ledger.externalInput - world.ledger.dissipated;
+        world.ledger.initialTotal + world.ledger.externalInput - world.systemEnergyTotal() - world.ledger.dissipated;
       if (Math.abs(residual) > Math.abs(worstLedgerResidual)) worstLedgerResidual = residual;
     }
   }
@@ -995,6 +995,338 @@ export function formatLongRun(points: readonly LongRunPoint[]): string {
     `${fmt(p.crashRatio, 8).padStart(11)}   ${fmt(p.lateLargestColony, 10).padStart(13)}   ` +
     `${String(p.finalMultiCellColonies).padStart(6)}  ${String(p.finalBondCount).padStart(7)}   ` +
     `${fmt(p.finalReserveFraction * 100, 8).padStart(10)}%   ${fmt(p.lateStarvationShare * 100, 8).padStart(9)}   ${fmt(p.latePredationShare * 100, 8).padStart(9)}`,
+  );
+  return [header, ...rows].join('\n');
+}
+
+// --------------------------------------------------- uzun vadeli sınır teşhisi
+
+export interface LongRunLimitSample {
+  tick: number;
+  population: number;
+  /** Canlı hücrelerin ortalama enerjisi. */
+  meanCellEnergy: number;
+  /** Enerjisi 10 e'nin altındaki hücre sayısı — açlık göstergesi. */
+  starvingCells: number;
+  /** Açlıktaki hücrelerin toplam içindeki payı. */
+  starvingShare: number;
+  /**
+   * Canlı hücrelerin **en yakın kaynak düğümüne** uzaklığının medyanı.
+   * Rezerv doluyken bu uzaklık büyüyorsa sınırlayıcı **erişilebilirliğidir**,
+   * kaynak miktarı değil.
+   */
+  medianNearestResourceDistance: number;
+  /** En yakın kaynak düğümüne uzaklık ≤ 1.5 mb olan hücrelerin payı. */
+  cellsNearResourceShare: number;
+  /** Kaynak doluluğu. */
+  reserveFraction: number;
+  /** Avcının enerjisi (normalize) ve yaşayıp yaşamadığı. */
+  predatorEnergyNorm: number;
+  predatorAlive: boolean;
+  /** Kümülatif ölümler. */
+  deathsStarvation: number;
+  deathsPredation: number;
+}
+
+export interface LongRunLimitDiagnosis {
+  seed: number;
+  ticks: number;
+  strainDecayK: number;
+  samples: LongRunLimitSample[];
+  /** Erken (ilk çeyrek) ve geç (son çeyrek) medyan erişim uzaklığı. */
+  earlyMedianDistance: number;
+  lateMedianDistance: number;
+  /** Erken ve geç çeyrekteki ortalama hücre enerjisi. */
+  earlyMeanEnergy: number;
+  lateMeanEnergy: number;
+  /** Geç çeyrekte avcı enerjisi — avcı dengede mi? */
+  latePredatorEnergy: number;
+  reading: string;
+}
+
+/**
+ * **40.000 tick'te sınırlayıcı olan ne?** (§5.14'ün açık sorusu)
+ *
+ * İki rakip açıklama, ölçümle ayrılır:
+ *
+ * | Hipotez | Ayıran ölçüm |
+ * |---|---|
+ * | **Erişilebilirlik** — kaynak var ama hücreler ulaşamıyor | En yakın kaynağa uzaklık zamanla büyürken rezerv dolu kalıyor |
+ * | **Avcı dinamiği** — avcının kendisi denge dışı | Avcı enerjisi sınırsız yükselir / ölümler avcı kaynaklı |
+ *
+ * Üçüncü olasılık — enerji muhasebesinin bir bileşeni — doğrudan gözlenmez;
+ * bunun yerine **hücre enerjisi dağılımı** ölçülür. Hücreler 0'a yakın
+ * enerjideyken ve kaynak ulaşılabiliyorsa sorun kaynağın erişilemezliğidir.
+ */
+export function diagnoseLongRunLimit(options?: {
+  seed?: number;
+  ticks?: number;
+  sampleEvery?: number;
+  strainDecayK?: number;
+  bondFatigue?: number;
+}): LongRunLimitDiagnosis {
+  const seed = options?.seed ?? 11;
+  const ticks = options?.ticks ?? 40_000;
+  const sampleEvery = options?.sampleEvery ?? 4000;
+  const strainDecayK = options?.strainDecayK ?? 0.002;
+  const bondFatigue = options?.bondFatigue ?? 1e-6;
+
+  const world = new World({ seed, population: 48, strainDecayK, bondFatigue });
+  const samples: LongRunLimitSample[] = [];
+  const counted = new Set<number>();
+  let deathsStarvation = 0;
+  let deathsPredation = 0;
+
+  const take = (tick: number): LongRunLimitSample => {
+    const live: { x: number; y: number; z: number; energy: number }[] = [];
+    for (const cell of world.cells.values()) {
+      if (!cell.alive) continue;
+      live.push({ x: cell.pos.x, y: cell.pos.y, z: cell.pos.z, energy: cell.energy });
+    }
+    let meanEnergy = 0;
+    let starving = 0;
+    if (live.length > 0) {
+      for (const c of live) {
+        meanEnergy += c.energy;
+        if (c.energy < 10) starving++;
+      }
+      meanEnergy /= live.length;
+    }
+
+    const distances: number[] = [];
+    let near = 0;
+    for (const c of live) {
+      let best = Infinity;
+      for (const r of world.resources) {
+        if (r.reserve <= 0) continue;
+        const d = Math.hypot(c.x - r.pos.x, c.y - r.pos.y, c.z - r.pos.z);
+        if (d < best) best = d;
+      }
+      if (Number.isFinite(best)) {
+        distances.push(best);
+        if (best <= 1.5) near++;
+      }
+    }
+
+    let reserve = 0;
+    let capacity = 0;
+    for (const r of world.resources) {
+      reserve += r.reserve;
+      capacity += r.capacity;
+    }
+
+    return {
+      tick,
+      population: world.population(),
+      meanCellEnergy: meanEnergy,
+      starvingCells: starving,
+      starvingShare: live.length > 0 ? starving / live.length : Number.NaN,
+      medianNearestResourceDistance: distances.length > 0 ? medianOf(distances) : Number.NaN,
+      cellsNearResourceShare: live.length > 0 ? near / live.length : Number.NaN,
+      reserveFraction: capacity > 0 ? reserve / capacity : Number.NaN,
+      predatorEnergyNorm: world.predator.energy / Math.max(1, world.predator.radius * 20),
+      predatorAlive: world.predator.alive,
+      deathsStarvation,
+      deathsPredation,
+    };
+  };
+
+  samples.push(take(0));
+  for (let t = 1; t <= ticks; t++) {
+    world.step();
+    // Ölümleri koşu sırasında topla: `compact()` ölü organizmaları listeden
+    // sildiği için sonradan sayım onları kaçırır (ölçüm hatası, §9).
+    for (const org of world.organisms.values()) {
+      if (org.alive || counted.has(org.id)) continue;
+      counted.add(org.id);
+      if (org.deathCause === 'starvation') deathsStarvation++;
+      else if (org.deathCause === 'predation') deathsPredation++;
+    }
+    if (t % sampleEvery === 0) samples.push(take(t));
+  }
+
+  const quarter = ticks * 0.25;
+  const early = samples.filter((s) => s.tick <= quarter);
+  const late = samples.filter((s) => s.tick >= ticks * 0.75);
+  const earlyMedianDistance = early.length > 0 ? meanOf(early.map((s) => s.medianNearestResourceDistance)) : Number.NaN;
+  const lateMedianDistance = late.length > 0 ? meanOf(late.map((s) => s.medianNearestResourceDistance)) : Number.NaN;
+  const earlyMeanEnergy = early.length > 0 ? meanOf(early.map((s) => s.meanCellEnergy)) : Number.NaN;
+  const lateMeanEnergy = late.length > 0 ? meanOf(late.map((s) => s.meanCellEnergy)) : Number.NaN;
+  const latePredatorEnergy = late.length > 0 ? meanOf(late.map((s) => s.predatorEnergyNorm)) : Number.NaN;
+
+  const distanceGrew = lateMedianDistance > earlyMedianDistance * 1.25;
+  const reserveStayed = (late.length > 0 ? (late[late.length - 1] as LongRunLimitSample).reserveFraction : 0) > 0.15;
+  const last = late[late.length - 1];
+
+  let reading: string;
+  if (distanceGrew && reserveStayed) {
+    reading =
+      `Sınırlayıcı: **kaynak erişilebilirliği.** En yakın kaynağa uzaklık ` +
+      `${fmt(earlyMedianDistance, 2)} → ${fmt(lateMedianDistance, 2)} mb arasında ` +
+      `${fmt(lateMedianDistance / Math.max(1e-6, earlyMedianDistance), 2)}× büyüdü, rezerv doluluğu ` +
+      `%${((last?.reserveFraction ?? 0) * 100).toFixed(1)}'de kaldı. Hücreler kaynağa ulaşamıyor.`;
+  } else if ((last?.deathsPredation ?? 0) > (last?.deathsStarvation ?? 0)) {
+    reading =
+      `Sınırlayıcı: **avcı baskısı.** Geç dönemde avcı kaynaklı ölüm ` +
+      `(${(last?.deathsPredation ?? 0)}) açlıktan (${last?.deathsStarvation ?? 0}) fazla.`;
+  } else {
+    reading =
+      `Sınırlayıcı: **enerji erişimi / açlık.** Hücre enerjisi ${fmt(earlyMeanEnergy, 1)} → ` +
+      `${fmt(lateMeanEnergy, 1)} e düştü; geç çeyrekte açlıktaki hücre payı ` +
+      `%${((last?.starvingShare ?? 0) * 100).toFixed(0)}, kaynak erişim uzaklığı ` +
+      `${fmt(lateMedianDistance, 2)} mb (rezerv %${((last?.reserveFraction ?? 0) * 100).toFixed(1)}).`;
+  }
+
+  return {
+    seed,
+    ticks,
+    strainDecayK,
+    samples,
+    earlyMedianDistance,
+    lateMedianDistance,
+    earlyMeanEnergy,
+    lateMeanEnergy,
+    latePredatorEnergy,
+    reading,
+  };
+}
+
+export function formatLongRunLimit(d: LongRunLimitDiagnosis): string {
+  const header =
+    '   tick   pop   ort. enerji   açlık%   medyan uzaklık   yakın%   rezerv%   avcı en.   açlık öl.   avcı öl.';
+  const rows = d.samples.map(
+    (s) =>
+      `  ${String(s.tick).padStart(6)}  ${String(s.population).padStart(4)}  ${fmt(s.meanCellEnergy, 9).padStart(12)}  ` +
+      `${fmt(s.starvingShare * 100, 5).padStart(6)}   ${fmt(s.medianNearestResourceDistance, 11).padStart(13)}   ` +
+      `${fmt(s.cellsNearResourceShare * 100, 6).padStart(6)}   ${fmt(s.reserveFraction * 100, 6).padStart(6)}%   ` +
+      `${fmt(s.predatorEnergyNorm, 8).padStart(8)}   ${String(s.deathsStarvation).padStart(8)}   ${String(s.deathsPredation).padStart(6)}`,
+  );
+  return [
+    `  tohum ${d.seed} · ${d.ticks} tick · strainK ${d.strainDecayK}`,
+    header,
+    ...rows,
+    '',
+    `  → ${d.reading}`,
+  ].join('\n');
+}
+
+// --------------------------------------------------- kaynak rejenerasyonu
+
+export interface RegenPoint {
+  regen: number;
+  ticks: number;
+  peakPopulation: number;
+  finalPopulation: number;
+  /** Son çeyrekteki ortalama popülasyon — kalıcılığın göstergesi. */
+  latePopulation: number;
+  finalReserveFraction: number;
+  meanCellEnergy: number;
+  starvingShare: number;
+  deathsStarvation: number;
+  deathsPredation: number;
+  predatorDiedAtTick: number | null;
+  worstLedgerResidual: number;
+}
+
+/**
+ * **Kaynak rejenerasyonu A/B testi** — §5.14'ün açık sorusunun kesin yanıtı.
+ *
+ * Ölçülen: `C.DEFAULT_REGEN = 0`, yani kaynak **hiç yenilenmiyor**. Kapalı
+ * enerji sistemi 40.000 tick boyunca rezervini %100 → %23'e tüketiyor.
+ *
+ * **Önceden kaydedilen hipotez:** uzun vadeli çöküş kümülatif kaynak tükenmesinin
+ * sonucudur; rejenerasyon açıldığında popülasyon kalıcı hâle gelir.
+ *
+ * **Başarı ölçütü:** rejenerasyon açık kolda son popülasyon (veya son çeyrek
+ * ortalaması) rejenerasyonsuz koldan **anlamlı biçimde yüksek** olmalı.
+ *
+ * **Muhasebe notu:** doğal yenilenme defterde **dış girdi** olarak kaydedilir
+ * (bkz. `MODEL.md`), dolayısıyla enerji korunumu bozulmaz — korunum testi
+ * her kolda ayrıca denetlenir.
+ */
+export function sweepResourceRegen(options?: {
+  regens?: number[];
+  ticks?: number;
+  seed?: number;
+  strainDecayK?: number;
+}): RegenPoint[] {
+  const regens = options?.regens ?? [0, 0.002, 0.01];
+  const ticks = options?.ticks ?? 40_000;
+  const seed = options?.seed ?? 11;
+  const strainDecayK = options?.strainDecayK ?? 0.002;
+
+  return regens.map((regen) => {
+    const world = new World({ seed, population: 48, strainDecayK, bondFatigue: 1e-6, resourceRegen: regen });
+    let peakPopulation = 0;
+    let last = { mean: 0, starving: 0 };
+    const counted = new Set<number>();
+    let deathsStarvation = 0;
+    let deathsPredation = 0;
+    let predatorDiedAtTick: number | null = null;
+    const latePopulations: number[] = [];
+
+    for (let t = 1; t <= ticks; t++) {
+      world.step();
+      for (const org of world.organisms.values()) {
+        if (org.alive || counted.has(org.id)) continue;
+        counted.add(org.id);
+        if (org.deathCause === 'starvation') deathsStarvation++;
+        else if (org.deathCause === 'predation') deathsPredation++;
+      }
+      if (predatorDiedAtTick === null && !world.predator.alive) predatorDiedAtTick = t;
+      if (t % 4000 === 0) {
+        const pop = world.population();
+        if (pop > peakPopulation) peakPopulation = pop;
+        if (t >= ticks * 0.75) latePopulations.push(pop);
+        let sum = 0;
+        let starving = 0;
+        let live = 0;
+        for (const cell of world.cells.values()) {
+          if (!cell.alive) continue;
+          live++;
+          sum += cell.energy;
+          if (cell.energy < 10) starving++;
+        }
+        last = { mean: live > 0 ? sum / live : 0, starving: live > 0 ? starving / live : Number.NaN };
+      }
+    }
+
+    let reserve = 0;
+    let capacity = 0;
+    for (const r of world.resources) {
+      reserve += r.reserve;
+      capacity += r.capacity;
+    }
+    const residual =
+      world.ledger.initialTotal + world.ledger.externalInput - world.systemEnergyTotal() - world.ledger.dissipated;
+
+    return {
+      regen,
+      ticks,
+      peakPopulation,
+      finalPopulation: world.population(),
+      latePopulation: latePopulations.length > 0 ? meanOf(latePopulations) : Number.NaN,
+      finalReserveFraction: capacity > 0 ? reserve / capacity : Number.NaN,
+      meanCellEnergy: last.mean,
+      starvingShare: last.starving,
+      deathsStarvation,
+      deathsPredation,
+      predatorDiedAtTick,
+      worstLedgerResidual: residual,
+    };
+  });
+}
+
+export function formatRegen(points: readonly RegenPoint[]): string {
+  const header =
+    '  regen   zirve pop   son pop   son çeyrek pop   son rezerv   ort. enerji   açlık%   açlık öl.   avcı öl.   avcı öldü   rezidüel';
+  const rows = points.map((p) =>
+    `  ${fmt(p.regen, 6)}   ${String(p.peakPopulation).padStart(8)}   ${String(p.finalPopulation).padStart(7)}   ` +
+    `${fmt(p.latePopulation, 11).padStart(14)}   ${fmt(p.finalReserveFraction * 100, 10).padStart(10)}%   ` +
+    `${fmt(p.meanCellEnergy, 9).padStart(12)}   ${fmt(p.starvingShare * 100, 5).padStart(5)}   ` +
+    `${String(p.deathsStarvation).padStart(8)}   ${String(p.deathsPredation).padStart(6)}   ` +
+    `${(p.predatorDiedAtTick === null ? 'hayır' : String(p.predatorDiedAtTick)).padStart(9)}   ` +
+    `${fmt(p.worstLedgerResidual, 9)}`,
   );
   return [header, ...rows].join('\n');
 }

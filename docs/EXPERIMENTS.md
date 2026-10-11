@@ -1,8 +1,9 @@
 # Cell to Mind — Deney Sonuçları
 
-**Körüldü:** 2026-10-10T21:36:19.921Z
-**Toplam koşu:** 56159 · **duvar süresi:** 325.6 s
-**Mod:** tam
+**Körüldü:** 2026-10-11T11:31:15.152Z
+**Toplam koşu:** 76159 · **duvar süresi:** 379.2 s
+**Mod:** standart
+**Pencere:** 12.000 tick (40.000 tick'lik ekolojik çöküşü kapsamak için `--deep` kullanın)
 
 > Bu dosya `npm run experiments` ile üretilir. Sayılar ölçülmüştür;
 > hiçbir koşu düşürülmemiştir. Ham koşu değerleri aşağıdadır.
@@ -211,13 +212,13 @@ ile çarpılır ve dayanıklılık seçilime açık hâle gelir.
 sıfırdan ayrışmalı ve kontrol kolundan büyük olmalı.
 
 ```
-  6 eşleştirilmiş tohum · 40000 tick · strainK 0.005 (iki kolda da koloniler ayakta)
-  kontrol  (yorgunluk genoma bağlı DEĞİL): kurucu 0.4489 → hayatta kalan 0.4378 · kayma -0.0112
-  tedavi   (yorgunluk genoma BAĞLI):    kurucu 0.4489 → hayatta kalan 0.4434 · kayma -0.0056
-  tedavi kayması [-0.0056, -0.0140, 0.0021] · iki kol farkı 0.0056 [-0.0044, 0.0180] · p = 0.3426
-  üreme çevrimi (kurucu başına): kontrol 5.89 · tedavi 5.85
+  6 eşleştirilmiş tohum · 12000 tick · strainK 0.005 (iki kolda da koloniler ayakta)
+  kontrol  (yorgunluk genoma bağlı DEĞİL): kurucu 0.4489 → hayatta kalan 0.4469 · kayma -0.0020
+  tedavi   (yorgunluk genoma BAĞLI):    kurucu 0.4489 → hayatta kalan 0.4444 · kayma -0.0045
+  tedavi kayması [-0.0045, -0.0104, 0.0019] · iki kol farkı -0.0025 [-0.0064, 0.0012] · p = 0.1967
+  üreme çevrimi (kurucu başına): kontrol 5.62 · tedavi 5.53
   enerji rezidüelü: 0.000000000 e
-  → Seçilim kayması sıfırdan **ayrışmadı**: -0.0056 [-0.0140, 0.0021]. Kurucu başına 5.85 üreme çevrimi gerçekleşti (kümülatif 281 doğum).
+  → Seçilim kayması sıfırdan **ayrışmadı**: -0.0045 [-0.0104, 0.0019]. Kurucu başına 5.53 üreme çevrimi gerçekleşti (kümülatif 266 doğum).
 ```
 
 ## Üreme tıkanması teşhisi
@@ -227,15 +228,13 @@ yataylaması **"doygunluk" sanıldı; ölçüm aslında doğumların durmasını
 gösteriyordu — kümülatif sayı artmayı bırakınca çoğalm da bitmiştir.
 
 ```
-  tohum 11 · 40000 tick
-  tomurcuklama 110 · parçalanma 74 · kurucu soyun canlı hücrelerdeki payı 100.0%
-  → Doğum hızı **çöktü**: ilk çeyrekte 144, son çeyrekte 1 doğum. Üreme döngüsü tıkanmış.
+  tohum 11 · 12000 tick
+  tomurcuklama 105 · parçalanma 61 · kurucu soyun canlı hücrelerdeki payı 100.0%
+  → Doğum hızı sürüyor: ilk çeyrekte 0, son çeyrekte 22 doğum — döngü **durağan ama durmuş değil.** Sınırlayıcı yoğunluk/enerji geri beslemesi olabilir.
 
    tick   pop   org   küm.dğ   bud   frag   kurucu soy   kurucu hücre   soy hücre   kol.nesil   küme
        0    48    48      48     0      0          48           48          0           0      0
-   16000   106   103     240   108      9         103          106          0          57      2
-   32000    56    56     246   110      1          56           56          0          27      1
-   40000    41    41     246   110      0          41           41          0          18      1
+   12000   134   114     226   105     17         114          134          0          69      4
 ```
 
 ## Uzun vadeli dayanıklılık — §5.4 genelleniyor mu?
@@ -248,9 +247,41 @@ uzun vadeli çöküşü gerçekten önlüyor mu?
 
 ```
   strainK   bağ ömrü   son pop   çöküş oranı   son çeyrek küme   son 4+   son bağ   son rezerv   geç açlık%   geç avcı%
-  0.0200000     2083        36   7.13888889    1.1960784314        0        0   26.74465043%   37.50000000   62.50000000
-  0.0050000     8333        35   7.40000000    1.0000000000        0        0   26.59328683%   45.45454545   54.54545455
-  0.0020000    21277        52   4.98076923    4.0784313725        0       13   22.88021607%   100.00000000   0.00000000
+  0.0200000     2083       130   1.97692308    2.0000000000        0        1   46.45697622%   48.14814815   51.85185185
+  0.0050000     8333       132   1.96212121    2.9375000000        0       10   45.74698779%   76.00000000   24.00000000
+  0.0020000    21277       137   1.89051095    4.1875000000        0       30   45.30070795%   84.21052632   15.78947368
+```
+
+## 40.000 tick sınırı — erişilebilirlik mi, avcı mı?
+
+```
+  tohum 11 · 12000 tick · strainK 0.002
+   tick   pop   ort. enerji   açlık%   medyan uzaklık   yakın%   rezerv%   avcı en.   açlık öl.   avcı öl.
+       0    48  55.000000000  0.00000   1.73158898493   39.583333   100.000000%   4.36363636          0        0
+    2000   157  49.133697680  0.00000   1.18455243353   72.611465   91.441231%   21.33294384          0        0
+    4000   248  39.985221408  1.20968   1.16662841415   71.370968   76.225215%   21.92376704          0        0
+    6000   217  26.764395037  13.82488   1.34415756756   52.073733   63.104396%   28.46873869         36        4
+    8000   165  32.461949180  7.87879   1.29943490497   58.181818   55.000405%   25.56847946         73        6
+   10000   149  31.114700057  7.38255   1.21698899563   71.140940   49.769670%   13.23098451         83        9
+   12000   137  31.105018252  11.67883   1.26722285089   58.394161   45.300708%   10.02696501         95       10
+
+  → Sınırlayıcı: **enerji erişimi / açlık.** Hücre enerjisi 52.1 → 31.1 e düştü; geç çeyrekte açlıktaki hücre payı %12, kaynak erişim uzaklığı 1.24 mb (rezerv %45.3).
+```
+
+## Kaynak rejenerasyonu A/B
+
+`C.DEFAULT_REGEN = 0`: kaynak hiç yenilenmiyor. Rejenerasyon açıldığında
+popülasyon kalıcı hâle geliyor mu?
+
+**Bu tarama bir muhasebe hatasını da ortaya çıkardı:** rezidül formülünde
+`externalInput` işareti terstiydi. `DEFAULT_REGEN = 0` olduğu için hata
+20+ deneyde görünmemişti.
+
+```
+  regen   zirve pop   son pop   son çeyrek pop   son rezerv   ort. enerji   açlık%   açlık öl.   avcı öl.   avcı öldü   rezidüel
+  0.000000        248       137   137.00000000000   45.3007079467%   31.105018252   11.67883         95       10       hayır   -0.000000016
+  0.002000        252       130   130.00000000000   45.8637016205%   32.438470883   6.15385         91       15       hayır   0.000000011
+  0.010000        245       135   135.00000000000   48.8528625377%   29.314859647   11.85185         86       13       hayır   -0.000000034
 ```
 
 ## Bağ gücü koloni büyüklüğünü artırıyor mu?

@@ -174,7 +174,7 @@ export function runColony(options: ColonyOptions): ColonyResult {
     finalBondCount: finalMetrics?.bondCount ?? 0,
     finalTotalEnergy: finalMetrics?.totalEnergy ?? 0,
     learningUpdates: world.learningUpdateCount(),
-    ledgerResidual: world.ledger.initialTotal - current - world.ledger.externalInput - world.ledger.dissipated,
+    ledgerResidual: world.ledger.initialTotal + world.ledger.externalInput - current - world.ledger.dissipated,
     genomeShift: genomeDistance(founderGenome, livingGenome),
     founderGenome,
     livingGenome,

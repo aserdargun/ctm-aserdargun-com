@@ -36,8 +36,9 @@ Anahtar yoksa uygulama **çalışır** ve gözlemci panelinde dürüstçe
 | `npm run preview` | Üretim çıktısını sunar (port 4173) |
 | `npm test` | Vitest — 126 test |
 | `npm run typecheck` | `tsc --noEmit` |
-| `npm run experiments` | Deney paketini headless koşar (56.159 koşu, ~326 sn) → `docs/EXPERIMENTS.md` |
-| `npm run experiments:quick` | Deney paketinin duman testi (~2 sn) |
+| `npm run experiments` | Deney paketini headless koşar (12.000 tick pencereleri) → `docs/EXPERIMENTS.md` |
+| `npm run experiments -- --deep` | Derin paket: 40.000 tick pencereleri, ekolojik çöküş görünür (yavaş) |
+| `npm run experiments:quick` | Deney paketinin duman testi (~40 sn) |
 | `npm run assets:build` | Blender 5.1.1 ile varlıkları yeniden üretir |
 | `npm run server` | Gözlemci sunucu rotası |
 
@@ -174,7 +175,8 @@ indirilmez (`docs/ASSETS.md`).
 |---|---|
 | `docs/MODEL.md` | Simülasyonun ne yaptığı, tüm formüller, işletimsel tanımlar |
 | `docs/VALIDATION.md` | Gerçek test sonuçları, **deney sonuçları** ve doğrulanmayanlar |
-| `docs/EXPERIMENTS.md` | `npm run experiments` çıktısı — ham koşu değerleriyle (üretilmiş) |
+| `docs/EXPERIMENTS.md` | `npm run experiments` çıktısı — 12.000 tick, ham koşu değerleriyle (üretilmiş) |
+| `docs/EXPERIMENTS-DEEP.md` | `npm run experiments -- --deep` çıktısı — 40.000 tick, ekolojik çöküşü kapsar (üretilmiş) |
 | `docs/PROGRESS.md` | Ne yapıldı, ne eksik, sonraki adım |
 | `docs/LITERATURE.md` | Tasarım kararlarını dayandıran literatür haritası (~45 okunmuş kaynak) |
 | `docs/ROADMAP.md` | 5 fazlı geliştirme yol planı ve yapılmayacaklar listesi |

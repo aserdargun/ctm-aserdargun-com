@@ -2,8 +2,9 @@
  * Cell to Mind — deney koşucusu (headless).
  *
  * Kullanım:
- *   npm run experiments           # tam paket (ağır)
- *   npm run experiments -- --quick # hızlı duman testi (küçük n)
+ *   npm run experiments             # standart paket (12.000 tick pencereleri)
+ *   npm run experiments -- --deep   # derin paket (40.000 tick — ekolojik çöküş)
+ *   npm run experiments -- --quick  # hızlı duman testi (küçük n)
  *   npm run experiments -- --out docs/EXPERIMENTS.md
  *
  * Bu betik tarayıcıda değil, Node'da koşar. Gerekçe:
@@ -25,11 +26,15 @@ import {
   formatBondDurability,
   formatHeritability,
   formatLongRun,
+  formatLongRunLimit,
+  formatRegen,
   formatReproDiagnosis,
   formatDiagnosis,
   formatEcologyTable,
   sweepBondDurability,
+  diagnoseLongRunLimit,
   sweepLongRunDurability,
+  sweepResourceRegen,
 } from '../src/sim/experiments/ecology.ts';
 import {
   calibrateArena,
@@ -60,18 +65,22 @@ import { fmt } from '../src/sim/stats.ts';
 
 interface Args {
   quick: boolean;
+  /** `--deep`: 40.000 tick'lik uzun pencereler (yavaş, ama ekolojik çöküşü görür). */
+  deep: boolean;
   out: string | null;
 }
 
 function parseArgs(argv: readonly string[]): Args {
   let quick = false;
+  let deep = false;
   let out: string | null = null;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--quick') quick = true;
+    else if (a === '--deep') deep = true;
     else if (a === '--out') out = argv[++i] ?? null;
   }
-  return { quick, out };
+  return { quick, deep, out };
 }
 
 function reportBlock(report: ExperimentReport, rawValues: boolean): string {
@@ -91,7 +100,8 @@ function main(): void {
     ? { seeds: 3, colonyTicks: 600, trainTicks: 900, evalTicks: 600, resourceCount: 14 }
     : { seeds: 20, colonyTicks: 4000, trainTicks: 6000, evalTicks: 4000, resourceCount: 14 };
 
-  process.stdout.write(`Cell to Mind · deney paketi ${args.quick ? '(HIZLI TEST)' : '(tam)'}\n\n`);
+  const profile = args.quick ? 'HIZLI TEST' : args.deep ? 'TAM (derin pencere)' : 'standart';
+  process.stdout.write(`Cell to Mind · deney paketi [${profile}]\n\n`);
   process.stdout.write(`1/7  değişmez kontroller…\n`);
   const invariants = runInvariants();
   process.stdout.write(`${formatInvariant(invariants)}\n\n`);
@@ -179,35 +189,48 @@ function main(): void {
   process.stdout.write(`${formatRewardSignal(rewardSignal)}\n`);
 
   process.stdout.write(`\n13/13 Faz B1 · ekolojik sönümlenme teşhisi…\n`);
+  const longTicks = args.deep ? 40_000 : 12_000;
   const ecology = args.quick
     ? diagnoseColonyCollapse({ seed: 11, ticks: 4000, sampleEvery: 400 })
-    : diagnoseColonyCollapse({ seed: 11, ticks: 12_000, sampleEvery: 200 });
+    : diagnoseColonyCollapse({ seed: 11, ticks: longTicks, sampleEvery: 200 });
   process.stdout.write(`${formatDiagnosis(ecology)}\n\n`);
   process.stdout.write(`${formatEcologyTable(ecology, args.quick ? 1000 : 1000)}\n`);
 
   process.stdout.write(`\n14/14 Faz B1b · bağ ömrü duyarlılığı (teşhisin doğrudan sınaması)…\n`);
   const durability = args.quick
     ? sweepBondDurability({ settings: [{ strainDecayK: 0.02, bondFatigue: 2e-5 }, { strainDecayK: 0.005, bondFatigue: 5e-6 }], ticks: 4000, seeds: 1 })
-    : sweepBondDurability({ ticks: 12_000, seeds: 4 });
+    : sweepBondDurability({ ticks: longTicks, seeds: 4 });
   process.stdout.write(`${formatBondDurability(durability)}\n`);
 
   process.stdout.write(`\n15/15 Y-2 · bağ ömrünün kalıtılabilirliği…\n`);
   const heritability = args.quick
     ? experimentBondLifeHeritability({ seeds: 2, ticks: 4000 })
-    : experimentBondLifeHeritability({ seeds: 6, ticks: 40_000 });
+    : experimentBondLifeHeritability({ seeds: 6, ticks: longTicks });
   process.stdout.write(`${formatHeritability(heritability)}\n`);
 
   process.stdout.write(`\n16/16 üreme tıkanması teşhisi…\n`);
   const repro = args.quick
     ? diagnoseReproductiveStall({ seed: 11, ticks: 8000, sampleEvery: 1000 })
-    : diagnoseReproductiveStall({ seed: 11, ticks: 40_000, sampleEvery: 4000 });
+    : diagnoseReproductiveStall({ seed: 11, ticks: longTicks, sampleEvery: 4000 });
   process.stdout.write(`${formatReproDiagnosis(repro)}\n`);
 
   process.stdout.write(`\n17/17 uzun vadeli dayanıklılık (§5.4 genelleniyor mu?)…\n`);
   const longRun = args.quick
     ? sweepLongRunDurability({ settings: [{ strainDecayK: 0.02, bondFatigue: 2e-5 }], ticks: 6000 })
-    : sweepLongRunDurability({ ticks: 40_000 });
+    : sweepLongRunDurability({ ticks: longTicks });
   process.stdout.write(`${formatLongRun(longRun)}\n`);
+
+  process.stdout.write(`\n18/18 40.000 tick sınırı · erişilebilirlik mi avcı mı?…\n`);
+  const limit = args.quick
+    ? diagnoseLongRunLimit({ ticks: 8000, sampleEvery: 2000 })
+    : diagnoseLongRunLimit({ ticks: longTicks, sampleEvery: longTicks > 20_000 ? 4000 : 2000 });
+  process.stdout.write(`${formatLongRunLimit(limit)}\n`);
+
+  process.stdout.write(`\n19/19 kaynak rejenerasyonu A/B (kapalı enerji sistemi)…\n`);
+  const regen = args.quick
+    ? sweepResourceRegen({ regens: [0, 0.01], ticks: 6000 })
+    : sweepResourceRegen({ ticks: longTicks });
+  process.stdout.write(`${formatRegen(regen)}\n`);
 
   const elapsed = Date.now() - started;
   const totalRuns =
@@ -224,6 +247,8 @@ function main(): void {
     heritability.seeds * 2 * (args.quick ? 1 : 1) +
     repro.ticks +
     longRun.length +
+    limit.ticks +
+    regen.length * (args.quick ? 1 : longTicks) +
     (args.quick
       ? 0
       : evolution.generations * evolution.population * (evolution.offspringPerParent + 1) * 6 + evolution.population * 4);
@@ -245,7 +270,9 @@ function main(): void {
       '',
       `**Körüldü:** ${new Date().toISOString()}`,
       `**Toplam koşu:** ${totalRuns} · **duvar süresi:** ${(elapsed / 1000).toFixed(1)} s`,
-      `**Mod:** ${args.quick ? 'hızlı test' : 'tam'}`,
+      `**Mod:** ${profile}`,
+      `**Pencere:** ${args.quick ? '—' : args.deep ? '40.000 tick' : '12.000 tick'} ` +
+      `(40.000 tick'lik ekolojik çöküşü kapsamak için \`--deep\` kullanın)`,
       '',
       '> Bu dosya `npm run experiments` ile üretilir. Sayılar ölçülmüştür;',
       '> hiçbir koşu düşürülmemiştir. Ham koşu değerleri aşağıdadır.',
@@ -410,6 +437,25 @@ function main(): void {
       '',
       '```',
       formatLongRun(longRun),
+      '```',
+      '',
+      '## 40.000 tick sınırı — erişilebilirlik mi, avcı mı?',
+      '',
+      '```',
+      formatLongRunLimit(limit),
+      '```',
+      '',
+      '## Kaynak rejenerasyonu A/B',
+      '',
+      '`C.DEFAULT_REGEN = 0`: kaynak hiç yenilenmiyor. Rejenerasyon açıldığında',
+      'popülasyon kalıcı hâle geliyor mu?',
+      '',
+      '**Bu tarama bir muhasebe hatasını da ortaya çıkardı:** rezidül formülünde',
+      '`externalInput` işareti terstiydi. `DEFAULT_REGEN = 0` olduğu için hata',
+      '20+ deneyde görünmemişti.',
+      '',
+      '```',
+      formatRegen(regen),
       '```',
       '',
       ...[exp1.report, exp2.report, exp3.report].flatMap((r) => [

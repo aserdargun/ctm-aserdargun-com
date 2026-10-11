@@ -158,9 +158,25 @@ son popülasyonu 36'dan 52'ye çıkarıyor, son çeyrek kümesi 1.0 → 3.7 oluy
 kısmi hafifletme, ama 4+ hücreli yapılar yine sıfır ve popülasyon zirvenin
 beşte biri. Kalibrasyon sönümlenmeyi **geciktiriyor**, çöküşü **engellemiyor.**
 
-**Önerilen sıra:** önce **40.000 tick'te sınırlayıcı olan ne** — avcı dinamiği mi,
-enerji muhasebesi mi, doğum/ölüm dengesi mi? Üçü de test edilmemiş
-(`VALIDATION.md` §5.14). B3 bu yanıtlanmadan yapılmamalı.
+**Açık soru YANITLANDI** (`VALIDATION.md` §5.15–5.16): sınırlayıcı **avcı
+dinamiği**, ama avcının kendisi enerji kısıtıyla sınırlı.
+
+| Ölçüm | Sonuç |
+|---|---|
+| Avcı enerjisi | ~24.000 tick'te **0'a düşüyor**, kapalı sistemde erken ölüyor |
+| Rejenerasyon açıkken avcı | 38.931 tick'e yaşıyor, avcı ölümleri 25 → **54** |
+| Rejenerasyon popülasyonu kurtarıyor mu? | **Hayır** (son pop 52 → 35 → 42) |
+
+Yani kümülatif kaynak tükenmesi sınırlayıcı değil; sistemde **çift yönlü bir
+düzenleme** var. Avcı enerji yetersizliğiyle erken ölüyor; enerji verilirse
+devreye girip daha çok öldürüyor.
+
+**Bu tur bulunan ölçüm hatası (2):** (a) enerji rezidülü formülümde
+`externalInput` işareti terstiydi; (b) belgedeki bazı sayılar pipeline'ın
+üretmediği ad-hoc koşulardan geliyordu — bağımsız denetim yakaladı, hepsi
+`docs/EXPERIMENTS-DEEP.md`ye hizalandı. `DEFAULT_REGEN = 0` olduğu için **20+ deneyde görünmemiş**;
+rejenerasyonu açan denemede −26.958 e sahte bir korunum ihlali gösterdi.
+Simülasyonda hata yoktu; üç deney dosyasında düzeltildi ve regresyon testi eklendi.
 
 Y-1 kalibrasyon "çözüm" değil, kısmi hafifletme olarak yeniden çerçevelendi.
 

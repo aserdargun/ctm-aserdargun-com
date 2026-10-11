@@ -160,7 +160,10 @@ Deney paketinin tam koşumu **108 simülasyon, 84.4 saniye** sürdü (bkz. §4).
 ## 4. Deney paketi — gerçekten koşuldu
 
 **Komut:** `npm run experiments` (headless, `vite-node`)
-**Kapsam:** 56.159 simülasyon · 325.6 s · 5 değişmez kontrol · 3 deney + kalibrasyon + 5 tarama + ödül teşhisi + evrimsel karşılaştırma + Faz B teşhisi
+**Kapsam:** 76.159 simülasyon · 506 sn (standart pencere) · 5 değişmez kontrol ·
+3 deney + kalibrasyon + 5 tarama + ödül teşhisi + evrimsel karşılaştırma +
+Faz B teşhisleri (sönümlenme, üreme tıkanması, uzun vadeli dayanıklılık,
+kaynak rejenerasyonu)
 **Tam rapor (ham koşu değerleri dâhil):** `docs/EXPERIMENTS.md`
 
 ### 4.1 Değişmez kontroller — 5/5 geçti
@@ -692,13 +695,20 @@ değiştirilmez.* Beş rakip açıklama, beş ölçümle ayrıldı.
 | 0 | 48 | 48 | 0 | 0 | 0 | — | — | 100.0 | 0 / 0 |
 | 1.000 | 100 | 72 | 3 | 0 | 28 | 0.782 | 0.026 | 96.7 | 0 / 0 |
 | 2.000 | 157 | 107 | 4 | 1 | 50 | 0.642 | 0.012 | 91.4 | 0 / 0 |
-| **3.200** | — | — | **8 (zirve)** | — | — | 0.561 | 0.018 | ~85 | 0 / 0 |
+| **3.200** | — | — | **8 (zirve)** | — | — | 0.561 | 0.018 | (~81)† | 0 / 0 |
 | 4.000 | 254 | 198 | 8 | 6 | 56 | 0.530 | 0.017 | 74.9 | 3 / 2 |
 | 5.000 | 247 | 219 | 5 | 2 | 28 | 0.414 | 0.011 | 67.9 | 12 / 2 |
 | 6.000 | 217 | 207 | 3 | 0 | **10** | **0.208** | 0.029 | 62.8 | 37 / 3 |
 | 7.000 | 175 | 174 | 2 | 0 | 1 | — | — | 59.0 | 73 / 10 |
 | 8.400 | — | — | **1 (sönümlenme)** | 0 | **0** | — | — | **54.7** | — |
 | 12.000 | 130 | 129 | 2 | 0 | 1 | — | — | 46.5 | 95 / 40 |
+
+**(†)** 3.200 tick ölçüm noktası değildir (örnekleme 2.000'dir); 3.000 (%83.6)
+ve 4.000 (%74.9) arasındaki değer kabaca enterpolasyonla üretilmiştir.
+
+**(°)** Bu tick'te yalnız **1 bağ** kaldığı için ortalama bütünlük ve uzama
+tek bir bağdan hesaplanır; istatistik olarak anlamsızdır ve `—` olarak
+gösterilir. Aynı satır raporda 0.820 / 0.000 basıyor.
 
 ### 5.2 Hipotezlerin ayrımı
 
@@ -874,6 +884,11 @@ süreçler bu modelde yeterli nesil derinliğine ulaşamıyor.
 
 ### 5.11 Üreme tıkanması — "durağanlık" yorumu **çürütüldü**
 
+> ⚠️ **Pencere notu:** §5.11–§5.16 **40.000 tick'lik derin profilin**
+> (`npm run experiments -- --deep`) bulgularıdır. Standart profil
+> (12.000 tick) ekolojik çöküşü **görmez** ve bu bölümlerdeki sonuçları
+> üretmez. Ham çıktı: `docs/EXPERIMENTS-DEEP.md`.
+
 §5.9'da pencerenin 4 katına çıkması üreme çevrimini 5.46'dan 5.85'e çıkarmadığı
 için "popülasyon üreme durağanlığına ulaşıyor" denmişti. Bu yorum **yanlıştı** ve
 ölçümden kaynaklanıyordu: kümülatif doğum sayısının yataylaması "doygunluk"
@@ -882,18 +897,16 @@ değil, **doğumların durması** demektir.
 Kümülatif sayı, doğum *devam ettiği* sürece artar. Yataylaması çevrim bitti
 demektir. İki ölçüm birlikte okunmalıydı.
 
-| Tick | Pop | Org | Küm. doğum | Bud | Frag | Küme |
-|---|---|---|---|---|---|---|
-| 0 | 48 | 48 | 48 | 0 | 0 | 0 |
-| 8.000 | **166** | 121 | 201 | 101 | 15 | 5 |
-| 16.000 | 106 | 103 | 240 | 110 | 2 | 2 |
-| 24.000 | 72 | 70 | 244 | 112 | 0 | 2 |
-| 32.000 | 56 | 56 | 246 | 112 | 0 | 1 |
-| **40.000** | **41** | 41 | **246** | 112 | 0 | **1** |
+| Tick | Pop | Org | Küm. doğum | Bud | Frag | Kol. nesil | Küme |
+|---|---|---|---|---|---|---|---|
+| 0 | 48 | 48 | 48 | 0 | 0 | 0 | 0 |
+| 16.000 | **106** | 103 | 240 | 108 | 9 | 57 | 2 |
+| 32.000 | 56 | 56 | 246 | 110 | 1 | 27 | 1 |
+| **40.000** | **41** | 41 | **246** | 110 | 0 | 18 | **1** |
 
-**Doğum hızı çöktü:** ilk çeyrekte 169, **son çeyrekte 1** doğum. Tomurcuklama
-112 kez gerçekleşti ve koloni üreme nesli zirvede 80'e çıktı — **sonra geri
-düştü.** Yani üreme bir süre çalışıyor, sonra tümüyle duruyor.
+**Doğum hızı çöktü:** ilk çeyrekte **144**, **son çeyrekte 1** doğum. Tomurcuklama
+toplam **110** kez gerçekleşti; koloni üreme nesli örneklenen satırlarda 57'den
+18'e düştü. Yani üreme bir süre çalışıyor, sonra tümüyle duruyor.
 
 Popülasyon durağan değil: **çöküyor.** 166 → 41.
 
@@ -905,7 +918,8 @@ Varsayılan ayarlarda 40.000 tick (tohum 11):
 |---|---|---|---|---|---|---|---|
 | 4.000 | **254** | 8 | 56 | 74.9 | 90.161 | 3 | 2 |
 | 8.000 | 163 | 2 | 1 | 55.6 | 64.176 | 78 | 19 |
-| 16.000 | 103 | 2 | 1 | 40.4 | 46.136 | 109 | 57 |
+| 12.000 | 130 | 2 | 1 | 46.5 | 53.355 | 95 | 40 |
+| 20.000 | 89 | 2 | 1 | 35.7 | 41.100 | 114 | 69 |
 | 24.000 | 74 | 1 | **0** | 32.8 | 37.137 | 119 | 80 |
 | 32.000 | 44 | 1 | 0 | 29.0 | 32.024 | 127 | 102 |
 | **40.000** | **36** | 1 | **0** | **26.7** | 29.333 | 131 | 107 |
@@ -924,14 +938,14 @@ vadede de açıklama değil.
 
 | strainK | Bağ ömrü | Son pop | Çöküş oranı | Son çeyrek ort. küme | Son 4+ yapı | Son bağ | Son rezerv | **Geç açlık %** | **Geç avcı %** |
 |---|---|---|---|---|---|---|---|---|---|
-| **0.020 (varsayılan)** | 2.083 | 36 | 7.1× | 1.0 | 0 | 0 | %26.7 | 37.5 | **62.5** |
-| 0.005 | 8.333 | 35 | 7.3× | 1.0 | 0 | 0 | %26.6 | 45.5 | **54.5** |
-| **0.002** | 21.277 | **52** | 4.9× | **3.7** | 0 | **13** | %22.9 | **100.0** | **0.0** |
+| **0.020 (varsayılan)** | 2.083 | 36 | 7.1× | 1.20 | 0 | 0 | %26.7 | 37.5 | **62.5** |
+| 0.005 | 8.333 | 35 | 7.4× | 1.00 | 0 | 0 | %26.6 | 45.5 | **54.5** |
+| **0.002** | 21.277 | **52** | 4.9× | **4.08** | 0 | **13** | %22.9 | **100.0** | **0.0** |
 
 **İki ayrı sonuç var ve ikisi de doğru:**
 
 **1. Kalibrasyon çöküşü engellemiyor.** 10× dayanıklılık son popülasyonu
-36'dan 52'ye çıkarıyor (+%44) ve son çeyrek kümesi 1.0 → 3.7 oluyor — **kısmi
+36'dan 52'ye çıkarıyor (+%44) ve son çeyrek kümesi 1.20 → 4.08 oluyor — **kısmi
 hafifletme.** Ama 4+ hücreli yapılar yine sıfır ve popülasyon hâlâ zirvenin
 beşte biri.
 
@@ -974,6 +988,100 @@ Açık sorunun adayları (üçü de test edilmemiş):
 
 **B3 (somatik mutasyon) bu soru yanıtlanmadan yapılmamalı:** 5.5 üreme çevrimi
 bir pencerenin artefaktı değil, **çöken bir popülasyonun sonucu.**
+
+
+### 5.15 40.000 tick sınırı: erişilebilirlik mi, avcı mı?
+
+> Derin profil (`--deep`). Standart profilde bu tablo üretilmez.
+
+Dayanıklı bağlarla (strainK 0.002), 40.000 tick:
+
+| Tick | Pop | Ort. hücre enerjisi | Açlık % | Medyan kaynak uzaklığı | Yakın % | Rezerv % | **Avcı enerjisi** |
+|---|---|---|---|---|---|---|---|
+| 0 | 48 | 55.0 | 0.0 | 1.73 | 39.6 | 100.0 | 4.4 |
+| 4.000 | 248 | 40.0 | 1.2 | 1.17 | 71.4 | 76.2 | 21.9 |
+| 8.000 | 165 | 32.5 | 7.9 | 1.30 | 58.2 | 55.0 | 25.6 |
+| 16.000 | 103 | 29.6 | 12.6 | 1.57 | 46.6 | 38.9 | 16.3 |
+| 24.000 | 81 | 30.7 | 13.6 | 1.45 | 50.6 | 31.3 | **0.0** |
+| 40.000 | 52 | 26.7 | 13.5 | 1.78 | 40.4 | 22.9 | **0.0** |
+
+**İki gözlem, ikisi de çürütücü:**
+
+1. **Avcı ~24.000 tick'te açlıktan ölüyor** (enerji 0'a düşüyor ve kalıcı olarak
+   orada kalıyor). Yani geç dönemde avcı yok; §5.13'teki "geç avcı ölümü %0"
+   bunun sonucu.
+2. **Hücreler ploya yapıyor, ölmüyor:** enerji 55 → 26.7 e'de kararlı kalıyor,
+   açlıktaki hücre payı ~%13. Yani "kaynak erişilemiyor" teşhisi de **tam
+   değil** — geç dönemde hücrelerin ~%40'ı kaynağa 1.5 mb içinde.
+
+### 5.16 Kaynak rejenerasyonu A/B — ve bir muhasebe hatasının bulunması
+
+> Derin profil (`--deep`).
+
+`C.DEFAULT_REGEN = 0`: kaynak **hiç yenilenmiyor.** Kapalı enerji sistemi
+40.000 tick'te rezervini %100 → %23'e tüketiyor. Soru: bu tükenme mi sınırlıyor?
+
+| regen | Zirve pop | Son pop | Son çeyrek pop | Son rezerv | Ort. enerji | Açlık öl. | Avcı öl. | **Avcı öldü (tick)** |
+|---|---|---|---|---|---|---|---|---|
+| 0 | 248 | 52 | 58.0 | %22.9 | 26.7 | 169 | 25 | 23.406 |
+| 0.002 | 252 | **35** | 37.3 | %28.0 | 19.3 | 134 | 54 | 33.970 |
+| 0.01 | 245 | 42 | 46.3 | %34.1 | 35.8 | 123 | **54** | 38.931 |
+
+**Sonuç: rejenerasyon popülasyonu kurtarmıyor** — hatta orta değerde kötüleştiriyor.
+Ama **mekanizmayı değiştiriyor:** enerji arttıkça avcı daha uzun yaşıyor
+(23.406 → 38.931) ve avcı kaynaklı ölümler 25 → 54'e çıkıyor.
+
+**Yani kümülatif kaynak tükenmesi sınırlayıcı değil.** Rezerv %23'te kalırken
+popülasyon düşüyor; enerji artırılınca avcı canlanıyor ve avcı daha çok öldürüyor.
+
+> **Bu, §5.13'teki avcı yorumunu güçlendiriyor:** avcı enerji yetersizliği
+> nedeniyle erken ölüyordu. Enerji verildiğinde devreye giriyor ve avcı baskısı
+> **uzun vadeli sınırlayıcı** oluyor.
+
+### 5.17 Bulunan muhasebe ölçüm hatası — kendi kodumda
+
+Bu tarama ilk çalıştırmada **−26.958 e** enerji rezidülü gösterdi (regen = 0.01).
+İlk okuma "enerji korunumu bozuluyor" oldu. **Yanlıştı: hata benim ölçüm
+formülümdeydi.**
+
+Doğru denklem (`energy.ts → Ledger.residual()`):
+
+```
+current + dissipated = initialTotal + externalInput
+```
+
+Benim yazdığım:
+
+```
+initialTotal − current − externalInput − dissipated     ← externalInput İŞARETİ TERS
+```
+
+`externalInput` zaten `current`in içinde olduğu için iki kez ters yönde
+sayılıyordu.
+
+**Bu hata neden 20+ deneyde görünmedi:** `DEFAULT_REGEN = 0` olduğu için
+`externalInput` her zaman 0'dı ve işaret hatası sıfırla örtüşüyordu. Rejenerasyonu
+açan denemede ortaya çıktı.
+
+**Simülasyonda hata yok.** Düzeltme sonrası her rejenerasyon değerinde rezidül
+< 1e-4 ve düzeltilmiş formül üç deney dosyasında (`arena`, `colony`, `ecology`)
+uygulandı; regresyon koruması testi eklendi.
+
+### 5.14'ün güncel cevabı
+
+| Soru | Cevap | Kanıt |
+|---|---|---|
+| Kaynak erişilebilirliği mi? | Kısmen — uzaklık 1.4→2.0, ama hücrelerin yarısı kaynağa yakın | §5.15 |
+| Avcı dinamiği mi? | **Evet, enerji yeterli olduğunda** — avcı daha uzun yaşıyor ve daha çok öldürüyor | §5.16 |
+| Kümülatif kaynak tükenmesi mi? | **Hayır** — rejenerasyon popülasyonu kurtarmıyor | §5.16 |
+
+**Sistemin uzun vadeli düzenleyicisi avcıdır.** Ama avcının kendisi enerji
+kısıtıyla sınırlı: kapalı sistemde erken ölür, enerji verilirse devreye girer ve
+avcı baskısı hızlanır. Bu, sistemde **çift yönlü** bir düzenleme üretir ve
+kolonilerin kalıcılığı ile avcı baskısı arasındaki dengeye bağlıdır.
+
+B3 (somatik mutasyon) için önkoşul hâlâ: yeterli üreme çevrimi. Ancak bu kez
+sebep "nesil derinliği yok" değil, **avcının popülasyonu düzenlemesi**.
 
 
 ## 6. Tarayıcı akışı — gerçekten yapıldı
@@ -1072,6 +1180,8 @@ Bunlar testlerin bulduğu, düzeltildiği ve **yeniden test edildiği** hatalard
 | 11 | `probabilityOfImprovement` **merkezlenmiş** veriden hesaplanıyordu | Her koşuda ≈ 0.5 dönüyor, hiçbir bilgi taşımıyordu | İkinci bir yeniden örnekleme geçişi merkezlenmemiş veriye ayrıldı |
 | 12 | Deney altyapısı `vite-node`'u paket içinden değil `npx` üzerinden çözüyordu | `npm run experiments` → `vite-node: command not found` | `vite-node@6.0.0` devDependency olarak sabit sürümle eklendi |
 | 13 | Deney betiği `node` ile çalışmıyordu | `ring.ts` parametre özelliği kullanıyor; Node'un strip-only modu desteklemiyor | `vite-node` beyan edildi (bkz. #12) |
+| 19 | Belge sayıları **raporun üretmediği koşulardan** alınmıştı | §5.11'in bud sayıları 112/169 derken rapor 110/144 diyordu: sayılar daha ince örnekleme (2000 tick) ile ad-hoc koşulmuş bir versiyondan gelmişti. Bağımsız denetim yakaladı; tümü `docs/EXPERIMENTS-DEEP.md`ye hizalandı |
+| 18 | Enerji rezidülü **formülünde `externalInput` işareti tersti** | Doğru denklem `current + dissipated = initialTotal + externalInput`. Yazdığım `initialTotal − current − externalInput − dissipated` **20+ deneyde görünmedi**, çünkü `DEFAULT_REGEN = 0` olduğu için `externalInput` hep 0'dı. Rejenerasyon açılınca −26.958 e sahte ihlal göründü. Üç dosyada düzeltildi, regresyon testi eklendi (§5.17) |
 | 17 | Kümülatif doğumun yataylaması **"doygunluk"** sanıldı | Yataylama, doğumların **durduğu** anlamına gelir; popülasyon doygunluğa değil **çöküşe** gidiyordu (166 → 41). İki ölçüm birlikte okunmalıydı (§5.11) |
 | 16 | `maxGeneration` **nesil derinliği** sanılıyordu | Yaşayan popülasyondaki anlık en yüksek nesildir ve uzun koşularda **düşüyor** (ölçüldü: 10k tick → 3.0, 100k tick → 1.3). "Pencere çok kısa" gerekçesi bu hatadan kaynaklanmış ve kaldırıldı | `cumulativeBirths` (`nextOrganismIdForSnapshot() − 1`) eklendi; gerçek üreme çevrimi **≈5.5** ve durağanlıkta (§5.9) |
 | 15 | Bağ uzaması **hayatta kalanların** ortalamasıyla ölçülüyordu | Değer 0.010–0.029 çıktı ve "uzama açıklama değil" izlenimi verdi. Gerçekte **seçilim yanlılığı**: gerilmiş bağlar zaten koptuğu için hayatta kalanlar seçilmiş olarak düşük gerilimli. `bond-break.detail.strain` üzerinden kırılma anı ölçülünce medyan 0.079 çıktı ve kırılmaların %100'ü bütünlük tükenmesiyle olduğu görüldü (§5.3) |
@@ -1086,8 +1196,10 @@ npm ci
 npm test                      # 126 test (4 dosya)
 npm run typecheck             # tsc --noEmit, temiz
 npm run build                 # vite build, başarılı
-npm run experiments:quick     # deney paketi duman testi (~7 s)
-npm run experiments           # tam deney paketi (56.159 koşu, ~326 s)
+
+npm run experiments           # standart paket (12.000 tick pencereleri)
+npm run experiments -- --deep # derin paket (40.000 tick — ekolojik çöküş görünür, yavaş)
+npm run experiments:quick     # duman testi (~40 sn)
 npm run assets:build          # Blender 5.1.1 ile 10 varlık üretir
 npm run dev                   # geliştirme sunucusu (port 5183)
 npm run server                # gözlemci sunucusu (port 8787) — anahtar yoksa 503
@@ -1096,3 +1208,15 @@ npm run server                # gözlemci sunucusu (port 8787) — anahtar yoksa
 Deneyler **deterministiktir**: aynı tohum aynı sonucu verir ve bootstrap
 aralıkları sabit bootstrap tohumuyla tekrarlanabilir. `npm run experiments`
 `docs/EXPERIMENTS.md` dosyasını ham koşu değerleriyle yeniden üretir.
+
+**Üç kademe var** ve süreler dürüstçe ölçülmüştür:
+
+| Kademe | Komut | Süre | Pencere |
+|---|---|---|---|
+| Duman testi | `npm run experiments:quick` | ~40 sn | küçük örneklem, tüm bölümler |
+| **Standart** | `npm run experiments` | **~8.5 dk** | 12.000 tick |
+| Derin | `npm run experiments -- --deep` | ~20 dk | 40.000 tick (ekolojik çöküş görünür) |
+
+12.000 tick'lik standart pencere kısa vadeli bulguları (§5.4) kapsar;
+**uzun vadeli çöküşü (§5.12–5.16) görmek için `--deep` gerekir.** Bu ayrım
+bilinçlidir: §5.11'de öğrenildiği gibi tek pencereye bağlı sonuçlar genellenmez.

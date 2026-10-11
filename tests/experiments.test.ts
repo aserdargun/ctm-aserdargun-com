@@ -27,7 +27,9 @@ import {
   formatDiagnosis,
   formatEcologyTable,
   formatHeritability,
+  formatRegen,
   sweepBondDurability,
+  sweepResourceRegen,
 } from '../src/sim/experiments/ecology.ts';
 import {
   calibrateArena,
@@ -793,6 +795,38 @@ describe('Y-2 · bağ ömrünün kalıtılabilirliği', () => {
     const r = experimentBondLifeHeritability({ seeds: 2, ticks: 1500 });
     expect(formatHeritability(r)).toContain('tedavi');
     expect(r.reading.length).toBeGreaterThan(0);
+  });
+});
+
+describe('kaynak rejenerasyonu ve muhasebe', () => {
+  it('ölçüm hatası: muhasebe rezidülü İŞARETLİ (regresyon koruması)', () => {
+    // Regresyon koruması: daha önceki formül `initialTotal - current
+    // - externalInput - dissipated` idi; `externalInput` işareti **tersti**.
+    // Doğru denklem: `current + dissipated = initialTotal + externalInput`.
+    // Hata, `DEFAULT_REGEN = 0` olduğu için dış girdi hiç sıfırdan farklı
+    // olmadığı sürece **20+ deneyde görünmedi**; rejenerasyon açılınca ortaya çıktı.
+    const withRegen = sweepResourceRegen({ regens: [0, 0.01], ticks: 2500, seed: 12 });
+    for (const p of withRegen) {
+      expect(Math.abs(p.worstLedgerResidual), `regen=${p.regen}`).toBeLessThan(1e-4);
+    }
+    // Dış girdi gerçekten oluşmuş olmalı (aksi halde test anlamlı olmaz).
+    expect(withRegen[1]?.regen).toBeGreaterThan(0);
+  });
+
+  it('rejenerasyon açıkken de korunum bozulmaz', () => {
+    const points = sweepResourceRegen({ regens: [0, 0.002, 0.01], ticks: 2000, seed: 13 });
+    expect(points).toHaveLength(3);
+    for (const p of points) {
+      expect(Math.abs(p.worstLedgerResidual)).toBeLessThan(1e-4);
+      expect(p.finalReserveFraction).toBeGreaterThan(0);
+      expect(p.finalReserveFraction).toBeLessThanOrEqual(1.0001);
+      expect(p.finalPopulation).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it('biçimlendirme başlık + satır üretir', () => {
+    const points = sweepResourceRegen({ regens: [0], ticks: 1200, seed: 14 });
+    expect(formatRegen(points).split('\n')).toHaveLength(points.length + 1);
   });
 });
 

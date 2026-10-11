@@ -241,7 +241,7 @@ export function runTrial(options: TrialOptions): TrialResult {
 
   const ledger = world.ledger;
   const current = world.systemEnergyTotal();
-  const ledgerResidual = ledger.initialTotal - current - ledger.externalInput - ledger.dissipated;
+  const ledgerResidual = ledger.initialTotal + ledger.externalInput - current - ledger.dissipated;
 
   // Ağırlıklar bu koşuda ne kadar kaydı? (enjeksiyondan bağımsız ölçüm)
   let sum = 0;
