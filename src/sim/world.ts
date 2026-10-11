@@ -1829,7 +1829,75 @@ export class World {
   ): World {
     const size = snapshot.settings.size;
     // Kurucu döngüyü atlamak için bayt düzeyinde boş bir dünya oluşturulur.
+    //
+    // ⚠️ `Object.create(World.prototype)` **constructor'ı çağırmaz**, bu yüzden
+    // sınıf alan başlatıcıları (`readonly ledger = new EnergyLedger()` gibi)
+    // HİÇ çalışmaz ve alanlar `undefined` kalır. Aşağıdaki blok onları açıkça
+    // kurar. Bu blok olmadan ilk `world.ledger.reset(...)` çağrısı TypeError
+    // atıyor ve **snapshot'tan dünya kurma (ve dolayısıyla `branch`) tamamen
+    // bozuk** oluyordu. Test: `tests/world.test.ts` → "snapshot → dünya".
     const world = Object.create(World.prototype) as World;
+    const init = world as unknown as {
+      ledger: EnergyLedger;
+      events: RingBuffer<SimEvent>;
+      metricsHistory: RingBuffer<MetricsSample>;
+      nextCellId: number;
+      nextBondId: number;
+      nextOrganismId: number;
+      nextResourceId: number;
+      nextRockId: number;
+      nextEventId: number;
+      nextInterventionId: number;
+      pendingEnergy: Map<number, number>;
+      pendingDamage: Map<number, number>;
+      pendingMoveCost: Map<number, number>;
+      intents: Map<number, { dir: Vec3; action: number; speedScale: number }>;
+      lastDecisions: Map<number, DecisionInfo>;
+      targetSpeed: Map<number, number>;
+      decisionTick: number;
+      metricTick: number;
+      livePopulation: number;
+      aliveOrderCache: number[] | null;
+      esCheckpointReward: Map<number, number>;
+      populationUpdateCount: number;
+      bondTuning: {
+        bondFatigue?: number;
+        strainDecayK?: number;
+        coupleFatigueToGenome?: boolean;
+      };
+      populationUpdateConfig: { enabled: boolean; rate: number; interval: number };
+    };
+    init.ledger = new EnergyLedger();
+    init.events = new RingBuffer<SimEvent>(2000);
+    init.metricsHistory = new RingBuffer<MetricsSample>(600);
+    init.nextCellId = 1;
+    init.nextBondId = 1;
+    init.nextOrganismId = 1;
+    init.nextResourceId = 1;
+    init.nextRockId = 1;
+    init.nextEventId = 1;
+    init.nextInterventionId = 1;
+    init.pendingEnergy = new Map();
+    init.pendingDamage = new Map();
+    init.pendingMoveCost = new Map();
+    init.intents = new Map();
+    init.lastDecisions = new Map();
+    init.targetSpeed = new Map();
+    init.decisionTick = 0;
+    init.metricTick = 0;
+    init.livePopulation = 0;
+    init.aliveOrderCache = null;
+    init.esCheckpointReward = new Map();
+    init.populationUpdateCount = 0;
+    // Duyarlılık kancaları boş bırakılırsa `C` sabitlerine düşer → ürün
+    // davranışı korunur. Snapshot'ta saklanmıyorlar çünkü ölçüm aracıdırlar.
+    init.bondTuning = {};
+    init.populationUpdateConfig = {
+      enabled: options.populationUpdate ?? false,
+      rate: options.populationUpdateRate ?? 0.06,
+      interval: Math.max(1, options.populationUpdateInterval ?? 500),
+    };
+
     world.version = SIM_VERSION;
     world.tick = snapshot.tick;
     world.settings = { ...snapshot.settings, size: { ...size } };

@@ -160,7 +160,7 @@ Deney paketinin tam koşumu **108 simülasyon, 84.4 saniye** sürdü (bkz. §4).
 ## 4. Deney paketi — gerçekten koşuldu
 
 **Komut:** `npm run experiments` (headless, `vite-node`)
-**Kapsam:** 1.920 simülasyon · 516.6 sn (standart pencere)n (standart pencere) · 5 değişmez kontrol ·
+**Kapsam:** 1.920 simülasyon · 429 sn (standart pencere, 22 bölüm)n (standart pencere) · 5 değişmez kontrol ·
 3 deney + kalibrasyon + 5 tarama + ödül teşhisi + evrimsel karşılaştırma +
 Faz B teşhisleri (sönümlenme, üreme tıkanması, uzun vadeli dayanıklılık,
 kaynak rejenerasyonu)
@@ -1145,6 +1145,10 @@ Başarısızlığın iki açıklaması vardı:
 
 ### 6.5 Doğru teşhis: formülasyonum bir arama yöntemi değil
 
+> **Sonradan ölçülen tamamlama (§6.10):** mimari kısıt ifadesi "dünya
+> çatallanamaz" idi. §6.7–6.10 çatallamanın hem mümkün hem de **ucuz** olduğunu
+> gösterdi; kısıt çatallamanın teknik zorluğunda değil, mantıksal biçimindeydi.
+
 Uyguladığım güncelleme **anti-drift** mekanizmasıdır: kötüye giden bireyi iyi
 eşitlerine çeker, çeşitliliği azaltır, **korur**. Arama yapmaz.
 
@@ -1176,6 +1180,80 @@ Bu bölümü yazarken popülasyon-ES'in başarısızlığını "paylaşılan dü
 sinyal zayıflıyor" diye açıkladım. **§6.4 ölçümü bunu çürüttü** ve gerçek
 sebep formülasyonun kendisiydi. Yanlış açıklama hiçbir yere yazılmadı;
 ölçüm yapılmadan önce elde edildiği için düzeltilecek bir metin de olmadı.
+
+
+### 6.7 Dal (branch) doğruluğu — **ölçüm bir ürün hatası buldu**
+
+§9 madde 7 şunu açıkça listeliyordu: *"branch komutu snapshot kopyalıyor; iki dalın
+birbirinden bağımsız olduğu test edilmedi."* Bu ölçüm, ikinci seçeneği
+(çatallanabilir ortam üzerinden yaşam içi arama) varsayımdan ölçülebilir bir
+seçeneğe çevirmek için yapıldı.
+
+### 6.8 Bulunan ürün hatası — `branch` **hiç çalışmıyordu**
+
+Ölçüm ilk denemede çöktü:
+
+```
+TypeError: Cannot read properties of undefined (reading 'reset')
+    at World.fromState (src/sim/world.ts)
+```
+
+**Kök neden:** `World.fromState` kurucu döngüyü atlamak için
+`Object.create(World.prototype)` kullanıyor. Bu **constructor'ı çağırmaz**, dolayısıyla
+sınıf alan başlatıcıları (`readonly ledger = new EnergyLedger()` gibi) **hiç
+çalışmaz** ve alanlar `undefined` kalır. İlk `world.ledger` erişiminde TypeError.
+
+Aynı şekilde `events`, `metricsHistory`, `nextCellId`, `nextBondId`,
+`nextOrganismId`, `pendingEnergy`, `bondTuning` ve diğer alanlar da kurulmuyordu.
+
+**Etki:** `deserializeWorld` her çağrıldığında patlıyordu — yani **snapshot'tan
+dünya kurma ve dolayısıyla `branch` özelliği tamamen bozuktu.** Ürünün ana döngüsünde
+("koşulu değiştir → kontrol dalıyla karşılaştır") kullanılan yol.
+
+**Neden yakalanmadı:** bu yolda test yoktu. `docs/PROGRESS.md` ve
+`VALIDATION.md` "snapshot şeması yazıldı, tip denetimi geçiyor" diyordu — ama
+**çalıştırılmamıştı.** Yazılmış olmak, çalışıyor olmak değildir.
+
+**Dü��eltme:** `fromState` artık tüm alanları açıkça kuruyor (dokümanlı bir blok).
+Duyarlılık kancaları boş bırakılıp `C` sabitlerine düşürülüyor, böylece ürün
+davranışı korunuyor. **Üç regresyon testi** eklendi (`tests/world.test.ts`).
+
+### 6.9 Düzeltme sonrası — çatallama doğru **ve ucuz**
+
+| Ölçüm | Değer |
+|---|---|
+| Snapshot boyutu (3.000 tick'te) | 2,54 MB |
+| Bir dal açmak | **21,3 ms** |
+| Bir simülasyon adımı | **0,852 ms** |
+| **Bir çatalın karşılığı** | **≈ 25 tick** |
+| İki dal bit düzeyinde aynı ilerliyor mu? | **Evet** |
+| Müdahale diğerine sızmıyor mu? | **Evet** |
+| Müdahale gerçekten etkili mi? | **Evet** |
+
+**Müdahale testi nasıl yapılmalıydı:** üç dal gerekir. İki dalın da müdahale
+edilmeden ilerlemesi yeterli değildir — ikisi de ilerlediği için enerjileri
+değişir. Doğrusu, hiç müdahale edilmemiş bir **referans** dalla karşılaştırmaktır.
+(İlk yazdığım test iki dalı karşılaştırıyordu ve yanlışlıkla "çapraz karışma"
+raporluyordu; ikinci denemede referans dalı ilk döngüde ilerletmeyi unuttum.
+İkisi de düzeltildi.)
+
+### 6.10 Bu ölçüm kararı nasıl değiştiriyor
+
+Mimari kısıt §6.5'te şuydu: *yaşam içi öğrenme arama yapamaz, çünkü dünyayı
+çatallayamaz.* Bu ölçüm ikinci yarısını da doğruluyor — **çatallama ucuz ve güvenilir.**
+
+| | Değer |
+|---|---|
+| 500 tick'te bir, 16 pertürbasyonlu arama | **≈ %80 ek yük** |
+| 500 tick'lik simülasyonun kendisi | 500 × 0,852 ms ≈ 426 ms |
+| 16 çatalın toplam maliyeti | ≈ 341 ms |
+
+**Sonuç: yaşam içi üstel arama bütçelenebilir.** Bu, §6.5'teki "çatallama
+imkânsız" sonucunun **çürütülmesi** değil, **tamamlanmasıdır:** asıl kısıt
+çatallamanın *mantıksal* zorluğuydu; teknik olarak değil.
+
+**Dürüstlük notu:** bu maliyet 3.000. tick'te ölçüldü ve snapshot boyutuyla
+ölçeklenir. Geç pencerelerde farklı olabilir ve **ölçülmedi.**
 
 
 ## 7. Tarayıcı akışı — gerçekten yapıldı
@@ -1244,8 +1322,13 @@ Bu maddeler **yapılmadı** ve dokümana sayı uydurulmadı:
 6. **Kaydet/yükle bit düzeyi eşdeğerliği.** Şema doğrulama, bozuk kayıt reddi ve
    ölçek sınırı **yazıldı**, ancak IndexedDB üzerinden kaydet→yükle→aynı koşu
    eşitliği test edilmedi. Aynı ortamda bit düzeyi eşitlik de vaat edilmiyor.
-7. **Dal bağımsızlığı.** `branch` komutu snapshot kopyalıyor; iki dalın
-   birbirinden bağımsız olduğu test edilmedi.
+7. ~~**Dal bağımsızlığı.**~~ ✅ **ÇÖZÜLDÜ — ve gerçek bir hata bulundu.**
+   `branch` **hiç çalışmıyordu**: `World.fromState` `Object.create(World.prototype)`
+   kullandığı için constructor çalışmıyor, sınıf alan başlatıcıları hiç
+   çalışmıyor, `ledger` `undefined` kalıyor ve ilk erişimde TypeError atılıyordu.
+   Düzeltildi, üç regresyon testi eklendi, dalların bağımsız ve bit düzeyinde
+   aynı ilerlediği **ölçüldü** ve çatallamanın ucuz olduğu gösterildi
+   (§6.7–6.10).
 8. **Erişilebilirlik denetimi.** Klavye gezinme, görünür odak, `aria` işaretleri
    kodda var; ekran okuyucu ile uçtan uca denendi ama **sistematik test yapılmadı**.
 9. **Çapraz cihaz determinizmi.** Test edilmedi, vaat edilmiyor. Bu nedenle

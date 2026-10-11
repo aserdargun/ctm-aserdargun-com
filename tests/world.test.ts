@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { C } from '../src/sim/biology/energy.ts';
 import { World } from '../src/sim/world.ts';
+import { deserializeWorld, serializeWorld } from '../src/sim/persistence/snapshot.ts';
 import { maxAbsDiff } from '../src/sim/behavior/mlp.ts';
 
 /**
@@ -254,6 +255,61 @@ describe('Kalıtım ve kimlik', () => {
     }
     // Karşılaştırma anlamlı olsun diye ebeveynlerin gerçekten öğrendiğini doğrula.
     expect(compared).toBeGreaterThan(0);
+  });
+});
+
+describe('Snapshot → dünya (branch)', () => {
+  it('snapshot tan dünya kurulur ve ilerler', () => {
+    // Regresyon koruması: `World.fromState` `Object.create(World.prototype)`
+    // kullanıyordu; bu yüzden constructor çalışmıyor, sınıf alan
+    // başlatıcıları (`readonly ledger = new EnergyLedger()`) hiç çalışmıyor
+    // ve ilk `world.ledger` erişiminde TypeError atılıyordu. **Branch özelliği
+    // tamamen bozuktu** ve test edilmemişti.
+    const source = new World({ seed: 77, population: 12 });
+    for (let t = 0; t < 300; t++) source.step();
+    const restored = deserializeWorld(serializeWorld(source));
+    expect(restored.tick).toBe(source.tick);
+    expect(restored.systemEnergyTotal()).toBeCloseTo(source.systemEnergyTotal(), 6);
+    // Defter kurulmuş olmalı
+    expect(restored.ledger).toBeDefined();
+    expect(Number.isFinite(restored.ledger.initialTotal)).toBe(true);
+  });
+
+  it('snapshot tan kurulan dünya ilerleyebilir', () => {
+    const source = new World({ seed: 78, population: 12 });
+    for (let t = 0; t < 300; t++) source.step();
+    const restored = deserializeWorld(serializeWorld(source));
+    for (let t = 0; t < 200; t++) restored.step();
+    expect(restored.tick).toBe(500);
+    expect(Number.isFinite(restored.systemEnergyTotal())).toBe(true);
+    expect(restored.population()).toBeGreaterThanOrEqual(0);
+    expect(restored.latestMetrics()).toBeDefined();
+    expect(restored.recentEvents(5).length).toBeGreaterThan(0);
+  });
+
+  it('iki dal bit düzeyinde aynı ilerler ve müdahale diğerine sızmaz', () => {
+    const source = new World({ seed: 79, population: 12 });
+    for (let t = 0; t < 400; t++) source.step();
+    const snap = serializeWorld(source);
+    const a = deserializeWorld(snap);
+    const b = deserializeWorld(snap);
+    const control = deserializeWorld(snap);
+    for (let t = 0; t < 200; t++) {
+      a.step();
+      b.step();
+      control.step();
+    }
+    // Hiç müdahale görmeyen iki dal birebir aynı olmalı
+    expect(b.systemEnergyTotal()).toBe(control.systemEnergyTotal());
+    // Müdahale gören dal ayrılmalı
+    a.addNutrient('A', 200);
+    for (let t = 0; t < 100; t++) {
+      a.step();
+      b.step();
+      control.step();
+    }
+    expect(a.systemEnergyTotal()).not.toBe(control.systemEnergyTotal());
+    expect(b.systemEnergyTotal()).toBe(control.systemEnergyTotal());
   });
 });
 

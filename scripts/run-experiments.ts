@@ -26,6 +26,7 @@ import {
   experimentBondLifeHeritability,
   experimentPopulationUpdate,
   formatBondDurability,
+  formatBranch,
   formatHeritability,
   formatLongRun,
   formatLongRunLimit,
@@ -39,6 +40,7 @@ import {
   diagnoseLongRunLimit,
   sweepLongRunDurability,
   sweepResourceRegen,
+  verifyBranchIndependence,
 } from '../src/sim/experiments/ecology.ts';
 import {
   calibrateArena,
@@ -106,11 +108,11 @@ function main(): void {
 
   const profile = args.quick ? 'HIZLI TEST' : args.deep ? 'TAM (derin pencere)' : 'standart';
   process.stdout.write(`Cell to Mind · deney paketi [${profile}]\n\n`);
-  process.stdout.write(`1/7  değişmez kontroller…\n`);
+  process.stdout.write(`1/22  değişmez kontroller…\n`);
   const invariants = runInvariants();
   process.stdout.write(`${formatInvariant(invariants)}\n\n`);
 
-  process.stdout.write(`2/7  arena zorluk kalibrasyonu…\n`);
+  process.stdout.write(`2/22  arena zorluk kalibrasyonu…\n`);
   const difficulty = calibrateArena({
     seeds: args.quick ? 3 : 8,
     ticks: args.quick ? 600 : 4000,
@@ -118,13 +120,13 @@ function main(): void {
   });
   process.stdout.write(`${formatDifficulty(difficulty)}\n\n`);
 
-  process.stdout.write(`3/7  Deney 1 · bağ gücü…\n`);
+  process.stdout.write(`3/22  Deney 1 · bağ gücü…\n`);
   const exp1 = experiment1({ seeds: args.quick ? 3 : 12, ticks: scale.colonyTicks });
 
-  process.stdout.write(`4/7  Deney 2 · evrim…\n`);
+  process.stdout.write(`4/22  Deney 2 · evrim…\n`);
   const exp2 = experiment2({ seeds: args.quick ? 3 : 12, ticks: scale.colonyTicks });
 
-  process.stdout.write(`5/7  Deney 3 · öğrenme…\n`);
+  process.stdout.write(`5/22  Deney 3 · öğrenme…\n`);
   const exp3 = experiment3({
     seeds: args.quick ? 3 : scale.seeds,
     trainTicks: scale.trainTicks,
@@ -132,7 +134,7 @@ function main(): void {
     resourceCount: scale.resourceCount,
   });
 
-  process.stdout.write(`\n6/7  öğrenme · zorluk taraması (önceden kaydedilmiş eksen)…\n`);
+  process.stdout.write(`\n6/22  öğrenme · zorluk taraması (önceden kaydedilmiş eksen)…\n`);
   const sweep = args.quick
     ? sweepLearning({ resourceCounts: [8, 34], seeds: 3, trainTicks: 900, evalTicks: 600 })
     : sweepLearning({
@@ -143,7 +145,7 @@ function main(): void {
       });
   process.stdout.write(`${formatLearningSweep(sweep)}\n`);
 
-  process.stdout.write(`\n7/7  öğrenme sinyali duyarlılığı (ağırlık hareketi ne zaman davranışa yansır)…\n`);
+  process.stdout.write(`\n7/22  öğrenme sinyali duyarlılığı (ağırlık hareketi ne zaman davranışa yansır)…\n`);
   const signal = args.quick
     ? sweepLearningSignal({ trajectoryLimits: [16], learnRates: [0.02, 0.5], seeds: 2, trainTicks: 900, evalTicks: 600 })
     : sweepLearningSignal({
@@ -212,13 +214,13 @@ function main(): void {
     : sweepBondDurability({ ticks: longTicks, seeds: 4 });
   process.stdout.write(`${formatBondDurability(durability)}\n`);
 
-  process.stdout.write(`\n15/15 Y-2 · bağ ömrünün kalıtılabilirliği…\n`);
+  process.stdout.write(`\n15/22 Y-2 · bağ ömrünün kalıtılabilirliği…\n`);
   const heritability = args.quick
     ? experimentBondLifeHeritability({ seeds: 2, ticks: 4000 })
     : experimentBondLifeHeritability({ seeds: 6, ticks: longTicks });
   process.stdout.write(`${formatHeritability(heritability)}\n`);
 
-  process.stdout.write(`\n16/16 üreme tıkanması teşhisi…\n`);
+  process.stdout.write(`\n16/22 üreme tıkanması teşhisi…\n`);
   const repro = args.quick
     ? diagnoseReproductiveStall({ seed: 11, ticks: 8000, sampleEvery: 1000 })
     : diagnoseReproductiveStall({ seed: 11, ticks: longTicks, sampleEvery: 4000 });
@@ -230,13 +232,13 @@ function main(): void {
     : sweepLongRunDurability({ ticks: longTicks });
   process.stdout.write(`${formatLongRun(longRun)}\n`);
 
-  process.stdout.write(`\n18/18 40.000 tick sınırı · erişilebilirlik mi avcı mı?…\n`);
+  process.stdout.write(`\n18/22 40.000 tick sınırı · erişilebilirlik mi avcı mı?…\n`);
   const limit = args.quick
     ? diagnoseLongRunLimit({ ticks: 8000, sampleEvery: 2000 })
     : diagnoseLongRunLimit({ ticks: longTicks, sampleEvery: longTicks > 20_000 ? 4000 : 2000 });
   process.stdout.write(`${formatLongRunLimit(limit)}\n`);
 
-  process.stdout.write(`\n19/19 kaynak rejenerasyonu A/B (kapalı enerji sistemi)…\n`);
+  process.stdout.write(`\n19/22 kaynak rejenerasyonu A/B (kapalı enerji sistemi)…\n`);
   const regen = args.quick
     ? sweepResourceRegen({ regens: [0, 0.01], ticks: 6000 })
     : sweepResourceRegen({ ticks: longTicks });
@@ -248,11 +250,17 @@ function main(): void {
     : experimentPopulationUpdate({ seeds: 8, ticks: 20_000 });
   process.stdout.write(`${formatPopulationUpdate(popUpdate)}\n`);
 
-  process.stdout.write(`\n21/21 ödül hızı yayılımı (paylaşılan dünya siler mi?)…\n`);
+  process.stdout.write(`\n21/22 ödül hızı yayılımı (paylaşılan dünya siler mi?)…\n`);
   const dispersion = args.quick
     ? measureRewardDispersion({ ticks: 4000, acrossWorlds: 2 })
     : measureRewardDispersion({ ticks: 15_000 });
   process.stdout.write(`${formatDispersion(dispersion)}\n`);
+
+  process.stdout.write(`\n22/22 dal (branch) doğruluğu ve maliyeti…\n`);
+  const branch = args.quick
+    ? verifyBranchIndependence({ forkTick: 1200, forkTicks: 400 })
+    : verifyBranchIndependence({ forkTick: 3000, forkTicks: 1500 });
+  process.stdout.write(`${formatBranch(branch)}\n`);
 
   // Örneklem sayıları (koşu sayımı için).
   const ecologySamples = args.quick ? 10 : Math.floor(longTicks / 200) + 1;
@@ -498,6 +506,22 @@ function main(): void {
       '',
       '```',
       formatDispersion(dispersion),
+      '```',
+      '',
+      '## Dal (branch) doğruluğu ve maliyeti',
+      '',
+      '`VALIDATION.md` §9 madde 7 bu yolu "test edilmemiş" diye listeliyordu.',
+      'Ölçüldü: iki dal bit düzeyinde aynı ilerliyor, müdahale diğerine sızmıyor,',
+      've **çatallama ucuz** — yaşam içi arama bütçelenebilir.',
+      '',
+      'Bu ölçüm sırasında `World.fromState` içinde **gerçek bir ürün hatası** bulundu:',
+      '`Object.create(World.prototype)` çağrısı constructor atladığı için sınıf alan',
+      'başlatıcıları hiç çalışmıyor, `ledger` `undefined` kalıyor ve ilk erişimde',
+      'TypeError atılıyordu — **snapshot tan dünya kurma (dolayısıyla `branch`) tamamen',
+      'bozuktu**. Düzeltildi; regresyon testi eklendi.',
+      '',
+      '```',
+      formatBranch(branch),
       '```',
       '',
       ...[exp1.report, exp2.report, exp3.report].flatMap((r) => [

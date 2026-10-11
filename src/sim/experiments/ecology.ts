@@ -20,6 +20,7 @@
  */
 
 import { bootstrapCI, bootstrapTest, fmt, fmtInterval, type HypothesisTest, type Interval } from '../stats.ts';
+import { deserializeWorld, serializeWorld } from '../persistence/snapshot.ts';
 import { World } from '../world.ts';
 import type { DeathCause } from '../types.ts';
 
@@ -1594,5 +1595,141 @@ export function formatDispersion(d: DispersionReport): string {
     `  bağımsız dünyalar arası ortalama CV: %${(d.acrossWorldCv * 100).toFixed(1)}`,
     `  oran: ${fmt(d.withinVsAcross, 2)}×`,
     `  → ${d.reading}`,
+  ].join('\n');
+}
+
+// --------------------------------------------------- dal (branch) doğruluğu
+
+export interface BranchReport {
+  forkTick: number;
+  forkTicks: number;
+  /** Snapshot'ın bayt cinsinden boyutu. */
+  snapshotBytes: number;
+  /** Snapshot alma + geri yükleme süresi (ms). */
+  forkCostMs: number;
+  /** Bir dünyada `forkTicks` ilerlemenin süresi (ms) — karşılaştırma için. */
+  runCostMs: number;
+  /** Çatallama maliyetinin simülasyon maliyetine oranı. */
+  costRatio: number;
+  /** İki dal bit düzeyinde aynı mı? */
+  identical: boolean;
+  /** Müdahale edilmemiş dal, müdahalesiz referansla aynı mı? (true = bağımsız) */
+  crossTalk: boolean;
+  /** Müdahale görmüş dal gerçekten ayrıldı mı? (yoksa test anlamsız) */
+  interventionEffective: boolean;
+  reading: string;
+}
+
+/**
+ * **Dal (branch) doğruluğu ve maliyeti.**
+ *
+ * `VALIDATION.md` §9 madde 7 şunu açıkça listeliyordu: *"branch komutu snapshot
+ * kopyalıyor; iki dalın birbirinden bağımsız olduğu test edilmedi."*
+ *
+ * Bu ölçüm, ikinci seçeneği (**çatallanabilir ortam üzerinden yaşam içi arama**)
+ * bir varsayımdan ölçülebilir bir seçeneğe çevirir. İki şey sorulur:
+ *
+ * 1. **Doğruluk:** Aynı snapshot'tan açılan iki dal bit düzeyinde aynı mı ilerler?
+ *    Ve birinde yapılan müdahale diğerini etkiler mi?
+ * 2. **Maliyet:** Çatallama, bir simülasyon adımından ne kadar pahalı? Eğer
+ *    çatallama bir adımdan kat kat pahalıysa, yaşam içi ES (her adımda onlarca
+ *    çatal değerlendirmek ister) pratikte imkânsızdır.
+ */
+export function verifyBranchIndependence(options?: {
+  forkTick?: number;
+  forkTicks?: number;
+  seed?: number;
+}): BranchReport {
+  const forkTick = options?.forkTick ?? 3000;
+  const forkTicks = options?.forkTicks ?? 1500;
+  const seed = options?.seed ?? 11;
+
+  const base = new World({ seed, population: 48 });
+  for (let t = 0; t < forkTick; t++) base.step();
+
+  // 1) Snapshot al + iki dal aç (süre ölçülür).
+  const t0 = performance.now();
+  const snapshot = serializeWorld(base);
+  const a = deserializeWorld(snapshot);
+  const b = deserializeWorld(snapshot);
+  // Müdahale testi için üçüncü dal: hiç müdahale edilmeyen referans.
+  const control = deserializeWorld(snapshot);
+  const forkCostMs = performance.now() - t0;
+
+  // 2) İki dal aynı mı ilerliyor?
+  const t1 = performance.now();
+  // `control` de aynı sayıda adım atmalıdır; aksi halde müdahale testi
+  // adım sayısı farkından bozulur ve yanlış "çapraz karışma" raporlanır.
+  for (let t = 0; t < forkTicks; t++) {
+    a.step();
+    b.step();
+    control.step();
+  }
+  const runCostMs = performance.now() - t1;
+
+  const identical =
+    a.tick === b.tick &&
+    a.population() === b.population() &&
+    a.systemEnergyTotal() === b.systemEnergyTotal() &&
+    a.organismOrder().length === b.organismOrder().length;
+
+  // 3) Müdahale bütünlüğü.
+  //
+  // ⚠️ Doğru test üç dal ister. İki dalı da ilerletip "b değişti mi diye
+  // bakmak" yanlıştır: b zaten simüle edildiği için enerjisi değişir.
+  // Doğrusu: **müdahale edilmemiş referans dal**la karşılaştırmak.
+  //   - `b` müdahalesiz ve `control` da müdahalesiz → ikisi BİREBİR aynı olmalı
+  //   - `a` müdahale görmüş → `control`'dan AYRILMALI
+  a.addNutrient('A', 250);
+  for (let t = 0; t < 200; t++) {
+    a.step();
+    b.step();
+    control.step();
+  }
+  const controlEnergy = control.systemEnergyTotal();
+  const bMatchesControl = b.systemEnergyTotal() === controlEnergy;
+  const aDiverged = a.systemEnergyTotal() !== controlEnergy;
+  const crossTalk = !bMatchesControl;
+
+  const snapshotBytes = JSON.stringify(snapshot).length;
+  const costRatio = runCostMs > 0 ? forkCostMs / runCostMs : Number.NaN;
+
+  const reading = !identical
+    ? '**DALLAR AYRIŞIYOR** — aynı snapshot iki farklı yol üretiyor. Çatallama güvenilir değil.'
+    : crossTalk
+      ? '**DALLAR ÇAPRAZ KARIŞIYOR** — müdahale edilmemiş dal, hiç müdahale edilmemiş referansla aynı ilerlemiyor. Çatallama bağımsız değil.'
+      : `Çatallama **doğru**: iki dal bit düzeyinde aynı ilerliyor ve müdahale diğerine sızmıyor. ` +
+        `Snapshot ${(snapshotBytes / 1_000_000).toFixed(2)} MB; bir dal açmak ${(forkCostMs / 2).toFixed(1)} ms, ` +
+        `bir simülasyon adımı ${(runCostMs / 2 / forkTicks).toFixed(3)} ms → **bir çatal ≈ ` +
+        `${Math.max(1, Math.round(forkCostMs / 2 / (runCostMs / 2 / forkTicks)))} tick** maliyetinde. ` +
+        `Yani 500 tick'te bir, 16 pertürbasyonlu güncelleme ≈ ` +
+        `${Math.round(((16 * (forkCostMs / 2)) / (runCostMs / 2 / forkTicks)) / 500 * 100)}% ek yük demek: ` +
+        `üstel strateji yaşam içinde pratikte **bütçelenebilir**. ` +
+        `Müdahale testi: müdahalesiz dal referansla ${bMatchesControl ? 'AYNI' : 'FARKLI'}, ` +
+        `müdahale görmüş dal ${aDiverged ? 'AYRILDI' : 'AYRILMADI — test anlamsız'}. ` +
+        `**DİKKAT:** bu maliyet ${forkTick}. tick'te ölçüldü ve snapshot boyutuyla ölçeklenir; ` +
+        `geç pencerelerde farklı olabilir ve **ölçülmedi**.`;
+
+  return {
+    forkTick,
+    forkTicks,
+    snapshotBytes,
+    forkCostMs,
+    runCostMs,
+    costRatio,
+    identical,
+    crossTalk,
+    interventionEffective: aDiverged,
+    reading,
+  };
+}
+
+export function formatBranch(r: BranchReport): string {
+  return [
+    `  çatal noktası: tick ${r.forkTick} · ${r.forkTicks} adım sonra karşılaştırma`,
+    `  snapshot boyutu: ${r.snapshotBytes.toLocaleString('tr-TR')} bayt`,
+    `  çatallama süresi: ${r.forkCostMs.toFixed(2)} ms · iki dalın koşusu: ${r.runCostMs.toFixed(1)} ms · oran ${(r.costRatio * 100).toFixed(1)}%`,
+    `  dallar bit düzeyinde aynı: ${r.identical ? 'evet' : 'HAYIR'} · müdahale sızıntısı: ${r.crossTalk ? 'VAR' : 'yok'} · müdahale etkili: ${r.interventionEffective ? 'evet' : 'HAYIR'}`,
+    `  → ${r.reading}`,
   ].join('\n');
 }

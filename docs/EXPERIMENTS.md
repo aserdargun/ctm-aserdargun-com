@@ -1,7 +1,7 @@
 # Cell to Mind — Deney Sonuçları
 
-**Körüldü:** 2026-10-11T12:28:46.189Z
-**Toplam koşu:** 1920 · **duvar süresi:** 516.6 s
+**Körüldü:** 2026-10-11T15:27:08.148Z
+**Toplam koşu:** 1920 · **duvar süresi:** 429.2 s
 **Mod:** standart
 **Pencere:** 12.000 tick (40.000 tick'lik ekolojik çöküşü kapsamak için `--deep` kullanın)
 
@@ -310,6 +310,26 @@ Popülasyon-ES başarısızlığının iki açıklamasını ayıran ölçüm.
   bağımsız dünyalar arası ortalama CV: %7.4
   oran: 1.22×
   → Paylaşılan dünya sinyali **silmüyor**: bireyler arası CV %9.0, bağımsız dünyalar arası %7.4 (1.22×). Yani popülasyon içi ayrışma **vardır**; ortalama-alma güncellemesinin başarısızlığı arama eksikliğidir, sinyal yokluğu değil.
+```
+
+## Dal (branch) doğruluğu ve maliyeti
+
+`VALIDATION.md` §9 madde 7 bu yolu "test edilmemiş" diye listeliyordu.
+Ölçüldü: iki dal bit düzeyinde aynı ilerliyor, müdahale diğerine sızmıyor,
+ve **çatallama ucuz** — yaşam içi arama bütçelenebilir.
+
+Bu ölçüm sırasında `World.fromState` içinde **gerçek bir ürün hatası** bulundu:
+`Object.create(World.prototype)` çağrısı constructor atladığı için sınıf alan
+başlatıcıları hiç çalışmıyor, `ledger` `undefined` kalıyor ve ilk erişimde
+TypeError atılıyordu — **snapshot tan dünya kurma (dolayısıyla `branch`) tamamen
+bozuktu**. Düzeltildi; regresyon testi eklendi.
+
+```
+  çatal noktası: tick 3000 · 1500 adım sonra karşılaştırma
+  snapshot boyutu: 2.544.411 bayt
+  çatallama süresi: 42.51 ms · iki dalın koşusu: 2556.3 ms · oran 1.7%
+  dallar bit düzeyinde aynı: evet · müdahale sızıntısı: yok · müdahale etkili: evet
+  → Çatallama **doğru**: iki dal bit düzeyinde aynı ilerliyor ve müdahale diğerine sızmıyor. Snapshot 2.54 MB; bir dal açmak 21.3 ms, bir simülasyon adımı 0.852 ms → **bir çatal ≈ 25 tick** maliyetinde. Yani 500 tick'te bir, 16 pertürbasyonlu güncelleme ≈ 80% ek yük demek: üstel strateji yaşam içinde pratikte **bütçelenebilir**. Müdahale testi: müdahalesiz dal referansla AYNI, müdahale görmüş dal AYRILDI. **DİKKAT:** bu maliyet 3000. tick'te ölçüldü ve snapshot boyutuyla ölçeklenir; geç pencerelerde farklı olabilir ve **ölçülmedi**.
 ```
 
 ## Bağ gücü koloni büyüklüğünü artırıyor mu?

@@ -13,7 +13,7 @@ doğrulanmıştır.
 
 | Alan | Durum | Kanıt |
 |---|---|---|
-| Saf TS simülasyon çekirdeği | ✅ | 137 test, 4 dosya, ~90 sn |
+| Saf TS simülasyon çekirdeği | ✅ | 140 test, 4 dosya, ~95 sn |
 | Enerji korunumu (kapalı sistem) | ✅ | rezidüel = **0.0000** (arena'da 0.0 e, kolonide 1.7e-8 e) |
 | Bölünme / parçalanma / paylaşım muhasebesi | ✅ | testler |
 | Bağ grafiği → gerçek çok hücrelilik | ✅ | 4+ hücreli yapılar test edildi |
@@ -36,6 +36,7 @@ doğrulanmıştır.
 | **İstatistik katmanı (bootstrap CI, IQM, bootstrap test)** | ✅ | 24 test |
 | **3 deney + 5 tarama + ödül teşhisi + evrimsel karşılaştırma** | ✅ | `docs/EXPERIMENTS.md` |
 | **Faz B1 · ekolojik sönümlenme teşhisi + bağ ömrü duyarlılığı** | ✅ | `VALIDATION.md` §5 |
+| **Dal (branch) doğrulaması — ürün hatası bulundu ve düzeltildi** | ✅ | `VALIDATION.md` §6.7–6.10 |
 
 ---
 
@@ -243,9 +244,28 @@ kararını basitleştirir: ya "yaşam öğrenir" iddiasından vazgeçip evrimi
 ürüne alırız, ya da çatallanabilir bir ortam (deney/branch altyapısı vardır)
 üzerinden yaşam içi arama kurarız.
 
-**Öneri:** S-3'ü ürüne almak. Kanıtlanmış tek yol o, ve mimari kısıt artık
-belgede. Bu bir **anlatı kararıdır** ("yaşam öğrenir" → "yaşam evrimleşir") ve
-kullanıcının onayını gerektirir.
+### Çatallama ölçüldü — ikinci seçenek de açık
+
+`VALIDATION.md` §6.7–6.10: **ölçüm bir ürün hatası buldu.** `branch` **hiç
+çalışmıyordu** — `World.fromState` `Object.create(World.prototype)` kullandığı
+için constructor çalışmıyor, `ledger` `undefined` kalıyor ve ilk erişimde
+TypeError atılıyordu. Düzeltildi, üç regresyon testi eklendi.
+
+Düzeltme sonrası ölçülen: bir çatal **≈ 24 tick** maliyetinde; 500 tick'te bir
+16 pertürbasyonlu arama ≈ %76 ek yük. **Çatallama hem mümkün hem ucuz.**
+
+Bu, §6.5'teki "yaşam içi öğrenme arama yapamaz" kısıtını tamamlıyor: kısıt
+çatallamanın *mantıksal* biçimindeydi, teknik zorluğunda değil.
+
+**İki seçenek artık ikisi de açık:**
+
+| Seçenek | Durum | Kanıt |
+|---|---|---|
+| **S-3** evrimsel aramayı ürüne al | ✅ açık | +0.161 ölçüldü |
+| **S-4** çatallanmış ortamda yaşam içi arama | ✅ **yeni açıldı** | çatallama ≈24 tick, ucuz |
+
+S-4 "yaşam öğrenir" anlatısını korur; S-3 onu değiştirir. Hangisinin tercih
+edileceği artık bir **anlatı ve kapsam kararıdır**, teknik kısıt değildir.
 
 ---
 
