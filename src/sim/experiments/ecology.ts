@@ -1733,3 +1733,207 @@ export function formatBranch(r: BranchReport): string {
     `  → ${r.reading}`,
   ].join('\n');
 }
+
+// --------------------------------------------------- S-4 · çatallanmış yaşam içi arama
+
+export interface EvolutionStrategyPoint {
+  enabled: boolean;
+  perturbations: number;
+  evaluateTicks: number;
+  sigma: number;
+  ticks: number;
+  /** Yapılan arama sayısı. */
+  updates: number;
+  /** Aramanın harcadığı süre (ms). */
+  spentMs: number;
+  /** Bir simülasyon adımının maliyeti (ms) — karşılaştırma tabanı. */
+  stepMs: number;
+  /** Harcanan sürenin, eşdeğer kaç tick simülasyona denk geldiği. */
+  overheadInTicks: number;
+  /** Organizmaların medyan ağırlık sapması (θ değişti mi?). */
+  medianWeightShift: number;
+  /** Hayatta kalanların medyan toplam enerjisi — performans ölçütü. */
+  medianOrganismEnergy: number;
+  finalPopulation: number;
+  worstLedgerResidual: number;
+}
+
+export interface EvolutionStrategyReport {
+  control: EvolutionStrategyPoint;
+  treatment: EvolutionStrategyPoint;
+  differences: number[];
+  difference: Interval;
+  test: HypothesisTest;
+  reading: string;
+}
+
+/**
+ * **S-4 deneyi — çatallanmış ortamda yaşam içi üstel arama.**
+ *
+ * Protokol: iki kol, aynı tohumlar. Kontrol kolunda arama kapalı, tedavi
+ * kolunda açık. REINFORCE **her iki kolda da kapalıdır** — aramanın tek başına
+ * etkisini ölçüyoruz.
+ *
+ * **Birincil ölçüm — ağırlık hareketi ve performans:** tedavi kolunda θ gerçekten
+ * hareket ediyor mu (medianWeightShift) ve organizmaların enerjisi artıyor mu.
+ * Performans ölçütü olarak "hayatta kalanların medyan enerjisi" kullanılır.
+ *
+ * **Maliyet ölçümü ayrı ve zorunludur:** arama her 500 tick'te N çatal
+ * ilerletme demektir. Ürüne alınabilmesi için harcanan sürenin kabul
+ * edilebilir olması gerekir; bu yüzden `overheadInTicks` raporlanır.
+ *
+ * **Önceden kaydedilen başarı ölçütü:** tedavi kolunda ölçülebilir bir
+ * performans artışı (farkın güven aralığı sıfırdan ayrışmalı) **ve**
+ * ek yük kabul edilebilir (≤ 200 tick'lik eşdeğer).
+ */
+export function experimentEvolutionStrategy(options?: {
+  seeds?: number;
+  ticks?: number;
+  perturbations?: number;
+  evaluateTicks?: number;
+  sigma?: number;
+  seedBase?: number;
+  population?: number;
+  resourceCount?: number;
+}): EvolutionStrategyReport {
+  const seeds = options?.seeds ?? 4;
+  const ticks = options?.ticks ?? 6000;
+  const perturbations = options?.perturbations ?? 6;
+  const evaluateTicks = options?.evaluateTicks ?? 40;
+  const sigma = options?.sigma ?? 0.05;
+  const seedBase = options?.seedBase ?? 8501;
+  const population = options?.population ?? 24;
+  const resourceCount = options?.resourceCount ?? 34;
+
+  const runArm = (enabled: boolean, seed: number): EvolutionStrategyPoint => {
+    const stepStart = performance.now();
+    const world = new World({
+      seed,
+      population,
+      resourceCount,
+      learningEnabled: false,
+      esInterval: enabled ? 500 : undefined,
+      esPerturbations: enabled ? perturbations : undefined,
+      esEvaluateTicks: enabled ? evaluateTicks : undefined,
+      esSigma: enabled ? sigma : undefined,
+    });
+    const before = new Map<number, Float64Array>();
+    for (const [id, p] of world.policies) before.set(id, Float64Array.from(p.state.thetaLive));
+    for (let t = 1; t <= ticks; t++) world.step();
+    const stepMs = (performance.now() - stepStart) / ticks;
+
+    let residual = 0;
+    const res =
+      world.ledger.initialTotal + world.ledger.externalInput - world.systemEnergyTotal() - world.ledger.dissipated;
+    if (Math.abs(res) > Math.abs(residual)) residual = res;
+
+    const shifts: number[] = [];
+    const energies: number[] = [];
+    for (const org of world.organisms.values()) {
+      if (!org.alive || org.cells.length === 0) continue;
+      const b = before.get(org.id);
+      const p = world.policies.get(org.id);
+      if (b && p) {
+        let s = 0;
+        for (let i = 0; i < b.length; i++) {
+          const d = (p.state.thetaLive[i] as number) - (b[i] as number);
+          s += d * d;
+        }
+        shifts.push(Math.sqrt(s));
+      }
+      let e = 0;
+      for (const cid of org.cells) {
+        const c = world.cells.get(cid);
+        if (c?.alive) e += c.energy;
+      }
+      energies.push(e);
+    }
+
+    const stats = world.evolutionSearchStats();
+    const perTickMs = stepMs;
+    const spent = stats.spentMs;
+
+    return {
+      enabled,
+      perturbations,
+      evaluateTicks,
+      sigma,
+      ticks,
+      updates: stats.updates,
+      spentMs: spent,
+      stepMs: perTickMs,
+      overheadInTicks: perTickMs > 0 ? spent / perTickMs : Number.NaN,
+      medianWeightShift: shifts.length > 0 ? medianOf(shifts) : 0,
+      medianOrganismEnergy: energies.length > 0 ? medianOf(energies) : Number.NaN,
+      finalPopulation: world.population(),
+      worstLedgerResidual: residual,
+    };
+  };
+
+  const controlPoints: EvolutionStrategyPoint[] = [];
+  const treatmentPoints: EvolutionStrategyPoint[] = [];
+  for (let i = 0; i < seeds; i++) {
+    controlPoints.push(runArm(false, seedBase + i));
+    treatmentPoints.push(runArm(true, seedBase + i));
+  }
+
+  const control: EvolutionStrategyPoint = {
+    ...controlPoints[0] as EvolutionStrategyPoint,
+    updates: controlPoints.reduce((a, p) => a + p.updates, 0),
+    spentMs: controlPoints.reduce((a, p) => a + p.spentMs, 0),
+    medianWeightShift: medianOf(controlPoints.map((p) => p.medianWeightShift)),
+    medianOrganismEnergy: medianOf(controlPoints.map((p) => p.medianOrganismEnergy)),
+    finalPopulation: meanOf(controlPoints.map((p) => p.finalPopulation)),
+    worstLedgerResidual: controlPoints.reduce(
+      (a, p) => (Math.abs(p.worstLedgerResidual) > Math.abs(a) ? p.worstLedgerResidual : a),
+      0,
+    ),
+  };
+  const treatment: EvolutionStrategyPoint = {
+    ...treatmentPoints[0] as EvolutionStrategyPoint,
+    updates: treatmentPoints.reduce((a, p) => a + p.updates, 0),
+    spentMs: treatmentPoints.reduce((a, p) => a + p.spentMs, 0),
+    overheadInTicks: treatmentPoints.reduce((a, p) => a + p.overheadInTicks, 0) / treatmentPoints.length,
+    medianWeightShift: medianOf(treatmentPoints.map((p) => p.medianWeightShift)),
+    medianOrganismEnergy: medianOf(treatmentPoints.map((p) => p.medianOrganismEnergy)),
+    finalPopulation: meanOf(treatmentPoints.map((p) => p.finalPopulation)),
+    worstLedgerResidual: treatmentPoints.reduce(
+      (a, p) => (Math.abs(p.worstLedgerResidual) > Math.abs(a) ? p.worstLedgerResidual : a),
+      0,
+    ),
+  };
+
+  const differences = treatmentPoints.map(
+    (p, i) => p.medianOrganismEnergy - (controlPoints[i]?.medianOrganismEnergy ?? 0),
+  );
+  const ci = bootstrapCI(differences, { seed: 9201 });
+  const test = bootstrapTest(differences, { seed: 9202 });
+
+  const reading =
+    ci.lower > 0
+      ? `Çatallanmış arama **işe yarıyor**: medyan organizma enerjisi ` +
+        `${fmt(control.medianOrganismEnergy, 2)} → ${fmt(treatment.medianOrganismEnergy, 2)} e, ` +
+        `fark [${fmt(ci.lower, 2)}, ${fmt(ci.upper, 2)}] sıfırdan ayrışıyor (p = ${fmt(test.pValue, 4)}). ` +
+        `Ek yük ≈ ${fmt(treatment.overheadInTicks, 0)} tick'lik eşdeğer.`
+      : `Çatallanmış arama **ölçülebilir performans artışı üretmedi**: fark ` +
+        `${fmt(ci.estimate, 3)} [${fmt(ci.lower, 3)}, ${fmt(ci.upper, 3)}], p = ${fmt(test.pValue, 4)}. ` +
+        `Ağırlık hareketi: medyan ‖Δθ‖ = ${fmt(treatment.medianWeightShift, 4)} ` +
+        `(kontrol ${fmt(control.medianWeightShift, 4)}) — yani ${treatment.medianWeightShift > 0 ? 'arama θ\'yı hareket ettirdi ama davranış kazanmadı' : 'θ hiç hareket etmedi'}. ` +
+        `Ek yük ≈ ${fmt(treatment.overheadInTicks, 0)} tick'lik eşdeğer.`;
+
+  return { control, treatment, differences, difference: ci, test, reading };
+}
+
+export function formatEvolutionStrategy(r: EvolutionStrategyReport): string {
+  const c = r.control;
+  const t = r.treatment;
+  return [
+    `  kontrol (arama kapalı): medyan enerji ${fmt(c.medianOrganismEnergy, 2)} e · pop ${fmt(c.finalPopulation, 0)} · arama ${c.updates}`,
+    `  tedavi  (arama açık) : medyan enerji ${fmt(t.medianOrganismEnergy, 2)} e · pop ${fmt(t.finalPopulation, 0)} · arama ${t.updates} (${t.perturbations} pertürbasyon × ${t.evaluateTicks} tick)`,
+    `  ağırlık hareketi: kontrol ${fmt(c.medianWeightShift, 5)} · tedavi ${fmt(t.medianWeightShift, 5)}`,
+    `  maliyet: ${t.ticks} tick'in koşusu ${fmt(c.stepMs * t.ticks, 0)} ms · arama ${fmt(t.spentMs, 0)} ms → ek yük ≈ ${fmt(t.overheadInTicks, 0)} tick`,
+    `  enerji rezidülü: ${fmt(t.worstLedgerResidual, 9)} e`,
+    `  eşleştirilmiş fark ${fmtInterval(r.difference, 3)} · p = ${fmt(r.test.pValue, 4)}`,
+    `  → ${r.reading}`,
+  ].join('\n');
+}

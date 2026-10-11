@@ -12,7 +12,7 @@
  * determinizmi güçlendirir (aynı JS motorunda bit düzeyinde aynı sonuç).
  */
 
-export type StreamName = 'env' | 'inherit' | 'action';
+export type StreamName = 'env' | 'inherit' | 'action' | 'evolve';
 
 /** mulberry32 — hızlı, 32-bit durumlu, test tohumlarında iyi davranışlı PRNG. */
 export class Rng {
@@ -93,25 +93,39 @@ export class RngBundle {
   readonly env: Rng;
   readonly inherit: Rng;
   readonly action: Rng;
+  /**
+   * Üstel arama pertürbasyonları (S-4). Ayrı akış olması **şarttır**: ES
+   * gürültüsü dünyanın kendi rastgeleliğini kaydırırsa, çatallanan dünyalar
+   * yanlış sebeple farklılaşır ve ölçüm anlamını yitirir.
+   */
+  readonly evolve: Rng;
 
   constructor(seed: number) {
     const base = seed >>> 0;
     this.env = new Rng((base ^ 0x243f6a88) >>> 0);
     this.inherit = new Rng((base ^ 0xb7e15162) >>> 0);
     this.action = new Rng((base ^ 0xdeadbeef) >>> 0);
+    this.evolve = new Rng((base ^ 0x165667b1) >>> 0);
   }
 
   stream(name: StreamName): Rng {
     return this[name];
   }
 
-  getState(): { env: number; inherit: number; action: number } {
-    return { env: this.env.getState(), inherit: this.inherit.getState(), action: this.action.getState() };
+  getState(): { env: number; inherit: number; action: number; evolve: number } {
+    return {
+      env: this.env.getState(),
+      inherit: this.inherit.getState(),
+      action: this.action.getState(),
+      evolve: this.evolve.getState(),
+    };
   }
 
-  setState(state: { env: number; inherit: number; action: number }): void {
+  setState(state: { env: number; inherit: number; action: number; evolve?: number }): void {
     this.env.setState(state.env);
     this.inherit.setState(state.inherit);
     this.action.setState(state.action);
+    // Eski snapshot'lar `evolve` taşımaz; o durumda akış başlangıçta kalır.
+    if (state.evolve !== undefined) this.evolve.setState(state.evolve);
   }
 }

@@ -104,6 +104,33 @@ export interface WorldOptions {
    */
   strainDecayK?: number;
   /**
+   * **S-4 kancası — çatallanmış ortamda yaşam içi üstel arama.** Varsayılan **kapalı**.
+   *
+   * Gerekçe (`VALIDATION.md` §6.5, §6.10): REINFORCE ve popülasyon-ES başarısız
+   * çünkü ikisi de **kredi ataması** yapamıyor — ödül epimizik toplamda mükemmel
+   * (r = 0.70) ama tek adıma dağıtılınca kayboluyor. Gerçek ES kredi ataması
+   * yapmaz: θ etrafında pertürbasyon üretir, her birini **ayrı çatallanmış
+   * dünyada** değerlendirir, θ'yi getiriye ağırlıklı pertürbasyon ortalaması
+   * boyunca kaydırır.
+   *
+   * Çatallamanın hem mümkün hem ucuz olduğu **ölçüldü** (bir çatal ≈ 25 tick,
+   * §6.9). Maliyet yine de ürün için belirleyicidir; varsayılan kapalıdır ve
+   * `VALIDATION.md` §7'de tarayıcı etkisi ayrıca ölçülür.
+   *
+   * Parametreler (`null`/undefined ise aşağıdaki varsayılanlar):
+   *   esInterval       — kaç tick'te bir arama (varsayılan 500)
+   *   esPerturbations  — kaç pertürbasyon (varsayılan 8)
+   *   esEvaluateTicks — her dal kaç tick ilerletilir (varsayılan 60)
+   *   esSigma         — pertürbasyon ölçeği (varsayılan 0.05)
+   *   esLearningRate  — adım büyüklüğü (varsayılan 0.02)
+   */
+  esInterval?: number;
+  esPerturbations?: number;
+  esEvaluateTicks?: number;
+  esSigma?: number;
+  esLearningRate?: number;
+
+  /**
    * **Popülasyon-ES kancası.** Varsayılan **kapalı**.
    *
    * Gerekçe (`VALIDATION.md` §4.12–4.13): yaşam içi REINFORCE'ın başarısız
@@ -229,6 +256,22 @@ export class World {
   /** Popülasyon-ES tarafından son güncellemede çekilen organizma sayısı (ölçüm). */
   private populationUpdateCount = 0;
 
+  /** S-4 üstel arama ayarları (kapalıysa enabled=false). */
+  private readonly esConfig: {
+    enabled: boolean;
+    interval: number;
+    perturbations: number;
+    evaluateTicks: number;
+    sigma: number;
+    learningRate: number;
+  };
+  /** S-4 tarafından yapılan arama sayısı (ölçüm). */
+  private esUpdateCount = 0;
+  /** S-4'ün harcadığı toplam süre (ms, ölçüm). */
+  private esSpentMs = 0;
+  /** S-4'ün en son adımda bulduğu gerçek kazanç (ölçüm). */
+  private esLastGain = 0;
+
   private readonly bondTuning: {
     bondFatigue?: number;
     strainDecayK?: number;
@@ -243,6 +286,14 @@ export class World {
 
   constructor(options: WorldOptions) {
     this.rng = new RngBundle(options.seed);
+    this.esConfig = {
+      enabled: options.esInterval !== undefined || options.esPerturbations !== undefined,
+      interval: Math.max(1, options.esInterval ?? 500),
+      perturbations: Math.max(1, options.esPerturbations ?? 8),
+      evaluateTicks: Math.max(1, options.esEvaluateTicks ?? 60),
+      sigma: options.esSigma ?? 0.05,
+      learningRate: options.esLearningRate ?? 0.02,
+    };
     this.populationUpdateConfig = {
       enabled: options.populationUpdate ?? false,
       rate: options.populationUpdateRate ?? 0.06,
@@ -495,6 +546,7 @@ export class World {
     this.deathPhase();
     this.resourceRegenPhase();
     if (this.populationUpdateConfig.enabled) this.populationUpdatePhase();
+    if (this.esConfig.enabled) this.esUpdatePhase();
 
     if (decision) this.rewardPhase();
     this.recordMetrics(t);
@@ -1453,6 +1505,213 @@ export class World {
     return this.populationUpdateCount;
   }
 
+
+  /**
+   * Kendi snapshot'ını kurar.
+   *
+   * Neden burada: `persistence/snapshot.ts` bu modülü içe aktarıyor, dolayısıyla
+   * `world.ts` onu içe aktaramaz (döngüsel bağımlılık). Aynı sebeple
+   * `restorePolicyFromSnapshot` da bu dosyada kopyalanmış durumda.
+   * `World.fromState` yapısal bir tip beklediği için bu yeterlidir.
+   */
+  private serializeSelf(): Parameters<typeof World.fromState>[0] {
+    const organisms = [...this.organisms.values()].map((o) => ({
+      id: o.id,
+      lineageId: o.lineageId,
+      generation: o.generation,
+      birthMode: o.birthMode,
+      bornTick: o.bornTick,
+      parentOrganismId: o.parentOrganismId,
+      genome: { ...o.genome },
+      cells: [...o.cells],
+      neural: {
+        thetaInherited: Array.from(o.neural.thetaInherited),
+        thetaLive: Array.from(o.neural.thetaLive),
+        baseline: o.neural.baseline,
+        prevReward: o.neural.prevReward,
+        prevObs: o.neural.prevObs ? Array.from(o.neural.prevObs) : null,
+        prevAction: o.neural.prevAction,
+        prevLogProb: o.neural.prevLogProb,
+        prevBaseline: o.neural.prevBaseline,
+        hasPrev: o.neural.hasPrev,
+      },
+      lifetimeReward: o.lifetimeReward,
+      offspringProduced: o.offspringProduced,
+      deathCause: o.deathCause,
+      alive: o.alive,
+      completedColonyGenerations: o.completedColonyGenerations,
+      trajectory: [],
+      decisionCount: this.policies.get(o.id)?.decisionCount ?? 0,
+      updateCount: this.policies.get(o.id)?.updateCount ?? 0,
+    }));
+
+    return {
+      tick: this.tick,
+      settings: { ...this.settings, size: { ...this.settings.size } },
+      constraints: { ...this.constraints },
+      rng: this.rng.getState(),
+      ledger: {
+        initialTotal: this.ledger.initialTotal,
+        externalInput: this.ledger.externalInput,
+        dissipated: this.ledger.dissipated,
+      },
+      counters: {
+        nextCellId: this.nextCellId,
+        nextBondId: this.nextBondId,
+        nextOrganismId: this.nextOrganismId,
+        nextResourceId: this.nextResourceId,
+        nextRockId: this.nextRockId,
+        nextEventId: this.nextEventId,
+        nextInterventionId: this.nextInterventionId,
+      },
+      cells: [...this.cells.values()].map((c) => ({
+        ...c,
+        pos: { ...c.pos },
+        vel: { ...c.vel },
+        heading: { ...c.heading },
+        bonds: [...c.bonds],
+      })),
+      cellIds: [...this.cellIds],
+      bonds: [...this.bonds.values()].map((b) => ({ ...b })),
+      organisms,
+      lineages: [...this.lineages.values()].map((l) => ({
+        ...l,
+        organismIds: [...l.organismIds],
+        meanGenome: { ...l.meanGenome },
+      })),
+      resources: this.resources.map((r) => ({ ...r, pos: { ...r.pos } })),
+      rocks: this.rocks.map((r) => ({ ...r, pos: { ...r.pos } })),
+      predator: { ...this.predator, pos: { ...this.predator.pos }, vel: { ...this.predator.vel } },
+      events: this.events.recent(this.events.size ? this.events.size : 0),
+      metrics: this.metricsHistory.recent(this.metricsHistory.size ? this.metricsHistory.size : 0),
+      interventions: this.interventions.map((i) => ({ ...i })),
+      pending: {
+        energy: [...this.pendingEnergy.entries()],
+        damage: [...this.pendingDamage.entries()],
+        moveCost: [...this.pendingMoveCost.entries()],
+      },
+    };
+  }
+
+  /**
+   * **S-4 · Çatallanmış ortamda yaşam içi üstel arama.**
+   *
+   * Kredi ataması **yoktur**. Algoritma:
+   *   1. Uygun bir organizma seçilir (plastisitesi olan yaşayanlar arasından).
+   *   2. Dünya **bir kez** snapshot'lanır; N+1 dal bu tek snapshot'tan açılır.
+   *   3. Her dalda organizmanın ağırlıkları `θ + σξ` ile pertürbe edilir,
+   *      dal `evaluateTicks` kadar ilerletilir ve uygunluk ölçülür
+   *      (organizmanın toplam hücre enerjisi).
+   *   4. `A_i = R_i − mean(R)`; θ, getiriye ağırlıklı pertürbasyon ortalaması
+   *      boyunca kaydırılır: `θ ← θ + α/N · Σ A_i ξ_i`.
+   *
+   * Maliyet tek snapshot sayesinde N−1 snapshot tasarrufu sağlar ve §6.9'da
+   * ölçülen ≈25 tick/çatal değeriyle bütçelenebilir.
+   *
+   * **Enerji muhasebesini etkilemez:** dallar ayrı dünyalardır; yaşayan dünyada
+   * yalnız ağırlıklar değişir.
+   */
+  private esUpdatePhase(): void {
+    const cfg = this.esConfig;
+    if (this.tick % cfg.interval !== 0) return;
+
+    // 1) Uygunluk: yaşayan ve plastisitesi olan organizmalar.
+    const eligible: number[] = [];
+    for (const id of this.organismOrder()) {
+      const org = this.organisms.get(id);
+      if (!org || !org.alive || org.cells.length === 0) continue;
+      if (org.genome.plasticity <= 0) continue;
+      eligible.push(id);
+    }
+    if (eligible.length === 0) return;
+    // En eski uygun bireyden başlayarak sırayla tüm uygunları kapsar.
+    const targetId = eligible[this.esUpdateCount % eligible.length] as number;
+    const targetPolicy = this.policies.get(targetId);
+    const targetOrg = this.organisms.get(targetId);
+    if (!targetPolicy || !targetOrg) return;
+
+    const theta0 = Float64Array.from(targetPolicy.state.thetaLive);
+    const started = performance.now();
+
+    // 2) Tek snapshot → N+1 dal
+    const snapshot = this.serializeSelf();
+    /**
+     * Uygunluk: pencerede **kazanılan** net enerji (bitiş − başlangıç).
+     *
+     * ⚠️ Anlık enerji seviyesi **kullanılamaz**: doygun bir organizma kapasiteye
+     * yakınken hangi eylemi seçtiğinden bağımsız olarak aynı değeri verir ve
+     * tüm çatallar berabere kalır (ölçüldü: üç farklı pertürbasyon 16 haneli
+     * aynı sonucu verdi). Kazanç ölçümü doymaz ve davranışa duyarlıdır.
+     */
+    const energyOf = (w: World, id: number): number => {
+      const org = w.organisms.get(id);
+      if (!org) return Number.NEGATIVE_INFINITY;
+      let energy = 0;
+      for (const cellId of org.cells) {
+        const c = w.cells.get(cellId);
+        if (c?.alive) energy += c.energy;
+      }
+      return energy;
+    };
+
+    const fitnessOf = (theta: Float64Array | null): number => {
+      const fork = World.fromState(snapshot);
+      if (theta) {
+        const fp = fork.policies.get(targetId);
+        if (fp) {
+          fp.state.thetaLive.set(theta);
+          fp.state.thetaInherited.set(theta);
+          const fo = fork.organisms.get(targetId);
+          if (fo) fo.neural.thetaLive.set(theta);
+        }
+      }
+      const before = energyOf(fork, targetId);
+      for (let t = 0; t < cfg.evaluateTicks; t++) fork.step();
+      if (!fork.organisms.get(targetId)?.alive) return Number.NEGATIVE_INFINITY;
+      return energyOf(fork, targetId) - before;
+    };
+
+    const baseline = fitnessOf(null);
+    const r: number[] = [];
+    const perturbations: Float64Array[] = [];
+    const noise = this.rng.evolve;
+    for (let i = 0; i < cfg.perturbations; i++) {
+      const xi = new Float64Array(MLP_SHAPE.PARAM_COUNT);
+      const theta = new Float64Array(MLP_SHAPE.PARAM_COUNT);
+      for (let p = 0; p < MLP_SHAPE.PARAM_COUNT; p++) {
+        const e = cfg.sigma * noise.normal();
+        xi[p] = e;
+        theta[p] = (theta0[p] as number) + e;
+      }
+      perturbations.push(xi);
+      r.push(fitnessOf(theta));
+    }
+
+    // 4) Avantajlar ve adım
+    let meanR = 0;
+    for (const v of r) meanR += v;
+    meanR /= Math.max(1, r.length);
+
+    const step = (cfg.learningRate * (0.25 + 0.75 * targetOrg.genome.plasticity)) / r.length;
+    for (let i = 0; i < r.length; i++) {
+      const advantage = (r[i] as number) - meanR;
+      if (advantage === 0) continue;
+      const xi = perturbations[i] as Float64Array;
+      for (let p = 0; p < MLP_SHAPE.PARAM_COUNT; p++) {
+        targetPolicy.state.thetaLive[p] = (targetPolicy.state.thetaLive[p] as number) + step * advantage * (xi[p] as number);
+      }
+    }
+
+    this.esUpdateCount++;
+    this.esSpentMs += performance.now() - started;
+    this.esLastGain = meanR - baseline;
+  }
+
+  /** S-4 üstel arama ölçümleri (raporlama). */
+  evolutionSearchStats(): { updates: number; spentMs: number; lastGain: number } {
+    return { updates: this.esUpdateCount, spentMs: this.esSpentMs, lastGain: this.esLastGain };
+  }
+
   /** Ödül kapanışı yalnızca karar adımında yapılır (decisionPhase içinde). */
   private rewardPhase(): void {
     // Karar fazında zaten kapatıldı; burada yalnız bütçe kontrolü yapılır.
@@ -1860,6 +2119,17 @@ export class World {
       aliveOrderCache: number[] | null;
       esCheckpointReward: Map<number, number>;
       populationUpdateCount: number;
+      esConfig: {
+        enabled: boolean;
+        interval: number;
+        perturbations: number;
+        evaluateTicks: number;
+        sigma: number;
+        learningRate: number;
+      };
+      esUpdateCount: number;
+      esSpentMs: number;
+      esLastGain: number;
       bondTuning: {
         bondFatigue?: number;
         strainDecayK?: number;
@@ -1889,6 +2159,20 @@ export class World {
     init.aliveOrderCache = null;
     init.esCheckpointReward = new Map();
     init.populationUpdateCount = 0;
+    // S-4 **bilinçli olarak kapalı** başlatılır: `esUpdatePhase` dalları
+    // `World.fromState` ile kurar; dallarda arama yeniden çalışırsa sonsuz
+    // özyineleme olur. Arama yalnız yaşayan dünyada, kurucu seçenekleriyle açılır.
+    init.esConfig = {
+      enabled: options.esInterval !== undefined || options.esPerturbations !== undefined,
+      interval: Math.max(1, options.esInterval ?? 500),
+      perturbations: Math.max(1, options.esPerturbations ?? 8),
+      evaluateTicks: Math.max(1, options.esEvaluateTicks ?? 60),
+      sigma: options.esSigma ?? 0.05,
+      learningRate: options.esLearningRate ?? 0.02,
+    };
+    init.esUpdateCount = 0;
+    init.esSpentMs = 0;
+    init.esLastGain = 0;
     // Duyarlılık kancaları boş bırakılırsa `C` sabitlerine düşer → ürün
     // davranışı korunur. Snapshot'ta saklanmıyorlar çünkü ölçüm aracıdırlar.
     init.bondTuning = {};

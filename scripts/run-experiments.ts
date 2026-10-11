@@ -24,6 +24,7 @@ import {
   diagnoseReproductiveStall,
   measureRewardDispersion,
   experimentBondLifeHeritability,
+  experimentEvolutionStrategy,
   experimentPopulationUpdate,
   formatBondDurability,
   formatBranch,
@@ -41,6 +42,7 @@ import {
   sweepLongRunDurability,
   sweepResourceRegen,
   verifyBranchIndependence,
+  formatEvolutionStrategy,
 } from '../src/sim/experiments/ecology.ts';
 import {
   calibrateArena,
@@ -261,6 +263,13 @@ function main(): void {
     ? verifyBranchIndependence({ forkTick: 1200, forkTicks: 400 })
     : verifyBranchIndependence({ forkTick: 3000, forkTicks: 1500 });
   process.stdout.write(`${formatBranch(branch)}\n`);
+
+  process.stdout.write(`\n23/23 S-4 · çatallanmış ortamda yaşam içi üstel arama…\n`);
+  const esSparse = args.quick
+    ? experimentEvolutionStrategy({ seeds: 2, ticks: 2500, perturbations: 3, evaluateTicks: 80, population: 6, resourceCount: 6 })
+    : experimentEvolutionStrategy({ seeds: 3, ticks: 4000, perturbations: 4, evaluateTicks: 120, population: 6, resourceCount: 6 });
+  process.stdout.write(`  [seyrek dünya: pop ${esSparse.treatment ? 6 : 6} · kaynak 6]\n`);
+  process.stdout.write(`${formatEvolutionStrategy(esSparse)}\n`);
 
   // Örneklem sayıları (koşu sayımı için).
   const ecologySamples = args.quick ? 10 : Math.floor(longTicks / 200) + 1;
@@ -522,6 +531,17 @@ function main(): void {
       '',
       '```',
       formatBranch(branch),
+      '```',
+      '',
+      '## S-4 · Çatallanmış ortamda yaşam içi üstel arama',
+      '',
+      'REINFORCE ve popülasyon-ES kredi ataması yapamadığı için başarısız oldu.',
+      'Gerçek ES kredi ataması yapmaz: dünya bir kez snapshotlanır, N dal açılır,',
+      'her dalda θ+σξ değerlendirilir ve θ getiriye ağırlıklı pertürbasyon',
+      'ortalaması boyunca kaydırılır. Seyrek dünyada koşulur (pop 6, kaynak 6).',
+      '',
+      '```',
+      formatEvolutionStrategy(esSparse),
       '```',
       '',
       ...[exp1.report, exp2.report, exp3.report].flatMap((r) => [

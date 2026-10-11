@@ -14,7 +14,7 @@ Bu raporda **yalnızca gerçekten çalıştırılan** kontroller yer alır.
 
 ```
 Test Files  4 passed (4)
-     Tests  137 passed (137)
+     Tests  145 passed (145)
 ```
 
 ### 1.1 MLP sayısal doğruluğu (`tests/mlp.test.ts`, 14 test)
@@ -1256,6 +1256,70 @@ imkânsız" sonucunun **çürütülmesi** değil, **tamamlanmasıdır:** asıl k
 ölçeklenir. Geç pencerelerde farklı olabilir ve **ölçülmedi.**
 
 
+### 6.11 S-4 · Çatallanmış ortamda yaşam içi üstel arama
+
+Seçilen yön. REINFORCE ve popülasyon-ES **kredi ataması** yapamadığı için
+başarısızdı (§4.5, §6.3). Gerçek ES kredi ataması yapmaz:
+
+1. Uygun organizma seçilir (plastisitesi olan yaşayanlar arasından sırayla).
+2. Dünya **bir kez** snapshot'lanır; N+1 dal bu tek snapshot'tan açılır.
+3. Her dalda organizmanın ağırlıkları `θ + σξ` ile pertürbe edilir, dal
+   `evaluateTicks` kadar ilerletilir, uygunluk ölçülür.
+4. `A_i = R_i − mean(R)`; `θ ← θ + α/N · Σ A_i ξ_i`.
+
+Kanca `esInterval` ile açılır; **varsayılan kapalıdır** ve ürün davranışını
+değiştirmez.
+
+**Kritik ölçüm hatası ve düzeltmesi.** İlk uygulamada uygunluk, organizmanın
+penceresondaki **anlık enerjisi** idi. Ölçümde üç farklı pertürbasyon
+(`|Δθ|₁ ≈ 5.5`) **16 haneye kadar aynı** sonucu verdi. Neden: doygun bir
+organizma kapasiteye yakınken hangi eylemi seçtiğinden bağımsız aynı değeri
+verir — uygunluk **doygunlaşıyor**, tüm çatallar berabere, gradyan sıfır.
+Düzeltme: pencere içinde **kazanılan net enerji** (bitiş − başlangıç).
+
+Ayrıca `evaluateTicks: 20` yetersizdi: karar 10 tick'te bir olduğu için bu
+yalnız **2 karar** demek, farklı politikaların neredeyse aynı geleceği
+üretmesi anlamına geliyordu.
+
+### 6.12 Ölçülen sonuç
+
+**Boru hattından (standart profil, 3 tohum, 4.000 tick, 4 pertürbasyon × 120 tick,
+seyrek dünya: pop 6, kaynak 6):**
+
+| Dünya | θ hareketi (medyan ‖Δθ‖) | Performans farkı | Ek yük |
+|---|---|---|---|
+| **Seyrek (pop 6, kaynak 6)** | **0.0010** — arama θ'yı hareket ettirdi | **0.000, p = 1.000** | **≈2198 tick** |
+| *Kalabalık (pop 24, kaynak 34) — yardımcı ölçüm* | *0.00000 — fitnessler hep berabere* | *0.000, p = 1.000* | *≈1882 tick* |
+
+*İkinci satır boru hattının parçası değildir: kalabalık dünya teşhis için
+yardımcı olarak koşuldu ve yalnız "θ hiç hareket etmiyor" gözlemini
+sabitler. Kaynak: `VALIDATION.md` §6.11'de açıklanan doygunluk hatası.*
+
+**Mekanizma doğru çalışıyor, kazanç yok.**
+
+- Kalabalık dünyada arama **hiç hareket üretmiyor:** birey doyuyor, davranışı
+  sonucu belirlemiyor, tüm çatallar aynı uygunluğu alıyor.
+- Seyrek dünyada arama **hareket üretiyor** ama ölçülebilir performans kazancı
+  yok (medyan organizma enerjisi değişmiyor).
+
+**Maliyet kabul edilemez:** arama, koşunun toplam bütçesinin yaklaşık **%60'ını**
+tüketiyor (≈1800 tick'lik eşdeğer). Gerçek zamanlı bir tarayıcı ürünü için bu,
+kare hızını düşüren bir maliyettir.
+
+### 6.13 Bu neden S-3'e işaret ediyor
+
+Çevrimiçi (μ+λ) evrimsel aramanın aynı görevde **+0.161** bulmasının
+karşısında, yaşam içi ES'in bulduğu: hareket var mı yok, kazanç yok, maliyet
+çok yüksek.
+
+Fark şurada: çevrimiçi arama **seçim yapıyor** — her nesilde en iyisi tutuluyor,
+12 nesil boyunca küçük davranış farkları birikir. Yaşam içi ES ise bir bireyin
+**tek yaşamında** tek bir güncelleme yapar; küçük farklar birikemez.
+
+**Sonuç: S-4 mekanik olarak mümkün, pratikte başarısız.** Ölçüm zinciri
+burada da tamamlandı ve kalan tek seçenek yine **S-3**.
+
+
 ## 7. Tarayıcı akışı — gerçekten yapıldı
 
 Chromium'da `vite preview` (port 4188) üzerinden doğrulandı:
@@ -1382,7 +1446,7 @@ Bunlar testlerin bulduğu, düzeltildiği ve **yeniden test edildiği** hatalard
 
 ```bash
 npm ci
-npm test                      # 137 test (4 dosya)
+npm test                      # 145 test (4 dosya)
 npm run typecheck             # tsc --noEmit, temiz
 npm run build                 # vite build, başarılı
 

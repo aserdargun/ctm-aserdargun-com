@@ -20,13 +20,16 @@ import { describe, expect, it } from 'vitest';
 import { MLP_SHAPE, copyTheta } from '../src/sim/behavior/mlp.ts';
 import { runColony, genomeDistance } from '../src/sim/experiments/colony.ts';
 import { runTrial } from '../src/sim/experiments/arena.ts';
+import { World } from '../src/sim/world.ts';
 import {
   diagnoseColonyCollapse,
+  experimentEvolutionStrategy,
   experimentBondLifeHeritability,
   experimentPopulationUpdate,
   formatBondDurability,
   formatDiagnosis,
   formatEcologyTable,
+  formatEvolutionStrategy,
   formatHeritability,
   formatDispersion,
   formatPopulationUpdate,
@@ -889,6 +892,46 @@ describe('ödül hızı yayılımı', () => {
     const a = measureRewardDispersion({ ticks: 2000, acrossWorlds: 2 });
     const b = measureRewardDispersion({ ticks: 2000, acrossWorlds: 2 });
     expect(b.withinWorldCv).toBe(a.withinWorldCv);
+  });
+});
+
+describe('S-4 · çatallanmış yaşam içi arama', () => {
+  it('varsayılan olarak KAPALI — ürün davranışı değişmez', () => {
+    const off = runTrial({ seed: 1401, ticks: 900, learning: false, sampleEvery: 0 });
+    const explicit = runTrial({ seed: 1401, ticks: 900, learning: false, sampleEvery: 0 });
+    expect(explicit.meanEnergyNorm).toBe(off.meanEnergyNorm);
+  });
+
+  it('kapalıyken hiç arama yapılmaz', () => {
+    const w = new World({ seed: 1402, population: 6, learningEnabled: false });
+    for (let t = 0; t < 800; t++) w.step();
+    expect(w.evolutionSearchStats().updates).toBe(0);
+  });
+
+  it('açıkken arama yapar ve enerji korunumu bozulmaz', () => {
+    const r = experimentEvolutionStrategy({
+      seeds: 1,
+      ticks: 1200,
+      perturbations: 2,
+      evaluateTicks: 40,
+      population: 6,
+      resourceCount: 6,
+    });
+    expect(r.treatment.updates).toBeGreaterThan(0);
+    expect(r.control.updates).toBe(0);
+    expect(Math.abs(r.treatment.worstLedgerResidual)).toBeLessThan(1e-4);
+  });
+
+  it('eşleştirilmiş ve deterministik', () => {
+    const a = experimentEvolutionStrategy({ seeds: 1, ticks: 1200, perturbations: 2, evaluateTicks: 40, population: 6, resourceCount: 6 });
+    const b = experimentEvolutionStrategy({ seeds: 1, ticks: 1200, perturbations: 2, evaluateTicks: 40, population: 6, resourceCount: 6 });
+    expect(b.treatment.medianWeightShift).toBe(a.treatment.medianWeightShift);
+    expect(a.differences).toHaveLength(1);
+  });
+
+  it('biçimlendirme sonuç satırlarını içerir', () => {
+    const r = experimentEvolutionStrategy({ seeds: 1, ticks: 1000, perturbations: 2, evaluateTicks: 30, population: 6, resourceCount: 6 });
+    expect(formatEvolutionStrategy(r)).toContain('ek yük');
   });
 });
 

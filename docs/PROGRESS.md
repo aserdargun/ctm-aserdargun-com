@@ -13,7 +13,7 @@ doğrulanmıştır.
 
 | Alan | Durum | Kanıt |
 |---|---|---|
-| Saf TS simülasyon çekirdeği | ✅ | 140 test, 4 dosya, ~95 sn |
+| Saf TS simülasyon çekirdeği | ✅ | 145 test, 4 dosya, ~95 sn |
 | Enerji korunumu (kapalı sistem) | ✅ | rezidüel = **0.0000** (arena'da 0.0 e, kolonide 1.7e-8 e) |
 | Bölünme / parçalanma / paylaşım muhasebesi | ✅ | testler |
 | Bağ grafiği → gerçek çok hücrelilik | ✅ | 4+ hücreli yapılar test edildi |

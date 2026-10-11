@@ -1,7 +1,7 @@
 # Cell to Mind — Deney Sonuçları
 
-**Körüldü:** 2026-10-11T15:27:08.148Z
-**Toplam koşu:** 1920 · **duvar süresi:** 429.2 s
+**Körüldü:** 2026-10-11T15:57:38.019Z
+**Toplam koşu:** 1920 · **duvar süresi:** 477.1 s
 **Mod:** standart
 **Pencere:** 12.000 tick (40.000 tick'lik ekolojik çöküşü kapsamak için `--deep` kullanın)
 
@@ -326,10 +326,27 @@ bozuktu**. Düzeltildi; regresyon testi eklendi.
 
 ```
   çatal noktası: tick 3000 · 1500 adım sonra karşılaştırma
-  snapshot boyutu: 2.544.411 bayt
-  çatallama süresi: 42.51 ms · iki dalın koşusu: 2556.3 ms · oran 1.7%
+  snapshot boyutu: 2.544.430 bayt
+  çatallama süresi: 56.68 ms · iki dalın koşusu: 3359.4 ms · oran 1.7%
   dallar bit düzeyinde aynı: evet · müdahale sızıntısı: yok · müdahale etkili: evet
-  → Çatallama **doğru**: iki dal bit düzeyinde aynı ilerliyor ve müdahale diğerine sızmıyor. Snapshot 2.54 MB; bir dal açmak 21.3 ms, bir simülasyon adımı 0.852 ms → **bir çatal ≈ 25 tick** maliyetinde. Yani 500 tick'te bir, 16 pertürbasyonlu güncelleme ≈ 80% ek yük demek: üstel strateji yaşam içinde pratikte **bütçelenebilir**. Müdahale testi: müdahalesiz dal referansla AYNI, müdahale görmüş dal AYRILDI. **DİKKAT:** bu maliyet 3000. tick'te ölçüldü ve snapshot boyutuyla ölçeklenir; geç pencerelerde farklı olabilir ve **ölçülmedi**.
+  → Çatallama **doğru**: iki dal bit düzeyinde aynı ilerliyor ve müdahale diğerine sızmıyor. Snapshot 2.54 MB; bir dal açmak 28.3 ms, bir simülasyon adımı 1.120 ms → **bir çatal ≈ 25 tick** maliyetinde. Yani 500 tick'te bir, 16 pertürbasyonlu güncelleme ≈ 81% ek yük demek: üstel strateji yaşam içinde pratikte **bütçelenebilir**. Müdahale testi: müdahalesiz dal referansla AYNI, müdahale görmüş dal AYRILDI. **DİKKAT:** bu maliyet 3000. tick'te ölçüldü ve snapshot boyutuyla ölçeklenir; geç pencerelerde farklı olabilir ve **ölçülmedi**.
+```
+
+## S-4 · Çatallanmış ortamda yaşam içi üstel arama
+
+REINFORCE ve popülasyon-ES kredi ataması yapamadığı için başarısız oldu.
+Gerçek ES kredi ataması yapmaz: dünya bir kez snapshotlanır, N dal açılır,
+her dalda θ+σξ değerlendirilir ve θ getiriye ağırlıklı pertürbasyon
+ortalaması boyunca kaydırılır. Seyrek dünyada koşulur (pop 6, kaynak 6).
+
+```
+  kontrol (arama kapalı): medyan enerji 48.07 e · pop 18 · arama 0
+  tedavi  (arama açık) : medyan enerji 48.07 e · pop 18 · arama 24 (4 pertürbasyon × 120 tick)
+  ağırlık hareketi: kontrol 0.00000 · tedavi 0.00104
+  maliyet: 4000 tick'in koşusu 40 ms · arama 188 ms → ek yük ≈ 2198 tick
+  enerji rezidülü: 0.000000000 e
+  eşleştirilmiş fark 0.000 [0.000, 0.000] · p = 1.0000
+  → Çatallanmış arama **ölçülebilir performans artışı üretmedi**: fark 0.000 [0.000, 0.000], p = 1.0000. Ağırlık hareketi: medyan ‖Δθ‖ = 0.0010 (kontrol 0.0000) — yani arama θ'yı hareket ettirdi ama davranış kazanmadı. Ek yük ≈ 2198 tick'lik eşdeğer.
 ```
 
 ## Bağ gücü koloni büyüklüğünü artırıyor mu?
