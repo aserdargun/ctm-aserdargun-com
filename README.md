@@ -88,6 +88,7 @@ durur.
 | Yaşam içi öğrenme → davranış | ❌ **etki yok** (p = 0.333) |
 | Popülasyon-ES (yaşam içi) | ❌ etkisiz — anti-drift, arama değil (p = 0.80) |
 | Evrimsel politika araması (kontrol) | ✅ **+0.161** görülmemiş dünyalarda |
+| **Evrim Atölyesi** (ürün özelliği, tarayıcıda doğrulandı) | ✅ görülmemiş tohumlarda **+0.035…+0.072**, 0.4–0.6 sn |
 | Koloni sönümlenmesi (Faz B1) | ⚪ **teşhis edildi:** kaynak/avcı elendi, sınırlayıcı **bağ ömrü** (~2.100 tick) |
 | Bağ ömrü duyarlılığı (Faz B1b) | ✅ ölçüt karşılandı: ömür ×4 → 4+ hücreli yapılar 0 → 0.25 |
 | Y-2 bağ ömrünü seçilime açma | ❌ başarısız — kayma −0.006 [−0.014, +0.002], p = 0.343 |

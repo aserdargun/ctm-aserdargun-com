@@ -16,6 +16,7 @@ export type PanelId =
   | 'microscope'
   | 'lineage'
   | 'experiments'
+  | 'evolution'
   | 'observer'
   | 'data'
   | 'settings'
@@ -31,6 +32,37 @@ export interface SettingsState {
   currentStrength: number;
   selectionPressure: number;
   learningEnabled: boolean;
+}
+
+/** Evrim Atölyesi durumu — kullanıcının tetiklediği, ilerlemesi izlenen iş. */
+export interface EvolutionState {
+  /** Çalışıyor mu. */
+  running: boolean;
+  organismId: number | null;
+  /** Tamamlanan nesil sayısı (ilerleme çubuğu). */
+  generation: number;
+  /** Planlanan toplam nesil. */
+  total: number;
+  /** Nesil nesil en iyi skor (eğri). */
+  history: number[];
+  /** Sonuç geldi mi? */
+  finished: boolean;
+  /** Sonuç özeti. */
+  result: EvolutionResult | null;
+}
+
+export interface EvolutionResult {
+  organismId: number;
+  applied: boolean;
+  startScore: number;
+  bestScore: number;
+  randomBaseline: number;
+  startHoldout: number;
+  bestHoldout: number;
+  holdoutGain: number;
+  history: number[];
+  evaluations: number;
+  spentMs: number;
 }
 
 export interface Notice {
@@ -70,6 +102,9 @@ interface StoreState {
   selectedId: number | null;
   decision: DecisionSnapshot | null;
   evidence: EvidencePack | null;
+
+  // --- Evrim Atölyesi (S-3) ---
+  evolution: EvolutionState;
   localSummary: LocalSummary | null;
   modelReport: unknown | null;
   modelState: 'idle' | 'loading' | 'done' | 'error' | 'no-key';
@@ -112,6 +147,12 @@ interface StoreState {
   select: (id: number | null) => void;
   setDecision: (decision: DecisionSnapshot | null) => void;
   setEvidence: (pack: EvidencePack) => void;
+
+  // --- Evrim Atölyesi eylemleri ---
+  evolutionStart: (organismId: number, total: number) => void;
+  evolutionProgress: (generation: number, best: number) => void;
+  evolutionDone: (result: EvolutionResult) => void;
+  evolutionReset: () => void;
   setLocalSummary: (summary: LocalSummary) => void;
   setModelState: (state: StoreState['modelState'], error?: string | null) => void;
   setModelReport: (report: unknown) => void;
@@ -175,6 +216,16 @@ export const useStore = create<StoreState>((set, get) => ({
   selectedId: null,
   decision: null,
   evidence: null,
+
+  evolution: {
+    running: false,
+    organismId: null,
+    generation: 0,
+    total: 0,
+    history: [],
+    finished: false,
+    result: null,
+  } as EvolutionState,
   localSummary: null,
   modelReport: null,
   modelState: 'idle',
@@ -222,6 +273,27 @@ export const useStore = create<StoreState>((set, get) => ({
   setLineages: (lineages) => set({ lineages }),
   select: (id) => set({ selectedId: id, decision: null }),
   setDecision: (decision) => set({ decision }),
+  evolutionStart: (organismId: number, total: number) =>
+    set({
+      evolution: { running: true, organismId, generation: 0, total, history: [], finished: false, result: null },
+    }),
+  evolutionProgress: (generation: number, best: number) =>
+    set((st) => ({
+      evolution: {
+        ...st.evolution,
+        generation,
+        history: [...st.evolution.history, best],
+      },
+    })),
+  evolutionDone: (result: EvolutionResult) =>
+    set((st) => ({
+      evolution: { ...st.evolution, running: false, finished: true, result },
+    })),
+  evolutionReset: () =>
+    set({
+      evolution: { running: false, organismId: null, generation: 0, total: 0, history: [], finished: false, result: null },
+    }),
+
   setEvidence: (pack) => set({ evidence: pack, localSummary: null, modelReport: null, modelState: 'idle' }),
   setLocalSummary: (summary) => set({ localSummary: summary }),
   setModelState: (modelState, error) => set({ modelState, modelError: error ?? null }),

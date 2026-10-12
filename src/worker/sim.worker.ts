@@ -16,6 +16,8 @@ import { SIM_VERSION } from '../sim/world.ts';
 import { INPUT_LABELS } from '../sim/behavior/perception.ts';
 import { ACTION_NAMES } from '../sim/behavior/mlp.ts';
 import { learnedDeltaNorm } from '../sim/behavior/policy.ts';
+import { copyTheta } from '../sim/behavior/mlp.ts';
+import { runEvolutionLab } from '../sim/lab/evolutionLab.ts';
 import { genomeSummary } from '../sim/genome.ts';
 import {
   exportJson,
@@ -425,6 +427,65 @@ function handle(request: WorkerRequest): void {
         type: 'evidence',
         pack: buildEvidencePack(w, request.question, request.kind, request.organismId, worldId),
       });
+      break;
+    }
+    case 'evolve': {
+      if (!w) break;
+      try {
+        const policy = w.policies.get(request.organismId);
+        if (!policy) {
+          fail('Organizma bulunamadı', `#${request.organismId}`);
+          break;
+        }
+        const start = copyTheta(policy.state.thetaLive);
+        const result = runEvolutionLab({
+          startTheta: start,
+          generations: request.generations,
+          population: request.population,
+          offspring: request.offspring,
+          onGeneration: (generation, best, mean) => {
+            post({
+              type: 'evolutionProgress',
+              generation,
+              total: request.generations,
+              best,
+              mean,
+            });
+          },
+        });
+        let applied = false;
+        if (request.apply) {
+          // Kazanan politika doğrudan canlı organizmanın ağırlıklarına yazılır.
+          policy.state.thetaLive.set(result.bestTheta);
+          const org = w.organisms.get(request.organismId);
+          if (org) {
+            org.neural.thetaLive.set(result.bestTheta);
+            w.recordIntervention(
+              'learning',
+              `evolution-lab:#${request.organismId}`,
+              0,
+              `evrim atölyesi: ${request.generations} nesil, görülmemiş tohumlarda ${result.holdoutGain >= 0 ? '+' : ''}${result.holdoutGain.toFixed(3)}`,
+            );
+          }
+          applied = true;
+        }
+        post({
+          type: 'evolutionResult',
+          organismId: request.organismId,
+          applied,
+          startScore: result.startScore,
+          bestScore: result.bestScore,
+          randomBaseline: result.randomBaseline,
+          startHoldout: result.startHoldout,
+          bestHoldout: result.bestHoldout,
+          holdoutGain: result.holdoutGain,
+          history: result.history,
+          evaluations: result.evaluations,
+          spentMs: result.spentMs,
+        });
+      } catch (err) {
+        fail('Evrim atölyesi başarısız', (err as Error).message);
+      }
       break;
     }
     case 'runExperiment': {

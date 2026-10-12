@@ -878,6 +878,14 @@ export function evolvePolicy(options?: {
   evaluate?: (theta: Float64Array) => number;
   /** Rastgele taban çizgi ölçümü (yalnızca `evaluate` verilirse kullanılır). */
   evaluateBaseline?: (theta: Float64Array) => number;
+  /**
+   * Başlangıç popülasyonu: verilen politikayı **çevirmez**, havuza ekler.
+   * Evrim Atölyesi seçili organizmanın mevcut politikasını iyileştirmek için
+   * kullanır — rastgele başlamak yerine mevcut davranışın üstüne kurar.
+   */
+  initialThetas?: Float64Array[];
+  /** Nesil nesil ilerleme bildirimi (panelde canlı eğri için). */
+  onGeneration?: (generation: number, best: number, mean: number) => void;
 }): EvolutionResult {
   const generations = options?.generations ?? 20;
   const population = options?.population ?? 8;
@@ -922,9 +930,9 @@ export function evolvePolicy(options?: {
     return t;
   };
 
-  // Başlangıç popülasyonu: rastgele politikalar.
-  const thetaPool: Float64Array[] = [];
-  for (let i = 0; i < population; i++) {
+  // Başlangıç popülasyonu: verilen politikalar (varsa) + rastgele tamamlayıcılar.
+  const thetaPool: Float64Array[] = (options?.initialThetas ?? []).map((t) => Float64Array.from(t));
+  for (let i = thetaPool.length; i < population; i++) {
     thetaPool.push(randomTheta());
   }
 
@@ -955,6 +963,7 @@ export function evolvePolicy(options?: {
       mean: meanOf(scores),
       scores: order.map(([sc]) => sc),
     });
+    options?.onGeneration?.(g, history[history.length - 1]?.best ?? Number.NaN, meanOf(scores));
 
     // Elitizm: en iyi `population` birey korunur, geri kalanı atılır.
     thetaPool.length = 0;

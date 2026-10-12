@@ -1374,6 +1374,46 @@ Bu ürün içinde **otomatik** çalışmaz; kullanıcı tetiklediği, ilerlemesi
 gösterilen, iptal edilebilen bir işlem olmalıdır.
 
 
+### 6.16 S-3 · Evrim Atölyesi — **ürün özelliği olarak kuruldu ve tarayıcıda doğrulandı**
+
+**Ne yapıyor:** Kullanıcı bir organizma seçer, "Bulunanı uygula" der; seçili
+organizmanın politikası **arena** üzerinde (μ+λ) aramayla geliştirilir, nesil
+eğrisi çizilir, kazanan politika organizmanın ağırlıklarına yazılır.
+
+**Dürüstlük tasarımı — Jensen–Wald ayrımı:**
+- **Eğitim tohumları:** arama bunları puanlayarak "görür".
+- **Tutulmuş tohumlar:** ne arama ne seçim bunları görmez.
+- **Raplanan kazanç YALNIZCA tutulmuş tohumlardadır.**
+
+Bu ayrım olmadan "genelleşme" iddiası ölçülemez; §6.14'teki hatanın tam olarak
+bu eksiklikti.
+
+**Ölçülen (tarayıcıda, organizma #11):**
+
+| | Değer |
+|---|---|
+| Eğitim tohumları | 0.834 → 0.890 |
+| Rastgele taban | 0.789 |
+| **Görülmemiş tohumlar** | **0.742 → 0.777** |
+| **Gerçek kazanç** | **+0.035** |
+| Değerlendirme sayısı | 122 |
+| **Süre** | **0.4 sn** |
+
+Headless doğrulama (organizma #1, daha büyük bütçe): eğitim 0.8331 → 0.9026,
+görülmemiş 0.7504 → 0.8221, kazanç **+0.0717**, 122 değerlendirme, **0.6 sn**.
+
+**Maliyet notu:** §6.15'te tam dünya dalında tek arama ~123 sn sürdü; arena tek
+birey olduğu için **0.4–0.6 saniyeye** iniyor. Bu yüzden özellik **etkileşimli
+olarak kullanılabilir** ve ürüne alınabilir.
+
+**Tarayıcı doğrulaması (Chromium, `vite preview`):**
+- HUD'dan "Evrim Atölyesi" paneli açılıyor
+- Organizma seçiliyor, arama çalışıyor, ilerleme ve eğri görünüyor
+- Kazanç bildirimi çıkıyor: *"görülmemiş tohumlarda +0.035"*
+- "Bulunan politika organizmaya yazıldı" onayı
+- Simülasyon kesintisiz sürüyor (tick 884), **konsol hatası yok**
+
+
 ## 7. Tarayıcı akışı — gerçekten yapıldı
 
 Chromium'da `vite preview` (port 4188) üzerinden doğrulandı:

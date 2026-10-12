@@ -103,6 +103,20 @@ export type Command =
   | { type: 'listEvents'; count: number }
   | { type: 'evidencePack'; question: string; kind: 'A' | 'B'; organismId: number | null }
   | { type: 'runExperiment'; experiment: string; seed: number }
+  /**
+   * Evrim Atölyesi: seçili organizmanın politikasını arena üzerinde (μ+λ)
+   * aramayla iyileştirir. Canlı dünyayı **değiştirmez**; arama ayrı arena
+   * koşularında yapılır (bkz. `docs/VALIDATION.md` §6.14–6.15).
+   */
+  | {
+      type: 'evolve';
+      organismId: number;
+      generations: number;
+      population: number;
+      offspring: number;
+      /** true ise kazanan politika organizmanın ağırlıklarına yazılır. */
+      apply: boolean;
+    }
   | { type: 'ping' };
 
 export interface OrganismSummary {
@@ -193,6 +207,21 @@ export type WorkerResponse =
   | { type: 'snapshot'; snapshotJson: string; tick: number; bytes: number }
   | { type: 'evidence'; pack: EvidencePack }
   | { type: 'experimentResult'; experiment: string; payload: unknown }
+  | { type: 'evolutionProgress'; generation: number; total: number; best: number; mean: number }
+  | {
+      type: 'evolutionResult';
+      organismId: number;
+      applied: boolean;
+      startScore: number;
+      bestScore: number;
+      randomBaseline: number;
+      startHoldout: number;
+      bestHoldout: number;
+      holdoutGain: number;
+      history: number[];
+      evaluations: number;
+      spentMs: number;
+    }
   | { type: 'ack'; seq: number; command: string }
   | { type: 'error'; message: string; detail?: string; fatal: boolean }
   | { type: 'pong'; t: number };

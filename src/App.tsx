@@ -13,6 +13,7 @@ import { Scene } from './scene/Scene.tsx';
 import { Hud, Notices, OrganismList, Toolbar } from './ui/Hud.tsx';
 import { InspectorPanel, LineagePanel, MicroscopePanel, ObserverPanel } from './ui/Panels.tsx';
 import { DataPanel, ExperimentsPanel, SettingsPanel } from './ui/ExperimentPanels.tsx';
+import { EvolutionPanel } from './ui/EvolutionPanel.tsx';
 import { getStrings } from './i18n/index.ts';
 import { H, RES, RESOURCE_FLOATS } from './worker/protocol.ts';
 import { downloadJson, saveRecord, StorageError } from './engine/storage.ts';
@@ -80,6 +81,28 @@ export function App(): React.ReactElement {
         case 'evidence':
           s.setEvidence(message.pack);
           void runObserver(message.pack.question);
+          break;
+        case 'evolutionProgress':
+          s.evolutionProgress(message.generation, message.best);
+          break;
+        case 'evolutionResult':
+          s.evolutionDone({
+            organismId: message.organismId,
+            applied: message.applied,
+            startScore: message.startScore,
+            bestScore: message.bestScore,
+            randomBaseline: message.randomBaseline,
+            startHoldout: message.startHoldout,
+            bestHoldout: message.bestHoldout,
+            holdoutGain: message.holdoutGain,
+            history: message.history,
+            evaluations: message.evaluations,
+            spentMs: message.spentMs,
+          });
+          s.notify(
+            message.holdoutGain >= 0 ? 'success' : 'info',
+            `Evrim atölyesi: görülmemiş tohumlarda ${message.holdoutGain >= 0 ? '+' : ''}${message.holdoutGain.toFixed(3)}`,
+          );
           break;
         case 'snapshot':
           void handleSnapshot(message.snapshotJson, message.tick, message.bytes);
@@ -200,6 +223,7 @@ export function App(): React.ReactElement {
             {panel === 'microscope' && <MicroscopePanel client={client} />}
             {panel === 'lineage' && <LineagePanel client={client} />}
             {panel === 'experiments' && <ExperimentsPanel client={client} />}
+            {panel === 'evolution' && <EvolutionPanel client={client} />}
             {panel === 'observer' && <ObserverPanel client={client} />}
             {panel === 'data' && <DataPanel client={client} />}
             {panel === 'settings' && <SettingsPanel />}

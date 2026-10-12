@@ -171,6 +171,15 @@ export class SimClient {
   evidencePack(question: string, kind: 'A' | 'B', organismId: number | null): void {
     this.send({ type: 'evidencePack', question, kind, organismId });
   }
+  /**
+   * Evrim Atölyesi: seçili organizmanın politikasını arena üzerinde (μ+λ)
+   * aramayla iyileştirir. Canlı dünyayı değiştirmez; yalnız `apply` true ise
+   * kazanan politika organizmanın ağırlıklarına yazılır.
+   */
+  evolve(organismId: number, generations: number, population: number, offspring: number, apply: boolean): void {
+    this.send({ type: 'evolve', organismId, generations, population, offspring, apply });
+  }
+
   runExperiment(experiment: string, seed: number): void {
     this.send({ type: 'runExperiment', experiment, seed });
   }
