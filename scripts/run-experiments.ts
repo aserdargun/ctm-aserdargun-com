@@ -22,6 +22,7 @@ import { writeFileSync } from 'node:fs';
 import {
   diagnoseColonyCollapse,
   diagnoseReproductiveStall,
+  measureModes,
   measureRewardDispersion,
   experimentBondLifeHeritability,
   experimentEvolutionStrategy,
@@ -43,6 +44,7 @@ import {
   sweepResourceRegen,
   verifyBranchIndependence,
   formatEvolutionStrategy,
+  formatModes,
 } from '../src/sim/experiments/ecology.ts';
 import {
   calibrateArena,
@@ -258,6 +260,12 @@ function main(): void {
     : measureRewardDispersion({ ticks: 15_000 });
   process.stdout.write(`${formatDispersion(dispersion)}\n`);
 
+  process.stdout.write(`\n14/14 Faz C1 · MODES açık uçluluk metrikleri…\n`);
+  const modes = args.quick
+    ? measureModes({ seed: 11, ticks: 6000, sampleEvery: 2000 })
+    : measureModes({ seed: 11, ticks: 12_000, sampleEvery: 2000 });
+  process.stdout.write(`${formatModes(modes)}\n`);
+
   process.stdout.write(`\n22/22 dal (branch) doğruluğu ve maliyeti…\n`);
   const branch = args.quick
     ? verifyBranchIndependence({ forkTick: 1200, forkTicks: 400 })
@@ -297,6 +305,7 @@ function main(): void {
     repro.ticks / reproSampleEvery +
     longRun.length +
     limitSamples +
+    1 +
     regen.length +
     popUpdate.control.seeds * 2 +
     1 +
@@ -515,6 +524,15 @@ function main(): void {
       '',
       '```',
       formatDispersion(dispersion),
+      '```',
+      '',
+      '## Faz C1 · MODES açık uçluluk metrikleri',
+      '',
+      'Dolson vd. (2019) çerçevesi: değişim, yenilik, çeşitlilik, karmaşıklık,',
+      'aktivite. Tümü mevcut dünya verisinden türetilir.',
+      '',
+      '```',
+      formatModes(modes),
       '```',
       '',
       '## Dal (branch) doğruluğu ve maliyeti',

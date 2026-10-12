@@ -34,9 +34,11 @@ import {
   formatDispersion,
   formatPopulationUpdate,
   formatRegen,
+  measureModes,
   measureRewardDispersion,
   sweepBondDurability,
   sweepResourceRegen,
+  formatModes,
 } from '../src/sim/experiments/ecology.ts';
 import {
   calibrateArena,
@@ -932,6 +934,41 @@ describe('S-4 · çatallanmış yaşam içi arama', () => {
   it('biçimlendirme sonuç satırlarını içerir', () => {
     const r = experimentEvolutionStrategy({ seeds: 1, ticks: 1000, perturbations: 2, evaluateTicks: 30, population: 6, resourceCount: 6 });
     expect(formatEvolutionStrategy(r)).toContain('ek yük');
+  });
+});
+
+describe('Faz C1 · MODES açık uçluluk metrikleri', () => {
+  it('zaman serisi üretir ve tüm metrikler sonlu', () => {
+    const r = measureModes({ seed: 11, ticks: 4000, sampleEvery: 1000 });
+    expect(r.samples.length).toBeGreaterThan(2);
+    for (const s of r.samples) {
+      expect(Number.isFinite(s.change)).toBe(true);
+      expect(s.novelty).toBeGreaterThanOrEqual(0);
+      expect(s.novelty).toBeLessThanOrEqual(1);
+      expect(s.diversity).toBeGreaterThanOrEqual(0);
+      expect(s.complexity).toBeGreaterThanOrEqual(0);
+      expect(s.complexity).toBeLessThanOrEqual(1.0001);
+      expect(s.activity).toBeGreaterThanOrEqual(0);
+      expect(s.species).toBeGreaterThan(0);
+    }
+    expect(r.uniqueGenomesSeen).toBeGreaterThan(1);
+    expect(['rising', 'flat', 'falling']).toContain(r.trend);
+  });
+
+  it('yenilik zamanla azalır — keşiften yakınsamaya', () => {
+    const r = measureModes({ seed: 11, ticks: 8000, sampleEvery: 2000 });
+    const early = r.samples[1]?.novelty ?? 0;
+    const late = r.final?.novelty ?? 0;
+    expect(late).toBeLessThan(early);
+    expect(r.trend).toBe('falling');
+  });
+
+  it('biçimlendirme başlık + satır üretir', () => {
+    const r = measureModes({ seed: 11, ticks: 2000, sampleEvery: 1000 });
+    // biçimlendirme: başlık satırı + tablo başlığı + örnek satırları + yorum
+    const lines = formatModes(r).split('\n');
+    expect(lines.length).toBe(r.samples.length + 3);
+    expect(formatModes(r)).toContain('yenilik');
   });
 });
 

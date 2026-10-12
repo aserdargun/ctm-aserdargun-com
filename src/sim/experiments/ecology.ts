@@ -21,6 +21,8 @@
 
 import { bootstrapCI, bootstrapTest, fmt, fmtInterval, type HypothesisTest, type Interval } from '../stats.ts';
 import { deserializeWorld, serializeWorld } from '../persistence/snapshot.ts';
+import { genomeDistance } from './colony.ts';
+import type { Genome } from '../types.ts';
 import { World } from '../world.ts';
 import type { DeathCause } from '../types.ts';
 
@@ -2057,6 +2059,242 @@ export function formatShareThreshold(r: ShareThresholdReport): string {
   );
   return [
     `  ${r.seeds} tohum × ${r.ticks} tick (strainK 0.005)`,
+    header,
+    ...rows,
+    `  → ${r.reading}`,
+  ].join('\n');
+}
+
+// --------------------------------------------------- MODES açık uçluluk metrikleri
+
+/**
+ * **MODES metrikleri** — Dolson vd. (2019), *The MODES Toolbox*, Artificial Life
+ * 25(1). Açık uçluluğu dört potansiyelle ölçer: **değişim, yenilik,
+ * karmaşıklık ve çeşitlilik**; artıca **aktivite**.
+ *
+ * Neden burada: literatür taraması (bu deponun `docs/LITERATURE.md` §1) açık
+ * uçluluğun **ölçülebilir** olmasını şart koşuyor. Şimdiye kadar bu depo
+ * "yaşam sürüyor / ölmüyor" diyordu; MODES metrikleri daha kesin bir dille
+ * soruyor: popülasyon **değişiyor** ve **yeni biçimler** üretiyor mu?
+ *
+ * Bu metriklerin çoğu **mevcut dünya verisinden** türetilir; ek hesaplama
+ * maliyeti ihmal edilebilirdir (genomlar 8 skaler, organizmalar birkaç yüz).
+ */
+export interface ModesSample {
+  tick: number;
+  /** Değişim: iki ardışık örnek arasındaki ortalama genom mesafesi. */
+  change: number;
+  /** Yenilik: daha önce hiç görülmemiş genom imzalarının oranı. */
+  novelty: number;
+  /** Çeşitlilik: niceliksel çeşitlilik (Shannon, genom dağılımı). */
+  diversity: number;
+  /** Karmaşıklık: organizma boyutu dağılımının normalleştirilmiş entropisi. */
+  complexity: number;
+  /** Aktivite: doğmuş toplam organizma sayısı (tür başına yaşam süresi). */
+  activity: number;
+  /** Tür sayısı (lineage) — çeşitliliğin destekleyici ölçütü. */
+  species: number;
+  population: number;
+}
+
+export interface ModesReport {
+  seed: number;
+  ticks: number;
+  samples: ModesSample[];
+  /** Pencere boyunca biriken benzersiz genom imzası sayısı. */
+  uniqueGenomesSeen: number;
+  /** Son örnekteki metrikler. */
+  final: ModesSample | null;
+  /** Metrikler erken pencereye göre arttı mı? (açık uçluluğun işareti) */
+  trend: 'rising' | 'flat' | 'falling';
+  reading: string;
+}
+
+/** Genomu kısa, kararlı bir imzaya çevirir (benzersizlik ölçümü için). */
+function genomeSignature(g: Genome): string {
+  const r = (v: number) => Math.round(v * 1000) / 1000;
+  return [
+    r(g.bondAffinity), r(g.bondStrength), r(g.motility), r(g.senseRadius),
+    r(g.shareEfficiency), r(g.toleranceA), r(g.toleranceB), r(g.plasticity),
+  ].join(',');
+}
+
+function shannonEntropy(counts: readonly number[]): number {
+  const total = counts.reduce((a, b) => a + b, 0);
+  if (total <= 0) return 0;
+  let h = 0;
+  for (const c of counts) {
+    if (c <= 0) continue;
+    const p = c / total;
+    h -= p * Math.log(p);
+  }
+  return h;
+}
+
+/**
+ * MODES metriklerini zaman serisi olarak ölçer.
+ *
+ * **Ölçüm disiplini:** `novelty` kümülatif bir "daha önce hiç görülmedi"
+ * sayacıdır; pencereler arasında karşılaştırılabilir olsun diye **ağırlıklı
+ * ortalama** olarak raporlanır, tepe değeri değil.
+ */
+export function measureModes(options?: {
+  seed?: number;
+  ticks?: number;
+  sampleEvery?: number;
+  strainDecayK?: number;
+  population?: number;
+}): ModesReport {
+  const seed = options?.seed ?? 11;
+  const ticks = options?.ticks ?? 12_000;
+  const sampleEvery = options?.sampleEvery ?? 1000;
+  const strainDecayK = options?.strainDecayK ?? 0.005;
+  const population = options?.population ?? 48;
+
+  const world = new World({ seed, population, strainDecayK });
+  const seen = new Set<string>();
+  const samples: ModesSample[] = [];
+  let prevGenomes: Genome[] = [];
+
+  const take = (tick: number): ModesSample => {
+    const alive = [...world.organisms.values()].filter((o) => o.alive);
+    const genomes = alive.map((o) => o.genome);
+
+    // Değişim: **her güncel genomün kendisine en yakın önceki genoma** uzaklığı.
+    //
+    // ⚠️ Endeksle eşleştirme (prev[i] ↔ curr[i]) YANLIŞTIR: organizma listesi
+    // her örnekte kayar, aynı indeks farklı bireyi gösterir ve sonuç
+    // yapısal olarak sıfıra yakın çıkar. En yakın komşu ölçümü, "popülasyon
+    // önceki örneğe göre ne kadar kaydı" sorusunu gerçekten yanıtlar.
+    let change = 0;
+    if (prevGenomes.length > 0 && genomes.length > 0) {
+      let acc = 0;
+      for (const g of genomes) {
+        let best = Infinity;
+        for (const p of prevGenomes) {
+          const d = genomeDistance(p, g);
+          if (d < best) best = d;
+        }
+        if (Number.isFinite(best)) acc += best;
+      }
+      change = acc / genomes.length;
+    }
+    prevGenomes = genomes;
+
+    // Yenilik: bu örnekte görülen imzaların ne kadarı yeni?
+    let fresh = 0;
+    for (const g of genomes) {
+      const sig = genomeSignature(g);
+      if (!seen.has(sig)) {
+        seen.add(sig);
+        fresh++;
+      }
+    }
+
+    // Çeşitlilik: niceliksel çeşitlilik (Shannon, iki ondalık kova)
+    const buckets = new Array<number>(10).fill(0);
+    for (const g of genomes) {
+      const b = Math.min(9, Math.floor(genomeDistance(founderGenomeBase, g) * 25));
+      buckets[b] = (buckets[b] as number) + 1;
+    }
+
+    // Karmaşıklık: hücre sayısı dağılımının entropisi (log ölçeği)
+    const sizeBuckets = new Array<number>(6).fill(0);
+    for (const o of alive) {
+      const b = Math.min(5, Math.floor(Math.log2(Math.max(1, o.cells.length))));
+      sizeBuckets[b] = (sizeBuckets[b] as number) + 1;
+    }
+
+    const diversity = shannonEntropy(buckets);
+    const complexityRaw = shannonEntropy(sizeBuckets);
+    const complexity = complexityRaw > 0 ? complexityRaw / Math.log(6) : 0;
+
+    return {
+      tick,
+      change,
+      novelty: genomes.length > 0 ? fresh / genomes.length : 0,
+      diversity,
+      complexity,
+      // Aktivite: Dolson vd.'nin tanımı **birim zamanda toplam tür yaşam
+      // süresidir**, monoton artan bir sayı değil. Yaşayanların yaşı × sayıları
+      // üzerinden yarıçap kaydırılmasıyla ölçülür ki eğilim gösterebilsin.
+      activity: (() => {
+        let acc = 0;
+        for (const o of world.organisms.values()) {
+          if (!o.alive) continue;
+          acc += (world.tick - o.bornTick) * 0.01 * o.cells.length;
+        }
+        return acc;
+      })(),
+      species: world.lineages.size,
+      population: world.population(),
+    };
+  };
+
+  samples.push(take(0));
+  for (let t = 1; t <= ticks; t++) {
+    world.step();
+    if (t % sampleEvery === 0) samples.push(take(t));
+  }
+
+  const last = samples[samples.length - 1] ?? null;
+  // Eğilim pencereleri: ilk ve son örnek **kullanılmaz** — tick 0'da tüm
+  // kurucular tek hücrelidir (karmaşıklık = 0) ve popülasyon kurucu kümesidir
+  // (yenilik = %100); bunları karşılaştırmak yapısal bir yanlılık üretir.
+  let trend: ModesReport['trend'] = 'flat';
+  const interior = r0samples(samples);
+  const early = interior.slice(0, Math.max(1, Math.floor(interior.length / 2)));
+  const late = interior.slice(Math.floor(interior.length / 2));
+  if (early.length > 0 && late.length > 0) {
+    const score = (xs: ModesSample[]) =>
+      meanOf(xs.map((x) => x.diversity + x.complexity + 3 * x.change + 5 * x.novelty));
+    const a = score(early);
+    const b = score(late);
+    trend = b > a * 1.15 ? 'rising' : b < a * 0.85 ? 'falling' : 'flat';
+  }
+
+  const noveltyEarly = samples[1]?.novelty ?? 0;
+  const noveltyLate = last?.novelty ?? 0;
+  const complexityEarly = samples[1]?.complexity ?? 0;
+  const complexityLate = last?.complexity ?? 0;
+
+  const reading =
+    `Pencere sonu: değişim ${fmt(last?.change ?? 0, 4)} · yenilik %${(noveltyLate * 100).toFixed(1)} · ` +
+    `çeşitlilik ${fmt(last?.diversity ?? 0, 3)} · karmaşıklık ${fmt(last?.complexity ?? 0, 3)} · ` +
+    `tür ${last?.species ?? 0}. Eğilim: **${trend}**. ` +
+    `Pencere boyunca ${seen.size} benzersiz genom imzası görüldü. ` +
+    (trend === 'rising'
+      ? 'Değişim ve çeşitlilik yükseliyor — açık uçluluğun pozitif işareti.'
+      : `**Yakınsama, açık uçluluk değil:** yenilik %${(noveltyEarly * 100).toFixed(0)} → %${(noveltyLate * 100).toFixed(1)}, ` +
+        `değişim ~0'a düştü, karmaşıklık ${fmt(complexityEarly, 2)} → ${fmt(complexityLate, 2)}. ` +
+        `Popülasyon kısa bir keşiften sonra daralmaya geçiyor — Literatürdeki ` +
+        `"açık uçluluk geçicidir, baskın desenlere çöker" bulgusunun ` +
+        `bu modeldeki karşılığı (Faldor vd. 2023).`);
+
+  return { seed, ticks, samples, uniqueGenomesSeen: seen.size, final: last, trend, reading };
+}
+
+/** İlk ve son örnekleri çıkarır (eğilim hesabı için). */
+function r0samples(samples: ModesSample[]): ModesSample[] {
+  return samples.length > 2 ? samples.slice(1, samples.length - 1) : samples;
+}
+
+/** Karşılaştırma tabanı: kurucu genomunun ortalaması. */
+const founderGenomeBase: Genome = {
+  bondAffinity: 0.55, bondStrength: 0.45, motility: 0.5, senseRadius: 4.2,
+  shareEfficiency: 0.25, toleranceA: 0.6, toleranceB: 0.6, plasticity: 0.5,
+};
+
+export function formatModes(r: ModesReport): string {
+  const header = '   tick   pop   değişim   yenilik%   çeşitlilik   karmaşıklık   aktivite   tür';
+  const rows = r.samples.map(
+    (s) =>
+      `  ${String(s.tick).padStart(5)}  ${String(s.population).padStart(4)}  ${fmt(s.change, 8).padStart(8)}   ` +
+      `${fmt(s.novelty * 100, 7).padStart(8)}   ${fmt(s.diversity, 10).padStart(10)}   ` +
+      `${fmt(s.complexity, 12).padStart(12)}   ${String(s.activity).padStart(8)}   ${String(s.species).padStart(3)}`,
+  );
+  return [
+    `  tohum ${r.seed} · ${r.ticks} tick · ${r.samples.length} örnek`,
     header,
     ...rows,
     `  → ${r.reading}`,

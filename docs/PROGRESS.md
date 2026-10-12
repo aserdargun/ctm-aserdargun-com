@@ -211,6 +211,36 @@ Eşiği düşürmek kolonileri **çökertiyor** (zirve 24 → 10). "Kalibrasyon"
 harcayarak bağını yenilemesi). Ancak bu modelin felsefesini değiştiren bir
 karar ve kullanıcının onayına bağlı.
 
+### 2.2c Faz C1 · MODES açık uçluluk ölçümü — **yakınsama, açık uçluluk değil**
+
+(`VALIDATION.md` §6.21–6.22)
+
+| Tick | Pop | Yenilik % | Çeşitlilik | Karmaşıklık | Tür |
+|---|---|---|---|---|---|
+| 0 | 48 | 100,0 | 0,798 | 0,000 | 12 |
+| 2.000 | 157 | 37,4 | 0,858 | 0,376 | 12 |
+| **4.000** | **248** | 17,2 | 0,892 | **0,426** | 12 |
+| 8.000 | 166 | **0,0** | 0,760 | 0,346 | 12 |
+| 12.000 | 134 | **0,9** | 0,772 | 0,226 | 12 |
+
+Yenilik **%37 → %0,9**, karmaşıklık 0,43 → 0,23, tür sayısı sabit 12.
+Pencere boyunca 125 benzersiz genom imzası görüldü — **bir keşif yaşandı, sonra
+popülasyon daralmaya geçti.**
+
+Bu, literatürdeki "açık uçluluk geçicidir, baskın desenlere çöker"
+(Faldor vd. 2023) bulgusunun bu modeldeki karşılığıdır.
+
+**Yol haritasına doğrudan etkisi:** Faz D (MAP-Elites yaşam haritası) artık
+"güzel bir özellik" değil — **arşiv olmadan popülasyon tek bir çukura düşüyor.**
+
+**İki ölçüm hatası yazımdan önce yakalandı:**
+1. "Değişim" endeksle eşleştiriliyordu; organizma listesi her örnekte kaydığı için
+   sonuç 170 kat şişmiş çıkıyordu (0,068 → gerçek 0,0004). Doğrusu: her genomün
+   kendisine en yakın önceki genoma uzaklığı.
+2. Eğilim hesabı tick 0'ı karşılaştırmaya katıyordu; kurucular tek hücreli
+   olduğu için "rising" diye **yanlış** bir açık uçluluk işareti üretiyordu.
+   Yayıncının haklı olduğu ortaya çıktı: gerçek eğilim **falling**.
+
 ### 2.3 Gözlemci: canlı model doğrulanmadı
 
 - Hiçbir API anahtarı yoktu; **gerçek bir sağlayıcı çağrısı yapılmadı**.

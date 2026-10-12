@@ -14,7 +14,7 @@ Bu raporda **yalnızca gerçekten çalıştırılan** kontroller yer alır.
 
 ```
 Test Files  4 passed (4)
-     Tests  148 passed (148)
+     Tests  151 passed (151)
 ```
 
 ### 1.1 MLP sayısal doğruluğu (`tests/mlp.test.ts`, 14 test)
@@ -1489,6 +1489,62 @@ nedeni artık "ölü kod" değil — **politikanın hücre düzeyinde olmaması.
 Düzeltilmesi gereken, eşik değil; B3'ün önkoşulu **işbirliği aktı** (örn. hücre
 enerji harcayarak bağını yenilemesi) eklemektir.
 
+### 6.21 Faz C1 · MODES açık uçluluk metrikleri
+
+Literatür taraması (`docs/LITERATURE.md` §1) açık uçluluğun **ölçülebilir**
+olmasını şart koşuyor: Dolson vd. (2019) çerçevesinde değişim, yenilik,
+çeşitlilik, karmaşıklık ve aktivite. Buraya kadar bu depo "yaşam sürüyor / ölmüyor"
+diyordu; MODES metrikleri daha kesin bir dille soruyor: **popülasyon değişiyor
+ve yeni biçimler üretiyor mu?**
+
+**Ölçüm (tohum 11, 12.000 tick, `strainK 0.005`):**
+
+| Tick | Pop | Değişim | Yenilik % | Çeşitlilik | Karmaşıklık | Aktivite | Tür |
+|---|---|---|---|---|---|---|---|
+| 0 | 48 | 0.0000 | 100,0 | 0,798 | 0,000 | 0 | 12 |
+| 2.000 | 157 | 0,0043 | 37,4 | 0,858 | 0,376 | 2.410 | 12 |
+| 4.000 | **248** | 0,0021 | 17,2 | 0,892 | **0,426** | 7.390 | 12 |
+| 6.000 | 217 | 0,0004 | 3,4 | 0,904 | 0,415 | 10.176 | 12 |
+| 8.000 | 166 | 0,0000 | 0,0 | 0,760 | 0,346 | 10.325 | 12 |
+| 12.000 | 134 | 0,0001 | 0,9 | 0,772 | 0,226 | 11.493 | 12 |
+
+**Sonuç: bu açık uçluluk değil, yakınsama.**
+
+Yenilik **%37 → %0,9**'a düşüyor, değişim sıfıra yaklaşıyor, karmaşıklık
+4.000 tick'te zirve yapıp (0,426) sonra yarıya iniyor (0,226). Tür sayısı 12'de
+sabit. Pencere boyunca 125 benzersiz genom imzası görüldü — yani bir keşif
+yaşandı, **sonra popülasyon daralmaya geçti.**
+
+Bu, literatürdeki "açık uçluluk geçicidir ve baskın desenlere çöker"
+bulgusunun (Faldor vd. 2023, büyük ölçekli açık uçlu Lenia) bu modeldeki
+karşılığıdır.
+
+**İki ölçüm hatası bulundu ve düzeltildi (yazımdan önce):**
+
+1. **Değişim endeksle eşleştiriliyordu** (`prev[i] ↔ curr[i]`). Organizma listesi
+   her örnekte kayar; aynı indeks farklı bireyi gösterir ve sonuç yapısal olarak
+   ~0 çıkar. Doğrusu: her güncel genomün **kendisine en yakın önceki genoma**
+   uzaklığı. Düzeltmeden önce 6.000 tick'te "değişim 0.068" görünüyordu,
+   düzeltmeden sonra **0.0004** — yani ölçüm 170 kat şişmiş bir sayıyı
+   küçümsüyordu.
+2. **Eğilim tick 0'ı karşılaştırmaya katıyordu.** Tick 0'da tüm kurucular tek
+   hücrelidir (karmaşıklık = 0) ve popülasyon kurucu kümesidir (yenilik =
+   %100); bunları karşılaştırmak "rising" diye yanlış bir eğilim üretiyordu.
+   İlk ve son örnekler çıkarıldı, **yayıncının haklı olduğu ortaya çıktı.**
+
+**Ölçüm aracı:** `measureModes()` — beş metrik + tür sayısı + pencere boyunca
+benzersiz imza sayısı. Ek simülasyon maliyeti yoktur; tümü mevcut dünya
+verisinden türetilir.
+
+### 6.22 Bu bulgu yol haritasına ne söylüyor
+
+Açık uçluluk ölçümü artık **mevcut** ve cevabı şu: sistem kısa bir keşif
+yapıp sonra yakınsıyor. Bu, yol planının Faz D'siyle (kalite-çeşitlilik
+arşivi / MAP-Elites yaşam haritası) doğrudan ilgili: **arşiv olmadan popülasyon
+tek bir çukura düşüyor.** MAP-Elites tam olarak bu çukuru kaçınan yöntemdir —
+farklı davranış nişlerini ayrı ayrı korur.
+
+
 ## 7. Tarayıcı akışı — gerçekten yapıldı
 
 Chromium'da `vite preview` (port 4188) üzerinden doğrulandı:
@@ -1615,7 +1671,7 @@ Bunlar testlerin bulduğu, düzeltildiği ve **yeniden test edildiği** hatalard
 
 ```bash
 npm ci
-npm test                      # 148 test (4 dosya)
+npm test                      # 151 test (4 dosya)
 npm run typecheck             # tsc --noEmit, temiz
 npm run build                 # vite build, başarılı
 

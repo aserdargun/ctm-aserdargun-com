@@ -1,7 +1,7 @@
 # Cell to Mind — Deney Sonuçları
 
-**Körüldü:** 2026-10-11T15:57:38.019Z
-**Toplam koşu:** 1920 · **duvar süresi:** 477.1 s
+**Körüldü:** 2026-10-12T05:39:23.757Z
+**Toplam koşu:** 1921 · **duvar süresi:** 427.9 s
 **Mod:** standart
 **Pencere:** 12.000 tick (40.000 tick'lik ekolojik çöküşü kapsamak için `--deep` kullanın)
 
@@ -312,6 +312,24 @@ Popülasyon-ES başarısızlığının iki açıklamasını ayıran ölçüm.
   → Paylaşılan dünya sinyali **silmüyor**: bireyler arası CV %9.0, bağımsız dünyalar arası %7.4 (1.22×). Yani popülasyon içi ayrışma **vardır**; ortalama-alma güncellemesinin başarısızlığı arama eksikliğidir, sinyal yokluğu değil.
 ```
 
+## Faz C1 · MODES açık uçluluk metrikleri
+
+Dolson vd. (2019) çerçevesi: değişim, yenilik, çeşitlilik, karmaşıklık,
+aktivite. Tümü mevcut dünya verisinden türetilir.
+
+```
+  tohum 11 · 12000 tick · 7 örnek
+   tick   pop   değişim   yenilik%   çeşitlilik   karmaşıklık   aktivite   tür
+      0    48  0.00000000   100.0000000   0.7981168398   0.000000000000          0    12
+   2000   157  0.00430323   37.3831776   0.8583341379   0.376471524798   2409.8900000000003    12
+   4000   248  0.00212606   17.1779141   0.8923264344   0.426115424335   7389.760000000006    12
+   6000   217  0.00039935   3.4246575   0.9041927927   0.414763961569   10175.870000000003    12
+   8000   166  0.00000000   0.0000000   0.7604834504   0.346464100533   10325.319999999998    12
+  10000   145  0.00025845   2.4000000   0.8031230024   0.195716279804   10039.279999999995    12
+  12000   134  0.00007097   0.8771930   0.7720664605   0.225522041432   11493.209999999994    12
+  → Pencere sonu: değişim 0.0001 · yenilik %0.9 · çeşitlilik 0.772 · karmaşıklık 0.226 · tür 12. Eğilim: **falling**. Pencere boyunca 125 benzersiz genom imzası görüldü. **Yakınsama, açık uçluluk değil:** yenilik %37 → %0.9, değişim ~0'a düştü, karmaşıklık 0.38 → 0.23. Popülasyon kısa bir keşiften sonra daralmaya geçiyor — Literatürdeki "açık uçluluk geçicidir, baskın desenlere çöker" bulgusunun bu modeldeki karşılığı (Faldor vd. 2023).
+```
+
 ## Dal (branch) doğruluğu ve maliyeti
 
 `VALIDATION.md` §9 madde 7 bu yolu "test edilmemiş" diye listeliyordu.
@@ -327,9 +345,9 @@ bozuktu**. Düzeltildi; regresyon testi eklendi.
 ```
   çatal noktası: tick 3000 · 1500 adım sonra karşılaştırma
   snapshot boyutu: 2.544.430 bayt
-  çatallama süresi: 56.68 ms · iki dalın koşusu: 3359.4 ms · oran 1.7%
+  çatallama süresi: 37.93 ms · iki dalın koşusu: 2294.4 ms · oran 1.7%
   dallar bit düzeyinde aynı: evet · müdahale sızıntısı: yok · müdahale etkili: evet
-  → Çatallama **doğru**: iki dal bit düzeyinde aynı ilerliyor ve müdahale diğerine sızmıyor. Snapshot 2.54 MB; bir dal açmak 28.3 ms, bir simülasyon adımı 1.120 ms → **bir çatal ≈ 25 tick** maliyetinde. Yani 500 tick'te bir, 16 pertürbasyonlu güncelleme ≈ 81% ek yük demek: üstel strateji yaşam içinde pratikte **bütçelenebilir**. Müdahale testi: müdahalesiz dal referansla AYNI, müdahale görmüş dal AYRILDI. **DİKKAT:** bu maliyet 3000. tick'te ölçüldü ve snapshot boyutuyla ölçeklenir; geç pencerelerde farklı olabilir ve **ölçülmedi**.
+  → Çatallama **doğru**: iki dal bit düzeyinde aynı ilerliyor ve müdahale diğerine sızmıyor. Snapshot 2.54 MB; bir dal açmak 19.0 ms, bir simülasyon adımı 0.765 ms → **bir çatal ≈ 25 tick** maliyetinde. Yani 500 tick'te bir, 16 pertürbasyonlu güncelleme ≈ 79% ek yük demek: üstel strateji yaşam içinde pratikte **bütçelenebilir**. Müdahale testi: müdahalesiz dal referansla AYNI, müdahale görmüş dal AYRILDI. **DİKKAT:** bu maliyet 3000. tick'te ölçüldü ve snapshot boyutuyla ölçeklenir; geç pencerelerde farklı olabilir ve **ölçülmedi**.
 ```
 
 ## S-4 · Çatallanmış ortamda yaşam içi üstel arama
@@ -343,10 +361,10 @@ ortalaması boyunca kaydırılır. Seyrek dünyada koşulur (pop 6, kaynak 6).
   kontrol (arama kapalı): medyan enerji 48.07 e · pop 18 · arama 0
   tedavi  (arama açık) : medyan enerji 48.07 e · pop 18 · arama 24 (4 pertürbasyon × 120 tick)
   ağırlık hareketi: kontrol 0.00000 · tedavi 0.00104
-  maliyet: 4000 tick'in koşusu 40 ms · arama 188 ms → ek yük ≈ 2198 tick
+  maliyet: 4000 tick'in koşusu 32 ms · arama 146 ms → ek yük ≈ 2184 tick
   enerji rezidülü: 0.000000000 e
   eşleştirilmiş fark 0.000 [0.000, 0.000] · p = 1.0000
-  → Çatallanmış arama **ölçülebilir performans artışı üretmedi**: fark 0.000 [0.000, 0.000], p = 1.0000. Ağırlık hareketi: medyan ‖Δθ‖ = 0.0010 (kontrol 0.0000) — yani arama θ'yı hareket ettirdi ama davranış kazanmadı. Ek yük ≈ 2198 tick'lik eşdeğer.
+  → Çatallanmış arama **ölçülebilir performans artışı üretmedi**: fark 0.000 [0.000, 0.000], p = 1.0000. Ağırlık hareketi: medyan ‖Δθ‖ = 0.0010 (kontrol 0.0000) — yani arama θ'yı hareket ettirdi ama davranış kazanmadı. Ek yük ≈ 2184 tick'lik eşdeğer.
 ```
 
 ## Bağ gücü koloni büyüklüğünü artırıyor mu?

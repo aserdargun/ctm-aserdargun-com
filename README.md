@@ -34,7 +34,7 @@ Anahtar yoksa uygulama **çalışır** ve gözlemci panelinde dürüstçe
 | `npm run dev` | Geliştirme sunucusu (port 5183) |
 | `npm run build` | Tip denetimi + üretim derlemesi |
 | `npm run preview` | Üretim çıktısını sunar (port 4173) |
-| `npm test` | Vitest — 148 test |
+| `npm test` | Vitest — 151 test |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run experiments` | Deney paketini headless koşar — 21 bölüm, 1.920 koşu, ~9 dk → `docs/EXPERIMENTS.md` |
 | `npm run experiments -- --deep` | Derin paket: 40.000 tick pencereleri, ekolojik çöküş görünür (yavaş) |
@@ -89,6 +89,7 @@ durur.
 | Popülasyon-ES (yaşam içi) | ❌ etkisiz — anti-drift, arama değil (p = 0.80) |
 | Evrimsel politika araması (kontrol) | ✅ **+0.161** görülmemiş dünyalarda |
 | **Evrim Atölyesi** (ürün özelliği, tarayıcıda doğrulandı) | ✅ görülmemiş tohumlarda **+0.035…+0.072**, 0.4–0.6 sn |
+| MODES açık uçluluk metrikleri (Faz C1) | ⚪ **yakınsama**: yenilik %37 → %0,9, çeşitlilik daralıyor |
 | Koloni sönümlenmesi (Faz B1) | ⚪ **teşhis edildi:** kaynak/avcı elendi, sınırlayıcı **bağ ömrü** (~2.100 tick) |
 | Bağ ömrü duyarlılığı (Faz B1b) | ✅ ölçüt karşılandı: ömür ×4 → 4+ hücreli yapılar 0 → 0.25 |
 | Y-2 bağ ömrünü seçilime açma | ❌ başarısız — kayma −0.006 [−0.014, +0.002], p = 0.343 |
