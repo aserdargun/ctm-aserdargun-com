@@ -44,6 +44,17 @@ Anahtar yoksa uygulama **çalışır** ve gözlemci panelinde dürüstçe
 | `npm run assets:build` | Blender 5.1.1 ile varlıkları yeniden üretir |
 | `npm run server` | Gözlemci sunucu rotası |
 
+### Sürekli doğrulama
+
+`master` dalına her push'ta ve her PR'da **CI koşar**: tip denetimi + 201 birim
+testi + 6 tarayıcı testi (`npm run check`). Başarısızsa tarayıcı kanıtları
+artifact olarak yüklenir.
+
+> Bu depo şu an **yayınlanmıyor** — Azure Static Web Apps kaynağı ve repo gizli
+> anahtarı gerekiyor. Ayrıca gözlemci rotası (`server/index.ts`) bir Node
+> sunucusudur ve statik barındırmada çalışmaz; yayınlandığında gözlemci paneli
+> yalnız yerel kural özetini üretir. Ayrıntı: `docs/VALIDATION.md` §6.37.
+
 ---
 
 ## Ana döngü

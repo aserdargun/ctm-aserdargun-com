@@ -24,13 +24,49 @@ import { resolve } from 'node:path';
 const ROOT = resolve(__dirname, '..');
 const read = (rel: string): string => readFileSync(resolve(ROOT, rel), 'utf8');
 
-/** Bir dosyanın en son değiştiği commit'in zaman damgası (saniye). */
+/**
+ * Bir dosyanın en son değiştiği commit'in zaman damgası (saniye).
+ *
+ * ⚠️ **Sığ klon tuzağı.** `actions/checkout` varsayılan olarak derinlik 1
+ * (shallow) ile gelir ve sığ klanda yol filtresi **çalışmaz**:
+ * `git log -1 --format=%ct -- <dosya>` sığ klonun sınırından bir tarih
+ * döndürür — dosya o committe olmasa bile, ve dönen değer **sıfır değildir**.
+ *
+ * Ölçüldü: 1 commit'lik gerçek bir sığ klon (`--depth 1 --no-local`),
+ * `ecology.ts` (HEAD commit'inde yok) için yine bir tarih verdi; tam klon
+ * (19 commit) doğru tarihi verdi.
+ *
+ * ⚠️ İlk denemede "tarih 0 ise hata ver" nöbeti yazıldı ve **işe yaramadı**:
+ * sığ klon 0 değil, sığ sınırdan geçerli bir tarih döndürdüğü için test yine
+ * sessizce geçti. Doğru tespit "depo sığ mı" sorusudur.
+ *
+ * Sonuç: shallow konda bu test **anlamsız** değerlerle çalışır ve her şeyi
+ * geçer gibi görünür. Bu yüzden:
+ *   1. İş akışında `fetch-depth: 0` zorunlu kılındı.
+ *   2. Burada sığ klon **açıkça hata** veriyor: sessiz geçen denetim, hiç
+ *      denetimden iyidir ama neredeyse o kadar kötüdür.
+ */
 function lastCommitTime(rel: string): number {
+  const shallow = execFileSync('git', ['rev-parse', '--is-shallow-repository'], {
+    cwd: ROOT,
+    encoding: 'utf8',
+  }).trim();
+  if (shallow === 'true') {
+    throw new Error(
+      'Depo sığ klon (shallow): git yol filtresi güvenilir çalışmıyor, ' +
+        'bayat rapor denetimi anlamsız tarihlerle sessizce geçer. ' +
+        "CI'da actions/checkout'a `fetch-depth: 0` ekleyin.",
+    );
+  }
   const out = execFileSync('git', ['log', '-1', '--format=%ct', '--', rel], {
     cwd: ROOT,
     encoding: 'utf8',
   }).trim();
-  return Number(out || 0);
+  const t = Number(out || 0);
+  if (!(t > 0)) {
+    throw new Error(`git geçmişi yok (${rel} için tarih alınamadı). Sessizce geçmek yerine düşmelidir.`);
+  }
+  return t;
 }
 
 describe('belge tutarlılığı · üretilmiş rapor', () => {

@@ -1,0 +1,74 @@
+name: CTM scientific and browser contracts
+
+# Bu iş akışı **dağıtım değil, kapıdır**: push ve PR'da tip denetimi, birim
+# testleri ve gerçek tarayıcı testleri koşar.
+#
+# Neden gerekli: `npm run e2e` uzun süre bildirilmiş ama **çalışmıyordu**
+# (yapılandırma ve test dosyası yoktu → "No tests found"). Yani test yazıldığı
+# hâlde bozuk kalabiliyordu; bu iş akışı o sessizliği kapatır.
+#
+# Not: deploy ayrı bir iş akışıdır ve `master` dalını hedefler. Bu depo şu an
+# **yayınlanmıyor** (Azure SWA kaynağı + gizli anahtar gerekiyor,
+# `docs/VALIDATION.md` §6.37).
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-ctm-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # ⚠️ `fetch-depth: 0` ZORUNLU. Varsayılan derinlik 1'dir (shallow
+          # klon) ve sığ klanda yol filtresi çalışmaz:
+          # `git log -1 --format=%ct -- <dosya>` **sığ klonun sınırından bir
+          # tarih** döndürür, dosya o committe olsa da olmasa da. Ölçüldü:
+          # sığ klon 1 commit'te `ecology.ts` (o committe yok) için yine
+          # bir tarih veriyor; tam klon (19 commit) doğru tarihi veriyor.
+          #
+          # Sonuç: `tests/docs.test.ts` bayat rapor denetimi shallow konda
+          # **anlamsız** değerlerle çalışır ve her şeyi geçer gibi görünür —
+          # yani test sessizce ölür. Derinlik 0 olmadan bu denetim güvenilmez.
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      # Tip denetimi + 201 birim testi + 6 tarayıcı testi.
+      # Üretim derlemesi `npm run check` içinde değil; `npm run build`
+      # e2e'nin webServer adımında zaten koşuyor.
+      - name: Run release checks (typecheck + unit + e2e)
+        run: npm run check
+
+      - name: Upload browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ctm-browser-failures
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7

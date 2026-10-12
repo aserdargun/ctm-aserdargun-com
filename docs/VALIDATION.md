@@ -1964,6 +1964,46 @@ değil dürüstçe kabul edilmeli — panel bunu zaten yazıyor.
 **Bu turda yapılan:** eksik olan e2e altyapısı kuruldu (§6.35–6.36), yani
 dağıtım öncesi kapı hazır. Kalan tek adım Azure kaynağı + gizli anahtar.
 
+### 6.39 CI eklendi — ve bayat rapor denetimi CI'da **ölü**ydü
+
+CI iş akışı yazıldı (`master` + PR'da `npm run check` = tip + 201 birim + 6 e2e).
+Yazarken bir şey dikkatimi çekti: **bayat rapor testi git'e dayanıyor** ve CI'da
+`actions/checkout` varsayılan olarak **derinlik 1 (sığ klon)** ile gelir.
+
+Ölçtüm. Gerçek bir sığ klon (`--depth 1 --no-local`, 1 commit):
+
+| Sorgu | Sığ klon (1 commit) | Tam klon (19 commit) |
+|---|---|---|
+| `git log -1 --format=%ct -- package.json` (HEAD'de var) | HEAD zamanı | HEAD zamanı |
+| `git log -1 --format=%ct -- ecology.ts` (**HEAD'de yok**) | **yine bir tarih** ❌ | önceki gerçek commit'in zamanı ✅ |
+
+Yani sığ klanda yol filtresi **çalışmıyor**; sığ klonun sınırından bir tarih
+dönüyor. Sonuç: bayat rapor denetimi CI'da **anlamsız** değerlerle koşar ve her
+şeyi geçer görünür — yani o denetim orada sessizce ölürdü.
+
+⚠️ İlk koruma denemesi de **başarısız oldu ve bu ölçülerek anlaşıldı**: "tarih
+0 ise hata ver" yazdım. Sığ klon 0 değil, sığ sınırdan geçerli bir tarih
+döndürdüğü için test yine sessizce geçti (8/8). Doğru tespit "depo sığ mı"
+sorusudur, `git rev-parse --is-shallow-repository`.
+
+İki düzeltme birlikte:
+1. CI'da `fetch-depth: 0`.
+2. Test artık sığ klonu **açıkça hata** ile reddediyor.
+
+Sınandı — sığ klon koşulunda:
+
+```
+× rapor, üretim kodundan sonra yeniden üretilmiş
+Error: Depo sığ klon (shallow): git yol filtresi güvenilir çalışmıyor …
+   CI'da actions/checkout'a `fetch-depth: 0` ekleyin.
+```
+
+Tam klanda yeşil. Yani denetim artık iki koşulda da **gerçekten çalışıyor**.
+
+> Ders: bir denetimin doğru çalıştığını "yeşil" olması kanıtlamaz —
+> **kötü koşulda kırmızıya döndüğünü** görmek gerekir. Bu turda ikisi de ölçüldü:
+> bayat rapor (kod değişti → kırmızı) ve sığ klon (geçmiş yok → kırmızı).
+
 ### 6.38 Belgeler gerçekliğe hizalandı
 
 Ölçümler geldi, **belgeler geride kalmıştı**. Üç yanlış iddia düzeltildi:
