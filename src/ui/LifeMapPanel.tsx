@@ -178,6 +178,17 @@ export function LifeMapPanel({ client }: { client: SimClient }): React.ReactElem
           ? 'Bu panel yalnız ölçer: seçilim kapalı, canlı dünya değişmiyor.'
           : 'This panel only measures: selection is off, the living world is unchanged.'}
       </p>
+
+      {/* Arşivin seçilime katılması (ε > 0) denendi ve BAŞARISIZ oldu
+          (VALIDATION.md §6.28–6.30). Nedeni yapısal: boyut ekseni kalıtsal
+          değil, enjekte edilen her organizma tek hücreyle doğuyor. Panel
+          bunu saklamıyor — kullanıcı ızgarayı görüp "doldur" beklentisiyle
+          bakmasın. */}
+      <p className="panel__hint lifemap__caveat">
+        {tr
+          ? 'Bu ızgarayı seçilimle doldurma denendi ve işe yaramadı (dolu kutu değişmedi, p = 1,00). Nedeni: boyut kalıtsal değil — enjekte edilen her organizma tek hücreli doğar.'
+          : 'Seeding this grid was tried and did not work (occupancy unchanged, p = 1.00). Why: size is not heritable — every injected organism is born single-celled.'}
+      </p>
     </section>
   );
 }

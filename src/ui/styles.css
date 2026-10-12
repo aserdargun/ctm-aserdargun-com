@@ -717,3 +717,11 @@ select {
   cursor: pointer;
   opacity: 0.75;
 }
+
+/* Denenmiş ve başarısız olan yolu saklamayan uyarı notu. */
+.lifemap__caveat {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+  opacity: 0.8;
+}

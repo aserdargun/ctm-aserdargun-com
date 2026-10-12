@@ -1619,6 +1619,80 @@ patladığını doğruluyor. Aksi hâlde dedektör sessizce hiç yanlsa hep boş
 ve yeşil görünür — en tehlikeli ölçüm aleti budur.
 
 
+### 6.28 Faz D · Arşivin seçilime katılması (ε > 0) — **başarısız, ve nedeni yapısal**
+
+Arşiv şimdiye kadar yalnız ölçtü. Asıl soru: MAP-Elites kuralı **işe yarar
+mı**? Yani boş nişlere o nişte arşivlenen en iyi bireyin yavrusu enjekte
+edildiğinde (ε > 0) çukur dolar mı?
+
+Protokol: iki kol, **aynı 4 tohum** (eşleştirilmiş). Kontrol ε = 0, tedavi
+ε > 0 (250 tick'te bir tarama). Bootstrap güven aralığı + eşleştirilmiş p.
+**Başarı ölçütü sonuçtan ÖNCE kaydedildi:** dolu kutu sayısı artmalı.
+
+| | kontrol (ε = 0) | tedavi (ε > 0) |
+|---|---|---|
+| Dolu kutu (/27) | 10,50 | **10,50** |
+| Yoğunlaşma | %50 | %51 |
+| Canlı popülasyon | 119 | 174 |
+| Hücre enerjisi (e) | 3.667 | 4.653 |
+| Enjeksiyon (adet) | 0 | 205 |
+
+Eşleştirilmiş fark **0,00** [−2,75, +2,75], **p = 1,0000**.
+
+**Sonuç: başarısız.** Doluluk artmadı. Canlı sayısı ve toplam hücre enerjisi
+arttı, yani enjeksiyon gerçekten canlı üretiyor — ama ürettiği bireyler
+çukura geri kayıyor.
+
+Enerji muhasebesi sağlam (rezidül ~8e-8 e), yani sonuç geçerli.
+
+### 6.29 Neden başarısız — iki yapısal sınır
+
+Negatif sonuç yetmez; **niye** sorusu ölçülerek yanıtlandı.
+
+**1. Boyut ekseni kalıtsal değil.** Enjeksiyon yolu `createOrganism` +
+`spawnCell` ile **tek hücreli** bir organizma doğurur. Ölçüldü (tohum 9101,
+12.000 tick, ε > 0):
+
+| Boyut kutusu | Arşivde (tarihsel) | Canlıda (şimdi) |
+|---|---|---|
+| 0 (tek hücre) | 1.942.903 | **172** |
+| 1 (2–8 hücre) | 97.568 | **0** |
+| 2 (9–24 hücre) | 3.039 | **0** |
+
+Canlıların **%100'ü tek hücreli**. Büyük organizmalar tarihte var olmuş,
+sonra **yok olmuş**. Genomda gövde boyutu yoktur — büyüme bir olaydır,
+kalıtsal bir özellik değil. Bu yüzden MAP-Elites'in "elitini koru" mantığı
+boyut ekseninde **hiçbir şey koruyamaz**: enjekte edilen elit, tanımı gereği
+tek hücreli doğar ve o an daima alt bin yer alır.
+
+**2. Seçilim anlık boşluğa enjekte eder.** Kural, "arşivde var ama şu an
+canlıda yok" olan kutuları hedefler. O an hedef kutu zaten boş olduğu için,
+elit nereden gelirse gelsin gireceği yer boştur. Tohumlar arasındaki fark
+işaret değiştiriyor (+1, −4, +4, −1) — bu dağınıklığı gösteriyor.
+
+Birinci sınır mutlaka çürütülebilir bir açıklamadır: MAP-Elites'in kendi
+varsayımı **betimleyicinin kalıtsal olmasıdır** (Picbreeder'da "boy" =
+seçilim nesnesi). Burada üç betimleyiciden biri (`boyut`) ölçülebilir ama
+**kalıtsal değildir**. Bu yüzden "boş kutu doldur" vaadi boyut ekseninde
+yapısal olarak yerine getirilemez.
+
+> Hipotez olarak önce "elit mutasyonla bozuluyor" düşünüldü ve **ölçülerek
+> çürütüldü**: mutasyon kapalıyken de doluluk artmadı (11/27'ye karşı
+> 12/27'ye, tek tohum, gürültü düzeyinde). Yanlış açıklama, doğrulamadan
+> önce kaydedildi.
+
+### 6.30 Tasarım sonucu
+
+Arşiv **üründe ölçüm olarak kalıyor** (`ε = 0`, varsayılan). Seçilim kancası
+ölçüm aracı olarak duruyor ama **açılmıyor** — çünkü ölçüldü ve işe
+yaramadı. Kalıtsal olmayan bir betimleyici üzerinden seçilim yapmak,
+yöntemin varsayımına aykırıdır.
+
+Faz D'nin bugünkü durumu: **çukur ölçüldü, görselleştirildi, ve doldurulması
+denendi — başarısız.** Bir sonraki adım ancak kalıtsal bir betimleyici
+eklenirse anlamlı olur (örneğin genomdaki bir özellik), çünkü o zaman
+seçilim gerçekten bir şey koruyabilir.
+
 ### 6.26 Faz D ürün tarafı — **Yaşam Haritası paneli**
 
 Ölçüm artık üründe. HUD'da "Yaşam Haritası" düğmesi, 3×3×3 ızgara
@@ -1677,6 +1751,26 @@ Chromium'da `vite preview` (port 4188) üzerinden doğrulandı:
 | **Izgara doluyor** | ✅ 9/27 kutu, 107.021 gözlem |
 | **Eksen çökme dedektörü canlı** | ✅ tick 263'te "boyut" uyarısı, tick 941'de kendiliğinden temizlendi |
 | **Muhasebe farkı panel açıkken** | ✅ −0,001 e |
+
+### 6.31 Panel, başarısız yolu saklamıyor
+
+Arşivin seçilime katılması denendi ve **başarısız** oldu (§6.28). Panelin
+tuzganı şudur: kullanıcı ızgarayı görüp "boş kutu = fırsat" diye okur ve
+doldurulması beklenen bir boşluk sanır. Oysa bu boşluk doldurulamaz.
+
+Bu yüzden panelin altına ölçülmüş sonuç açıkça yazıldı:
+*"Bu ızgarayı seçilimle doldurma denendi ve işe yaramadı (dolu kutu
+değişmedi, p = 1,00). Nedeni: boyut kalıtsal değil — enjekte edilen her
+organizma tek hücreli doğar."*
+
+Tarayıcıda gözlemlendi (tick 240, konsol hatası 0):
+
+```
+6/27 kutu · en yoğun kutu %65 · 11.472 gözlem
+⚠️ Eksen çöktü: boyut. Bu eksen ızgarayı taşımıyor; doluluk sayısı bu haliyle yorumlanamaz.
+Bu ızgarayı seçilimle doldurma denendi ve işe yaramadı (dolu kutu değişmedi,
+p = 1,00). Nedeni: boyut kalıtsal değil — enjekte edilen her organizma tek hücreli doğar.
+```
 
 ### 7.1 `branch` yolu uçtan uca doğrulandı
 

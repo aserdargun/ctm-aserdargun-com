@@ -47,6 +47,8 @@ import {
   formatModes,
   measureNicheCoverage,
   formatNiche,
+  experimentNicheSeeding,
+  formatNicheSeeding,
 } from '../src/sim/experiments/ecology.ts';
 import {
   calibrateArena,
@@ -278,6 +280,13 @@ function main(): void {
     sampleEvery: 1000,
   });
   process.stdout.write(`${formatNiche(niche)}\n`);
+
+  process.stdout.write(`\n25/25 Faz D · arşivin seçilime katılması (ε > 0)…\n`);
+  const nicheSeeding = experimentNicheSeeding({
+    seeds: args.quick ? 2 : 4,
+    ticks: args.quick ? 6000 : 12_000,
+  });
+  process.stdout.write(`${formatNicheSeeding(nicheSeeding)}\n`);
 
   process.stdout.write(`\n22/22 dal (branch) doğruluğu ve maliyeti…\n`);
   const branch = args.quick
@@ -560,6 +569,16 @@ function main(): void {
       '',
       '```',
       formatNiche(niche),
+      '```',
+      '',
+      'Faz D · Niş kapsama ölçümünün yorumu',
+      '',
+      'Bu ölçüm, bir arşivin **gerçekten işe yarayıp yaramadığını** test eder.',
+      'MAP-Elites kuralı: boş nişlere o nişte arşivlenen en iyi bireyin yavrusunu',
+      'enjekte et. Bu, arşivin seçilime katılmasıdır (ε > 0).',
+      '',
+      '```',
+      formatNicheSeeding(nicheSeeding),
       '```',
       '',
       '## Dal (branch) doğruluğu ve maliyeti',

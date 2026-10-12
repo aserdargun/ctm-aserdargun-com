@@ -25,6 +25,16 @@ import {
   shareAlongBond,
   speedScaleForRadius,
 } from './biology/energy.ts';
+import {
+  binOf,
+  LIFE_RANGE_MIN,
+  LIFE_RANGE_SPAN,
+  LIFE_SIZE_MAX,
+  LIFE_SPEED_MAX,
+  type LifeAxisHealth,
+  type LifeCell,
+  type LifeSnapshot,
+} from './lab/lifeMap.ts';
 import { chooseIdentityComponent, connectedComponents } from './biology/connectivity.ts';
 import { NeuralPolicy, type DecisionInfo } from './behavior/policy.ts';
 import { computeObservation } from './behavior/perception.ts';
@@ -53,6 +63,26 @@ import type {
 } from './types.ts';
 
 export const SIM_VERSION = '1.0.0';
+
+/**
+ * Yaşam haritası arşivinde tek bir kutunun kaydı.
+ *
+ * `bestGenome` saklanmasının nedeni: **seçilim** (`ε > 0`) boş bir nişe
+ * "kalite-çeşitlilik" mantığıyla o kutunun en iyisinden bir yavru
+ * enjekte eder. Arşiv yalnız sayaç değil, elit deposudur.
+ */
+export interface NicheArchiveEntry {
+  speedBin: number;
+  sizeBin: number;
+  rangeBin: number;
+  /** Bu kutuda görülen organizma sayısı. */
+  count: number;
+  bestEnergyNorm: number;
+  bestLineage: number;
+  bestGenome: Genome;
+  /** Kutunun **şu an** canlı popülasyonda dolu olup olmadığı (seçilim için). */
+  occupiedNow: boolean;
+}
 
 export interface WorldOptions {
   seed: number;
@@ -136,6 +166,28 @@ export interface WorldOptions {
   esEvaluateTicks?: number;
   esSigma?: number;
   esLearningRate?: number;
+
+  /**
+   * **Faz D kancaları — yaşam haritası arşivi.** Varsayılan: arşiv **açık,
+   * seçilim kapalı** (`ε = 0`).
+   *
+   * Gerekçe (`VALIDATION.md` §6.23–6.27): popülasyon tek bir davranış çukuruna
+   * düşüyor (7/27 kutu, en yoğun kutuda %52). MAP-Elites'in çözümü boş nişleri
+   * arşivde tutmaktır. Arşiv **ölçer**; `nicheSeeding` açıldığında boş nişlere
+   * elit yavru enjekte eder.
+   *
+   * ⚠️ `nicheSeeding` **kapalı** başlar: ölçüm ürün davranışını değiştirmemeli.
+   * Açmanın yakınsamayı kırıp kırmadığı **deneyle ölçülür**; ölçülmeden
+   * varsayılan yapılmaz.
+   */
+  /** Arşiv kapalıysa hiçbir şey ölçülmez (yalnız hata ayıklama). */
+  nicheArchive?: boolean;
+  /** Izgara kutu sayısı (her eksende). Varsayılan 3. */
+  nicheBins?: number;
+  /** Arşivin seçilime katılması (ε > 0). Varsayılan **kapalı**. */
+  nicheSeeding?: boolean;
+  /** Kaç tick'te bir boş niş taraması yapılsın. Varsayılan 500. */
+  nicheSeedingInterval?: number;
 
   /**
    * **Popülasyon-ES kancası.** Varsayılan **kapalı**.
@@ -301,6 +353,33 @@ export class World {
     strainDecayK?: number;
     coupleFatigueToGenome?: boolean;
   };
+
+  // --- Faz D · yaşam haritası arşivi ------------------------------------
+  //
+  // Betimleyici hesabı **World içinde** yaşar; hem deney ölçümü hem ürün
+  // paneli hem de seçilim buradan okur. Üç ayrı kopya zamanla ayrışır ve
+  // ayrışan ölçümler aynı sayıyı iki farklı yorumla raporlar.
+  //
+  // `seeding.enabled = false` iken arşiv **yalnız ölçer**: hiçbir canlıya
+  // dokunmaz, ürün davranışı birebir korunur. `ε > 0` denendiğinde arşiv
+  // boş nişlere elit yavru enjekte eder (bkz. `nicheSeedingPhase`).
+  private readonly nicheConfig: {
+    enabled: boolean;
+    bins: number;
+    seeding: { enabled: boolean; interval: number };
+  };
+  private nicheArchive = new Map<string, NicheArchiveEntry>();
+  private nichePath = new Map<number, number>();
+  private nicheFirst = new Map<number, number>();
+  private nichePrevC = new Map<number, Vec3>();
+  private nicheHealth = {
+    clamped: { speed: 0, size: 0, range: 0 },
+    observed: { speed: 0, size: 0, range: 0 },
+    binsHit: { speed: new Set<number>(), size: new Set<number>(), range: new Set<number>() },
+    min: { speed: Infinity, size: Infinity, range: Infinity },
+  };
+  /** Enjeksiyon sayacı (ölçüm). */
+  private nicheSeedCount = 0;
   private readonly policyTuning: {
     trajectoryLimit?: number;
     learnRate?: number;
@@ -311,6 +390,15 @@ export class World {
   constructor(options: WorldOptions) {
     this.rng = new RngBundle(options.seed);
     this.shareIdleLevel = options.shareIdleLevel ?? C.SHARE_IDLE_LEVEL;
+    this.nicheConfig = {
+      enabled: options.nicheArchive !== false,
+      bins: Math.max(2, options.nicheBins ?? 3),
+      // Seçilim **kapalı** başlar: ölçüm ürün davranışını değiştirmemeli.
+      seeding: {
+        enabled: options.nicheSeeding ?? false,
+        interval: Math.max(1, options.nicheSeedingInterval ?? 500),
+      },
+    };
     this.esConfig = {
       enabled: options.esInterval !== undefined || options.esPerturbations !== undefined,
       interval: Math.max(1, options.esInterval ?? 500),
@@ -572,6 +660,12 @@ export class World {
     this.resourceRegenPhase();
     if (this.populationUpdateConfig.enabled) this.populationUpdatePhase();
     if (this.esConfig.enabled) this.esUpdatePhase();
+    if (this.nicheConfig.enabled) {
+      this.nicheArchivePhase();
+      if (this.nicheConfig.seeding.enabled && this.tick % this.nicheConfig.seeding.interval === 0) {
+        this.nicheSeedingPhase();
+      }
+    }
 
     if (decision) this.rewardPhase();
     this.recordMetrics(t);
@@ -1536,6 +1630,161 @@ export class World {
     return this.populationUpdateCount;
   }
 
+  // ------------------------------------------------ Faz D · yaşam haritası
+
+  /**
+   * Arşiv fazı — **her tick**.
+   *
+   * İki iş yapar: (1) yol uzunluğunu biriktirir, (2) her organizmanın üç
+   * betimleyicisini hesaplayıp kalite-çeşitlilik arşivine yazar.
+   *
+   * ⚠️ Betimleyici tanımı pencereden bağımsızdır: hız **yol uzunluğu / tick**
+   * olarak biriktirilir. Rastgele yürüyüşte yer değiştirme √Δt ile büyür,
+   * yani "tick başına hız" örnekleme aralığına göre değişir (ölçüldü: 20
+   * tick'te medyan 0.057, 200 tick'te 0.019). Tabanlar `lab/lifeMap.ts`
+   * içindeki kalibre edilmiş sabitlerden gelir.
+   */
+  private nicheArchivePhase(): void {
+    const B = this.nicheConfig.bins;
+    const h = this.nicheHealth;
+
+    // `occupiedNow` bu tick için sıfırlanır; yoksa "şu an dolu mu" bilgisi
+    // son gördüğü tick'ten kalır ve seçilim yanlış nişleri hedefler.
+    for (const entry of this.nicheArchive.values()) entry.occupiedNow = false;
+
+    for (const org of this.organisms.values()) {
+      if (!org.alive || org.cells.length === 0) continue;
+      const c = this.centroidOf(org);
+      const prev = this.nichePrevC.get(org.id);
+      if (prev) {
+        this.nichePath.set(
+          org.id,
+          (this.nichePath.get(org.id) ?? 0) + Math.hypot(c.x - prev.x, c.y - prev.y, c.z - prev.z),
+        );
+      } else {
+        this.nicheFirst.set(org.id, this.tick);
+      }
+      this.nichePrevC.set(org.id, { ...c });
+
+      const elapsed = this.tick - (this.nicheFirst.get(org.id) ?? this.tick);
+      // Yeni doğanın henüz bir tick geçmişi yok; sıfır hız kutusuna atılmaz.
+      if (elapsed <= 0) continue;
+
+      const speed = (this.nichePath.get(org.id) ?? 0) / elapsed;
+      const size = Math.log2(org.cells.length);
+      const range = org.genome.senseRadius - LIFE_RANGE_MIN;
+
+      if (speed >= LIFE_SPEED_MAX) h.clamped.speed++;
+      if (size >= LIFE_SIZE_MAX) h.clamped.size++;
+      if (range >= LIFE_RANGE_SPAN) h.clamped.range++;
+      h.observed.speed++;
+      h.observed.size++;
+      h.observed.range++;
+      h.min.speed = Math.min(h.min.speed, speed);
+      h.min.size = Math.min(h.min.size, size);
+      h.min.range = Math.min(h.min.range, range);
+
+      const sb = binOf(speed, LIFE_SPEED_MAX, B);
+      const zb = binOf(size, LIFE_SIZE_MAX, B);
+      const rb = binOf(range, LIFE_RANGE_SPAN, B);
+      h.binsHit.speed.add(sb);
+      h.binsHit.size.add(zb);
+      h.binsHit.range.add(rb);
+
+      let energy = 0;
+      for (const id of org.cells) energy += this.cells.get(id)?.energyNorm ?? 0;
+      const energyNorm = energy / org.cells.length;
+
+      const key = `${sb}.${zb}.${rb}`;
+      const entry = this.nicheArchive.get(key);
+      if (!entry) {
+        this.nicheArchive.set(key, {
+          speedBin: sb, sizeBin: zb, rangeBin: rb,
+          count: 1, bestEnergyNorm: energyNorm, bestLineage: org.lineageId,
+          bestGenome: { ...org.genome }, occupiedNow: true,
+        });
+      } else {
+        entry.count++;
+        entry.occupiedNow = true;
+        if (energyNorm > entry.bestEnergyNorm) {
+          entry.bestEnergyNorm = energyNorm;
+          entry.bestLineage = org.lineageId;
+          entry.bestGenome = { ...org.genome };
+        }
+      }
+    }
+  }
+
+  /**
+   * Seçilim fazı — **yalnız `ε > 0` iken**, `seeding.interval` tick'te bir.
+   *
+   * MAP-Elites'in seçilim kuralı: **boş** nişlere, o nişte arşivlenen en iyi
+   * bireyin mutasyonlu yavrusunu enjekte et. Dolu nişlere dokunulmaz —
+   * yöntemin bütün amacı çukuru seçilimle doldurmaktır.
+   *
+   * ⚠️ Enerji muhasebesi: enjekte edilen hücre `INITIAL_CELL_ENERGY` ile
+   * doğar ve bu enerji **dışarıdan girer**, tıpkı besin eklemede olduğu gibi.
+   * `ledger.addExternal` çağrısı olmadan muhasebe bozulurdu.
+   */
+  private nicheSeedingPhase(): void {
+    for (const entry of this.nicheArchive.values()) {
+      if (entry.occupiedNow) continue;
+
+      const base = clampGenome(entry.bestGenome);
+      // Üreme fazının kullandığı oranla aynı (0.18): elit çevresinde aynı
+      // ölçekte bir bulut üretir, yani elit korunur ama komşu nişlere de
+      // yayılabilir. Farklı bir oran deneyde ayrıca ölçülür.
+      const genome = this.constraints.mutationEnabled
+        ? mutateGenome(base, this.rng.inherit, 0.18, 1)
+        : base;
+      const org = this.createOrganism(genome, null, 0, 'genesis');
+      org.lineageId = entry.bestLineage;
+      const pos = this.randomSpawnPosition(this.rng.env);
+      this.spawnCell(org.id, pos, C.INITIAL_CELL_ENERGY, { x: 0, y: 0, z: 1 });
+      // Enjeksiyon dışarıdan giren enerjidir; korunum değişmezi böyle korunur.
+      this.ledger.addExternal(C.INITIAL_CELL_ENERGY);
+      this.nicheSeedCount++;
+    }
+  }
+
+  /** Arşivin + eksen sağlığının anlık görüntüsü (yalnız ölçüm). */
+  nicheSnapshot(): LifeSnapshot {
+    const B = this.nicheConfig.bins;
+    const h = this.nicheHealth;
+    const cells: LifeCell[] = [...this.nicheArchive.values()]
+      .map((e) => ({
+        speedBin: e.speedBin, sizeBin: e.sizeBin, rangeBin: e.rangeBin,
+        count: e.count, bestEnergyNorm: e.bestEnergyNorm, bestLineage: e.bestLineage,
+      }))
+      .sort((a, b) => a.speedBin - b.speedBin || a.sizeBin - b.sizeBin || a.rangeBin - b.rangeBin);
+
+    const health: LifeAxisHealth[] = [
+      { axis: 'hız', bins: B, max: LIFE_SPEED_MAX, clamped: h.clamped.speed, total: h.observed.speed, binsReached: h.binsHit.speed.size, min: h.min.speed },
+      { axis: 'boyut', bins: B, max: LIFE_SIZE_MAX, clamped: h.clamped.size, total: h.observed.size, binsReached: h.binsHit.size.size, min: h.min.size },
+      { axis: 'menzil', bins: B, max: LIFE_RANGE_SPAN, clamped: h.clamped.range, total: h.observed.range, binsReached: h.binsHit.range.size, min: h.min.range },
+    ];
+    // Çökme kuralı **yalnız güvenilir sinyale** bakar: eksen tek kutuya
+    // kırpılmış ya da neredeyse her gözlem tavana yapışmış. Eksik kutu arıza
+    // değildir — ölçülen biyolojidir.
+    const degenerateAxes = health
+      .filter((x) => x.binsReached < 2 || (x.total > 0 && x.clamped / x.total > 0.9))
+      .map((x) => x.axis);
+    const totalOrganisms = cells.reduce((a, c) => a + c.count, 0);
+    const top = cells.reduce((a, c) => (c.count > a.count ? c : a), cells[0]);
+    return {
+      tick: this.tick,
+      bins: B,
+      total: B * B * B,
+      occupied: cells.length,
+      cells,
+      health,
+      degenerateAxes,
+      concentration: totalOrganisms > 0 ? (top?.count ?? 0) / totalOrganisms : 0,
+      totalOrganisms,
+      seedCount: this.nicheSeedCount,
+    };
+  }
+
 
   /**
    * Kendi snapshot'ını kurar.
@@ -2179,6 +2428,22 @@ export class World {
         coupleFatigueToGenome?: boolean;
       };
       populationUpdateConfig: { enabled: boolean; rate: number; interval: number };
+      nicheConfig: {
+        enabled: boolean;
+        bins: number;
+        seeding: { enabled: boolean; interval: number };
+      };
+      nicheArchive: Map<string, NicheArchiveEntry>;
+      nichePath: Map<number, number>;
+      nicheFirst: Map<number, number>;
+      nichePrevC: Map<number, Vec3>;
+      nicheHealth: {
+        clamped: { speed: number; size: number; range: number };
+        observed: { speed: number; size: number; range: number };
+        binsHit: { speed: Set<number>; size: Set<number>; range: Set<number> };
+        min: { speed: number; size: number; range: number };
+      };
+      nicheSeedCount: number;
     };
     init.ledger = new EnergyLedger();
     init.events = new RingBuffer<SimEvent>(2000);
@@ -2227,6 +2492,29 @@ export class World {
       rate: options.populationUpdateRate ?? 0.06,
       interval: Math.max(1, options.populationUpdateInterval ?? 500),
     };
+    // ⚠️ Faz D alanları da bu blokta kurulmalı: `Object.create` constructor'ı
+    // çağırmadığı için sınıf alan başlatıcıları hiç çalışmıyor. Bu blok
+    // olmadan `nicheArchive` `undefined` kalır ve `nicheArchivePhase()`
+    // TypeError atar — dal yine sessizce bozulur.
+    init.nicheConfig = {
+      enabled: options.nicheArchive !== false,
+      bins: Math.max(2, options.nicheBins ?? 3),
+      seeding: {
+        enabled: options.nicheSeeding ?? false,
+        interval: Math.max(1, options.nicheSeedingInterval ?? 500),
+      },
+    };
+    init.nicheArchive = new Map();
+    init.nichePath = new Map();
+    init.nicheFirst = new Map();
+    init.nichePrevC = new Map();
+    init.nicheHealth = {
+      clamped: { speed: 0, size: 0, range: 0 },
+      observed: { speed: 0, size: 0, range: 0 },
+      binsHit: { speed: new Set(), size: new Set(), range: new Set() },
+      min: { speed: Infinity, size: Infinity, range: Infinity },
+    };
+    init.nicheSeedCount = 0;
 
     world.version = SIM_VERSION;
     world.tick = snapshot.tick;

@@ -18,7 +18,7 @@ import { ACTION_NAMES } from '../sim/behavior/mlp.ts';
 import { learnedDeltaNorm } from '../sim/behavior/policy.ts';
 import { copyTheta } from '../sim/behavior/mlp.ts';
 import { runEvolutionLab } from '../sim/lab/evolutionLab.ts';
-import { LifeMapTracker, type LifeSnapshot } from '../sim/lab/lifeMap.ts';
+import type { LifeSnapshot } from '../sim/lab/lifeMap.ts';
 import { genomeSummary } from '../sim/genome.ts';
 import {
   exportJson,
@@ -55,10 +55,9 @@ let seqCounter = 0;
 let lastFrameSent = 0;
 let loopHandle: ReturnType<typeof setTimeout> | null = null;
 let saveCounter = 0;
-// Yaşam haritası takipçisi. Her tick yol uzunluğu biriktirir; maliyeti ölçüldü
-// (`step` yalnız 907 ms vs. merkez konumu eklenince 863 ms / 3000 tick), yani
-// gürültü içindedir. Seçilim `ε = 0`: yalnız ölçer, hiçbir şeyi değiştirmez.
-let lifeMap: LifeMapTracker | null = null;
+// Yaşam haritası ölçümü World'un kendi fazında (`nicheArchivePhase`); worker
+// yalnız her tick `world.step()` çağırmakla yetinir. Seçilim `ε = 0`:
+// yalnız ölçer, hiçbir şeyi değiştirmez.
 
 const MAX_STEPS_PER_WAKE = 12;
 
@@ -73,6 +72,7 @@ const EMPTY_LIFE_MAP: LifeSnapshot = {
   degenerateAxes: [],
   concentration: 0,
   totalOrganisms: 0,
+  seedCount: 0,
 };
 
 function post(message: WorkerResponse, transfer?: Transferable[]): void {
@@ -196,7 +196,6 @@ function loop(): void {
       accumulator -= C.TICK_MS;
       steps++;
       if (w.tick % 200 === 0) w.compact();
-      lifeMap?.advance(w.tick);
     }
     // Biriktirici tavanı: gecikmede sonsuz birikim olmaz.
     if (accumulator > C.TICK_MS * 4) accumulator = C.TICK_MS * 4;
@@ -339,7 +338,6 @@ function handle(request: WorkerRequest): void {
         running = true;
         speed = 1;
         accumulator = 0;
-        lifeMap = new LifeMapTracker(world);
         const rocks: RockSeed[] = world.rocks.map((r) => ({ ...r, pos: { ...r.pos } }));
         post({
           type: 'ready',
@@ -418,7 +416,6 @@ function handle(request: WorkerRequest): void {
         world = deserializeWorld(parsed);
         worldId = `loaded-${saveCounter++}`;
         // Takipçi dünya nesnesine bağlıdır; yeni dünya → sıfırdan başlar.
-        lifeMap = new LifeMapTracker(world);
         running = false;
         accumulator = 0;
         post({ type: 'ready', simVersion: SIM_VERSION, habitat: { size: { ...world.settings.size } }, rocks: world.rocks.map((r) => ({ ...r, pos: { ...r.pos } })), snapshotVersion: SNAPSHOT_VERSION });
@@ -516,8 +513,7 @@ function handle(request: WorkerRequest): void {
     }
     case 'lifeMap':
       // Takipçi her tick ilerletildiği için bu yalnız arşivin anlık görüntüsü.
-      if (!lifeMap || !w) post({ type: 'lifeMapResult', snapshot: EMPTY_LIFE_MAP });
-      else post({ type: 'lifeMapResult', snapshot: lifeMap.snapshot() });
+      post({ type: 'lifeMapResult', snapshot: w ? w.nicheSnapshot() : EMPTY_LIFE_MAP });
       break;
     case 'ping':
       post({ type: 'pong', t: performance.now() });

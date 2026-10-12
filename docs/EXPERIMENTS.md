@@ -1,7 +1,7 @@
 # Cell to Mind — Deney Sonuçları
 
-**Körüldü:** 2026-10-12T06:32:20.267Z
-**Toplam koşu:** 1921 · **duvar süresi:** 459.9 s
+**Körüldü:** 2026-10-12T15:10:24.172Z
+**Toplam koşu:** 1921 · **duvar süresi:** 571.9 s
 **Mod:** standart
 **Pencere:** 12.000 tick (40.000 tick'lik ekolojik çöküşü kapsamak için `--deep` kullanın)
 
@@ -358,6 +358,24 @@ değişimin değil organizmaların aynı davranış kutusuna birikmesi.
   → 7/27 kutu dolu (%26 doluluk). En yoğun kutuda %52 organizma birikmiş (kutu 2/0/1). Dolu kutu sayısı: ilk üçte 5.3 → son üçte 4.3 ortalama. **Belirgin yakınsama:** organizmaların çoğu tek bir davranış kutusunda. Bu, yaşam haritasının (Faz D) çözeceği problem: arşiv olmadan popülasyon tek çukura düşüyor.
 ```
 
+Faz D · Niş kapsama ölçümünün yorumu
+
+Bu ölçüm, bir arşivin **gerçekten işe yarayıp yaramadığını** test eder.
+MAP-Elites kuralı: boş nişlere o nişte arşivlenen en iyi bireyin yavrusunu
+enjekte et. Bu, arşivin seçilime katılmasıdır (ε > 0).
+
+```
+  eşleştirilmiş fark (dolu kutu, tohum başına): [1, -4, 4, -1]
+  dolu kutu (/27)          10.50 → 10.50
+  yoğunlaşma              %50 → %51
+  canlı popülasyon        119 → 174
+  hücre enerjisi (e)      3667 → 4653
+  enjeksiyon (adet)       0 → 205.0
+  enerji rezidülü |e|     7.0e-8 → 8.0e-8
+  eşleştirilmiş fark 0.00 [-2.75, 2.75] · p = 1.0000
+  → Dolu kutu: kontrol 10.50 → tedavi 10.50 (+/27). Yoğunlaşma: %50 → %51. Enjeksiyon: kolo başına 205.0 organizma. Enerji rezidülü: kontrol |7.0e-8| · tedavi |8.0e-8| e. **Arşiv seçilime katılınca doluluk artmadı:** MAP-Elites kuralı bu modelde işe yaramadı. Nedeni yapısal: (1) **boyut kalıtsal değil** — enjekte edilen her organizma tek hücreyle doğar, dolayısıyla boyut ekseninde seçilim hiçbir şey koruyamaz; (2) seçilim **anlık boşluğa** enjekte eder, elit nereden gelirse gelsin gireceği yer o an boş olduğu için hedef kutu garanti değildir.
+```
+
 ## Dal (branch) doğruluğu ve maliyeti
 
 `VALIDATION.md` §9 madde 7 bu yolu "test edilmemiş" diye listeliyordu.
@@ -373,9 +391,9 @@ bozuktu**. Düzeltildi; regresyon testi eklendi.
 ```
   çatal noktası: tick 3000 · 1500 adım sonra karşılaştırma
   snapshot boyutu: 2.544.430 bayt
-  çatallama süresi: 42.37 ms · iki dalın koşusu: 2382.8 ms · oran 1.8%
+  çatallama süresi: 43.95 ms · iki dalın koşusu: 3021.0 ms · oran 1.5%
   dallar bit düzeyinde aynı: evet · müdahale sızıntısı: yok · müdahale etkili: evet
-  → Çatallama **doğru**: iki dal bit düzeyinde aynı ilerliyor ve müdahale diğerine sızmıyor. Snapshot 2.54 MB; bir dal açmak 21.2 ms, bir simülasyon adımı 0.794 ms → **bir çatal ≈ 27 tick** maliyetinde. Yani 500 tick'te bir, 16 pertürbasyonlu güncelleme ≈ 85% ek yük demek: üstel strateji yaşam içinde pratikte **bütçelenebilir**. Müdahale testi: müdahalesiz dal referansla AYNI, müdahale görmüş dal AYRILDI. **DİKKAT:** bu maliyet 3000. tick'te ölçüldü ve snapshot boyutuyla ölçeklenir; geç pencerelerde farklı olabilir ve **ölçülmedi**.
+  → Çatallama **doğru**: iki dal bit düzeyinde aynı ilerliyor ve müdahale diğerine sızmıyor. Snapshot 2.54 MB; bir dal açmak 22.0 ms, bir simülasyon adımı 1.007 ms → **bir çatal ≈ 22 tick** maliyetinde. Yani 500 tick'te bir, 16 pertürbasyonlu güncelleme ≈ 70% ek yük demek: üstel strateji yaşam içinde pratikte **bütçelenebilir**. Müdahale testi: müdahalesiz dal referansla AYNI, müdahale görmüş dal AYRILDI. **DİKKAT:** bu maliyet 3000. tick'te ölçüldü ve snapshot boyutuyla ölçeklenir; geç pencerelerde farklı olabilir ve **ölçülmedi**.
 ```
 
 ## S-4 · Çatallanmış ortamda yaşam içi üstel arama
@@ -389,10 +407,10 @@ ortalaması boyunca kaydırılır. Seyrek dünyada koşulur (pop 6, kaynak 6).
   kontrol (arama kapalı): medyan enerji 48.07 e · pop 18 · arama 0
   tedavi  (arama açık) : medyan enerji 48.07 e · pop 18 · arama 24 (4 pertürbasyon × 120 tick)
   ağırlık hareketi: kontrol 0.00000 · tedavi 0.00104
-  maliyet: 4000 tick'in koşusu 33 ms · arama 150 ms → ek yük ≈ 2204 tick
+  maliyet: 4000 tick'in koşusu 46 ms · arama 209 ms → ek yük ≈ 2231 tick
   enerji rezidülü: 0.000000000 e
   eşleştirilmiş fark 0.000 [0.000, 0.000] · p = 1.0000
-  → Çatallanmış arama **ölçülebilir performans artışı üretmedi**: fark 0.000 [0.000, 0.000], p = 1.0000. Ağırlık hareketi: medyan ‖Δθ‖ = 0.0010 (kontrol 0.0000) — yani arama θ'yı hareket ettirdi ama davranış kazanmadı. Ek yük ≈ 2204 tick'lik eşdeğer.
+  → Çatallanmış arama **ölçülebilir performans artışı üretmedi**: fark 0.000 [0.000, 0.000], p = 1.0000. Ağırlık hareketi: medyan ‖Δθ‖ = 0.0010 (kontrol 0.0000) — yani arama θ'yı hareket ettirdi ama davranış kazanmadı. Ek yük ≈ 2231 tick'lik eşdeğer.
 ```
 
 ## Bağ gücü koloni büyüklüğünü artırıyor mu?

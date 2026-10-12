@@ -302,6 +302,34 @@ kayboldu. Yani panel ölü bir yeşil değil — anlık gerçeği yansıtıyor.
 Maliyet ölçüldü: her tick `centroidOf` çağrısı 3000 tick'te 907 ms → 863 ms.
 Kare başına gönderim yok, panel açıkken 1500 ms'de bir anlık görüntü istenir.
 
+### 2.2f Faz D · Arşivin seçilime katılması (ε > 0) — **başarısız**
+
+(`VALIDATION.md` §6.28–6.30)
+
+MAP-Elites kuralı denendi: boş nişlere o nişin en iyi bireyinin yavrusu
+enjekte ediliyor. Eşleştirilmiş 4 tohum, 12.000 tick.
+
+| | ε = 0 | ε > 0 |
+|---|---|---|
+| Dolu kutu (/27) | 10,50 | **10,50** |
+| Canlı popülasyon | 119 | 174 |
+| Hücre enerjisi (e) | 3.667 | 4.653 |
+
+Fark **0,00** [−2,75, +2,75], **p = 1,0000**. Enjeksiyon gerçekten canlı
+üretiyor ama ürettiği bireyler çukura geri kayıyor.
+
+**Neden — yapısal, ölçülmüş:** boyut ekseni **kalıtsal değil**. Enjeksiyon
+tek hücreli organizma doğurur; 12.000 tick sonunda canlıların **%100'ü tek
+hücreli**, arşivdeki 97 bin büyük-organizma gözlemi ise artık **0**. MAP-Elites
+"elitini koru" mantığı burada bir şey koruyamaz çünkü elit de küçük doğuyor.
+
+İlk hipotez ("elit mutasyonla bozuluyor") **ölçülerek çürütüldü**: mutasyon
+kapalıyken de doluluk artmadı. Yanlış açıklama doğrulamadan önce yazıldı.
+
+**Sonuç:** seçilim kancası ölçüm aracı olarak duruyor ama **açılmıyor**.
+Arşiv üründe ölçüm olarak kalıyor (ε = 0). Faz D'nin bugünkü hali: çukur
+ölçüldü, görselleştirildi, doldurulması denendi — başarısız.
+
 ### 2.3 Gözlemci: canlı model doğrulanmadı
 
 - Hiçbir API anahtarı yoktu; **gerçek bir sağlayıcı çağrısı yapılmadı**.

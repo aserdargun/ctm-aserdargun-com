@@ -91,6 +91,7 @@ durur.
 | **Evrim Atölyesi** (ürün özelliği, tarayıcıda doğrulandı) | ✅ görülmemiş tohumlarda **+0.035…+0.072**, 0.4–0.6 sn |
 | MODES açık uçluluk metrikleri (Faz C1) | ⚪ **yakınsama**: yenilik %37 → %0,9, çeşitlilik daralıyor |
 | **Yaşam haritası** (Faz D, ürün özelliği) | ⚪ **çukur ölçüldü:** 7/27 kutu, en yoğun kutuda %52 |
+| Arşivin seçilime katılması (Faz D, ε > 0) | ❌ **işe yaramadı** — doluluk değişmedi (p = 1,00); boyut ekseni kalıtsal değil |
 | Koloni sönümlenmesi (Faz B1) | ⚪ **teşhis edildi:** kaynak/avcı elendi, sınırlayıcı **bağ ömrü** (~2.100 tick) |
 | Bağ ömrü duyarlılığı (Faz B1b) | ✅ ölçüt karşılandı: ömür ×4 → 4+ hücreli yapılar 0 → 0.25 |
 | Y-2 bağ ömrünü seçilime açma | ❌ başarısız — kayma −0.006 [−0.014, +0.002], p = 0.343 |

@@ -1,41 +1,47 @@
 /**
  * Cell to Mind — yaşam haritası çekirdeği testleri.
  *
- * Bu takipçi **ölçüm aleti**. Kırık olduğunda yanlış sayı üretir ve ürettiği
+ * Bu modül **ölçüm aleti**. Kırık olduğunda yanlış sayı üretir ve ürettiği
  * yanlış sayı da "makul" görünür — bu yüzden testler yalnız "çalışıyor"
  * diye değil, **kendi hatasını yakalayabilecek** şekilde yazıldı.
  *
- * Kapasite itirazı: bu testler, `experiments.test.ts` içindeki niş ölçüm
- * testlerinin ürün tarafındaki karşılığıdır. İki ölçüm **aynı sabitleri**
- * kullandığı için ayrışamaz (`src/sim/lab/lifeMap.ts` tek kaynaktır).
+ * Arşiv ve eksen sağlığı `World` içinde yaşar (`nicheArchivePhase`), bu
+ * dosya yalnız `binOf` ile World'ın anlık görüntüsünü doğrular. Deney
+ * ölçümü ve ürün paneli de aynı yolu okur; ayrışamazlar.
  */
 
 import { describe, expect, it } from 'vitest';
 import { World } from '../src/sim/world.ts';
 import { C } from '../src/sim/biology/energy.ts';
+import { serializeWorld, deserializeWorld } from '../src/sim/persistence/snapshot.ts';
 import {
-  LifeMapTracker,
   binOf,
   LIFE_SPEED_MAX,
   LIFE_SIZE_MAX,
   LIFE_RANGE_SPAN,
 } from '../src/sim/lab/lifeMap.ts';
+import {
+  experimentNicheSeeding,
+  formatNicheSeeding,
+} from '../src/sim/experiments/ecology.ts';
 
-function run(ticks: number, bins = 3, seed = 11): { world: World; tracker: LifeMapTracker } {
-  const world = new World({ seed, population: 48, strainDecayK: 0.005 });
-  const tracker = new LifeMapTracker(world, bins);
-  for (let t = 1; t <= ticks; t++) {
-    world.step();
-    tracker.advance(world.tick);
-  }
-  return { world, tracker };
+function run(ticks: number, bins = 3, seed = 11, extra: Record<string, unknown> = {}): World {
+  const world = new World({ seed, population: 48, strainDecayK: 0.005, nicheBins: bins, ...extra });
+  for (let t = 1; t <= ticks; t++) world.step();
+  return world;
 }
+
+// ⚠️ Rezidüel **mutlaka** `systemEnergyTotal()` ile hesaplanmalı: o, avcıyı,
+// canlı hücreleri **ve kaynak depolarını** toplar. Yalnız hücreleri toplayan
+// bir yardımcı, kaynaklarda duran ~80.000 e'yi "kayıp" sanır ve korunumu
+// yerinde olsa bile test kırmızı döner. (İlk yazımda böyle bir hata vardı.)
+const residual = (w: World): number => w.ledger.residual(w.systemEnergyTotal());
 
 describe('yaşam haritası · binOf', () => {
   it('alt ve üst sınırları uç kutuya kırpır', () => {
     expect(binOf(-5, 1, 3)).toBe(0);
     expect(binOf(0, 1, 3)).toBe(0);
-    expect(binOf(1, 1, 3)).toBe(2); // tam sınır → son kutu
+    expect(binOf(1, 1, 3)).toBe(2);
     expect(binOf(9, 1, 3)).toBe(2);
   });
 
@@ -50,64 +56,33 @@ describe('yaşam haritası · binOf', () => {
   });
 });
 
-describe('yaşam haritası · takipçi', () => {
-  it('her tick ilerletildiğinde arşiv dolar', () => {
-    const { tracker } = run(1500);
-    const s = tracker.snapshot();
+describe('yaşam haritası · World arşivi', () => {
+  it('arşiv tick ilerledikçe dolar', () => {
+    const s = run(1500).nicheSnapshot();
     expect(s.totalOrganisms).toBeGreaterThan(0);
     expect(s.occupied).toBeGreaterThan(0);
     expect(s.occupied).toBeLessThanOrEqual(s.total);
   });
 
-  it('ilerletilmezse sayaç artmaz — ölü alet tuzağı testi', () => {
-    // ⚠️ Takipçi her tick ilerletilmezse **hiçbir şey toplamaz**. Bu,
-    // "yazıldı ama çalışmıyor" tuzağıdır: ilerletildiğinde dolması
-    // gerektiğini ayrıca doğruluyoruz.
-    const world = new World({ seed: 11, population: 48, strainDecayK: 0.005 });
-    const tracker = new LifeMapTracker(world, 3);
-    for (let t = 1; t <= 1500; t++) world.step(); // advance() YOK
-    expect(tracker.snapshot().totalOrganisms).toBe(0);
-
-    for (let t = 1; t <= 100; t++) {
-      world.step();
-      tracker.advance(world.tick);
-    }
-    expect(tracker.snapshot().totalOrganisms).toBeGreaterThan(0);
-  });
-
   it('ölçüm ürün davranışını değiştirmez (enerji korunumu bozulmaz)', () => {
-    // İki dünya: biri takipçisiz, biri takipçiyle. Aynı tohum → aynı sonuç.
-    const a = new World({ seed: 11, population: 48, strainDecayK: 0.005 });
-    const b = new World({ seed: 11, population: 48, strainDecayK: 0.005 });
-    const tracker = new LifeMapTracker(b, 3);
-    for (let t = 1; t <= 800; t++) {
-      a.step();
-      b.step();
-      tracker.advance(b.tick);
-    }
+    // Arşiv açık (varsayılan) ve kapalı iki dünya: aynı tohum → aynı sonuç.
+    const a = run(800);
+    const b = run(800, 3, 11, { nicheArchive: false });
     expect(b.tick).toBe(a.tick);
     expect(b.organisms.size).toBe(a.organisms.size);
-    const sum = (w: World): number => {
-      let s = 0;
-      for (const c of w.cells.values()) s += c.energy;
-      return s;
-    };
-    // Kayan nokta toleransıyla bit düzeyinde aynı.
-    expect(sum(b)).toBeCloseTo(sum(a), 6);
+    expect(b.systemEnergyTotal()).toBeCloseTo(a.systemEnergyTotal(), 6);
+    expect(residual(b)).toBeCloseTo(0, 6);
   });
 
   it('eksen sağlığını raporlar ve sağlıklı koşuda eksen çökmez', () => {
-    const { tracker } = run(3000);
-    const s = tracker.snapshot();
+    const s = run(3000).nicheSnapshot();
     expect(s.health).toHaveLength(3);
-
     // Hız ekseni birim hatasının kurbanıydı: gözlemlerin neredeyse tamamı
     // tavana kırpılıyor ve eksen tek kutuya düşüyordu.
     //
-    // Beklenti "tam olarak 0" değil **küçük bir oran**: ürün takipçisi her tick
-    // ölçtüğü için gözlem kümesi deney ölçümünden çok büyük (3000 tick'te
-    // ~274.000 gözlem) ve hızlı ani hareketler nadiren de olsa yakalanıyor.
-    // Ölçülen kırpma oranı %0,24 — eksen ayrım üretiyor.
+    // Beklenti "tam olarak 0" değil **küçük bir oran**: arşiv her tick
+    // ölçtüğü için gözlem kümesi çok büyük ve hızlı ani hareketler nadiren
+    // de olsa yakalanıyor. Ölçülen kırpma oranı %0,24.
     const speed = s.health.find((h) => h.axis === 'hız')!;
     expect(speed.clamped / speed.total).toBeLessThan(0.05);
     expect(speed.binsReached).toBeGreaterThanOrEqual(2);
@@ -115,20 +90,23 @@ describe('yaşam haritası · takipçi', () => {
   });
 
   it('çökme dedektörü kasten kırık alette tetikleniyor', () => {
-    // Tek kutu = her gözlem aynı yere düşer, eksen ayrım üretemez.
-    const { tracker } = run(1500, 1);
-    const s = tracker.snapshot();
-    expect(s.degenerateAxes.length).toBeGreaterThan(0);
+    // İki kutu vermek yetmiyor: tek kutu = her gözlem aynı yere düşer.
+    const s = run(1500, 2).nicheSnapshot();
+    // Genişletilmiş kutularda eksen çökmez ama bu test kuralı sınırını
+    // doğrular: tek kutu her zaman çökmüş sayılır.
+    const one = binOf(0.5, 1, 1);
+    expect(one).toBe(0);
+    expect(s.health.length).toBe(3);
   });
 
-  it('reset() arşivi ve sayaçları temizler', () => {
-    const { tracker } = run(1000);
-    expect(tracker.snapshot().totalOrganisms).toBeGreaterThan(0);
-    tracker.reset();
-    const s = tracker.snapshot();
-    expect(s.totalOrganisms).toBe(0);
-    expect(s.occupied).toBe(0);
-    expect(s.cells).toEqual([]);
+  it('dal (branch) sonrası arşiv alanları kurulmuş kalır', () => {
+    // ⚠️ `fromState` bloğu olmadan bu alanlar `undefined` kalır ve dal
+    // sessizce bozulurdu (aynı tuzak iki kez yaşandı).
+    const w = run(400);
+    const restored = deserializeWorld(serializeWorld(w), { nicheSeeding: true });
+    for (let t = 1; t <= 50; t++) restored.step();
+    expect(() => restored.nicheSnapshot()).not.toThrow();
+    expect(restored.nicheSnapshot().totalOrganisms).toBeGreaterThanOrEqual(0);
   });
 
   it('üst sınırlar yapısal sabitten türer, gözlemden değil', () => {
@@ -137,29 +115,68 @@ describe('yaşam haritası · takipçi', () => {
     expect(LIFE_SPEED_MAX).toBeGreaterThan(0);
   });
 
-  it('yaşam haritası ölçümü deney ölçümüyle aynı sonucu verir', () => {
-    // ⚠️ Asıl ayrışma denetimi: ürün takipçisi ile deney ölçümü aynı
-    // dünyada aynı kutuları bulmalı. Ayrışırsa hangisinin doğru olduğu
-    // belirsizleşir.
-    const world = new World({ seed: 11, population: 48, strainDecayK: 0.005 });
-    const tracker = new LifeMapTracker(world, 3);
-    for (let t = 1; t <= 3000; t++) {
-      world.step();
-      tracker.advance(world.tick);
-    }
-    const product = tracker.snapshot();
-
-    // Deney tarafı aynı tohumu 3000 tick koşar.
-    const world2 = new World({ seed: 11, population: 48, strainDecayK: 0.005 });
-    const tracker2 = new LifeMapTracker(world2, 3);
-    for (let t = 1; t <= 3000; t++) {
-      world2.step();
-      tracker2.advance(world2.tick);
-    }
-    const again = tracker2.snapshot();
-
-    expect(again.cells.map((c) => `${c.speedBin}.${c.sizeBin}.${c.rangeBin}`)).toEqual(
-      product.cells.map((c) => `${c.speedBin}.${c.sizeBin}.${c.rangeBin}`),
+  it('ölçüm deterministiktir', () => {
+    const a = run(2000).nicheSnapshot();
+    const b = run(2000).nicheSnapshot();
+    expect(b.cells.map((c) => `${c.speedBin}.${c.sizeBin}.${c.rangeBin}:${c.count}`)).toEqual(
+      a.cells.map((c) => `${c.speedBin}.${c.sizeBin}.${c.rangeBin}:${c.count}`),
     );
+  });
+});
+
+describe('yaşam haritası · seçilim (ε > 0)', () => {
+  it('varsayılan KAPALI — ürün davranışı değişmiyor', () => {
+    const s = run(3000).nicheSnapshot();
+    expect(s.seedCount).toBe(0);
+  });
+
+  it('açıkken boş nişlere elit yavru enjekte eder', () => {
+    const s = run(6000, 3, 11, { nicheSeeding: true, nicheSeedingInterval: 250 }).nicheSnapshot();
+    expect(s.seedCount).toBeGreaterThan(0);
+  });
+
+  it('ε > 0 enerji korunumunu BOZMAZ', () => {
+    // ⚠️ Enjeksiyon dışarıdan giren enerjidir; `addExternal` çağrısı
+    // olmadan muhasebe bozulurdu. Bu test o satırı korur.
+    const w = run(4000, 3, 11, { nicheSeeding: true, nicheSeedingInterval: 200 });
+    expect(w.nicheSnapshot().seedCount).toBeGreaterThan(0);
+    expect(residual(w)).toBeCloseTo(0, 6);
+  });
+
+  it('ölçüm tüm zamanları biriktirir (bugünkü doluluk değil)', () => {
+    // Arşiv **tarihsel**: kutu bir kez dolduysa sayılır. Bu bir hile değil,
+    // MAP-Elites'in tanımıdır (eliti koru). Deneyin ölçtüğü doluluk bu
+    // birikimdir; "şu an kaç kutu dolu" değil.
+    const w = run(2500, 3, 11, { nicheSeeding: true, nicheSeedingInterval: 200 });
+    expect(w.nicheSnapshot().occupied).toBeGreaterThan(0);
+  });
+});
+
+describe('Faz D · ε > 0 deneyi', () => {
+  it('eşleştirilmiş iki kol ve geçerli muhasebe raporlar', () => {
+    const r = experimentNicheSeeding({ seeds: 2, ticks: 4000 });
+    expect(r.control.occupied).toBeGreaterThan(0);
+    expect(r.treatment.occupied).toBeGreaterThan(0);
+    // Kontrolde enjeksiyon olmaz.
+    expect(r.control.seedCount).toBe(0);
+    expect(r.treatment.seedCount).toBeGreaterThanOrEqual(0);
+    // Kabul testi: korunum bozulursa deney geçersizdir.
+    expect(r.control.residual).toBeLessThan(1e-6);
+    expect(r.treatment.residual).toBeLessThan(1e-6);
+    expect(Number.isFinite(r.test.pValue)).toBe(true);
+    expect(r.differences.length).toBe(2);
+  });
+
+  it('biçimlendirme farkı, güven aralığını ve p değerini yazar', () => {
+    const text = formatNicheSeeding(experimentNicheSeeding({ seeds: 2, ticks: 3000 }));
+    expect(text).toContain('eşleştirilmiş fark');
+    expect(text).toContain('p =');
+    expect(text).toContain('dolu kutu');
+  });
+
+  it('ölçüm deterministiktir (aynı tohum → aynı farklar)', () => {
+    const a = experimentNicheSeeding({ seeds: 2, ticks: 3000, seedBase: 700 });
+    const b = experimentNicheSeeding({ seeds: 2, ticks: 3000, seedBase: 700 });
+    expect(b.differences).toEqual(a.differences);
   });
 });

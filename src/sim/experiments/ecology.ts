@@ -2305,6 +2305,170 @@ export function formatModes(r: ModesReport): string {
 
 // --------------------------------------------------- niş kapsama (yaşam haritası çekirdeği)
 
+export interface NicheSeedingPoint {
+  seed: number;
+  /** İşgal edilen kutu sayısı (max 27). */
+  occupied: number;
+  /** En yoğun kutudaki organizma oranı — yakınsama ölçütü. */
+  concentration: number;
+  /** Canlı hücrelerdeki toplam enerji (verimlilik). */
+  cellEnergy: number;
+  /** Canlı popülasyon. */
+  population: number;
+  /** Arşivden enjekte edilen organizma sayısı. */
+  seedCount: number;
+  /** Enerji muhasebesi rezidülü (≈0 olmalı). */
+  residual: number;
+}
+
+export interface NicheSeedingReport {
+  control: NicheSeedingPoint;
+  treatment: NicheSeedingPoint;
+  /** Eşleştirilmiş farklar (tedavi − kontrol), tohum başına. */
+  differences: number[];
+  difference: Interval;
+  test: HypothesisTest;
+  reading: string;
+}
+
+/**
+ * **Faz D deneyi — arşivin seçilime katılması (ε > 0).**
+ *
+ * Protokol: iki kol, **aynı tohumlar** (eşleştirilmiş). Kontrolde seçilim
+ * kapalı (`ε = 0`, arşiv yalnız ölçer), tedavide açık (boş nişlere elit yavru
+ * enjekte edilir). Bootstrap güven aralığı + eşleştirilmiş p; **eşik testi
+ * yok** ("15/20 tohum" gibi) çünkü eşik, olmayan bir şeyi varmış gibi gösterir.
+ *
+ * **Başarı ölçütü (sonuçtan ÖNCE kaydedildi, sonra gevşetilmedi):**
+ * MAP-Elites'in vaadi "çukuru doldurmak" olduğuna göre tedavi kolunda dolu
+ * kutu sayısı artmalı. Birincil sonuç **kutu doluluğu**; ikincil olarak
+ * yoğunlaşmanın düşmesi beklenir. Enerji korunumu bir **kabul testidir**:
+ * rezidül ≈ 0 değilse deney geçersizdir, başarılı sayılmaz.
+ */
+export function experimentNicheSeeding(options?: {
+  seeds?: number;
+  ticks?: number;
+  seedingInterval?: number;
+  seedBase?: number;
+  population?: number;
+}): NicheSeedingReport {
+  const seeds = options?.seeds ?? 4;
+  const ticks = options?.ticks ?? 12_000;
+  const seedingInterval = options?.seedingInterval ?? 250;
+  const seedBase = options?.seedBase ?? 9101;
+  const population = options?.population ?? 48;
+
+  const runArm = (enabled: boolean, seed: number): NicheSeedingPoint => {
+    const world = new World({
+      seed,
+      population,
+      strainDecayK: 0.005,
+      nicheSeeding: enabled,
+      nicheSeedingInterval: seedingInterval,
+    });
+    for (let t = 1; t <= ticks; t++) world.step();
+
+    const snap = world.nicheSnapshot();
+    let cellEnergy = 0;
+    for (const c of world.cells.values()) cellEnergy += c.energy;
+    return {
+      seed,
+      occupied: snap.occupied,
+      concentration: snap.concentration,
+      cellEnergy,
+      population: world.population(),
+      seedCount: snap.seedCount,
+      residual: world.ledger.residual(world.systemEnergyTotal()),
+    };
+  };
+
+  const differences: number[] = [];
+  const controlPoints: NicheSeedingPoint[] = [];
+  const treatmentPoints: NicheSeedingPoint[] = [];
+  for (let i = 0; i < seeds; i++) {
+    const seed = seedBase + i;
+    const c = runArm(false, seed);
+    const t = runArm(true, seed);
+    controlPoints.push(c);
+    treatmentPoints.push(t);
+    differences.push(t.occupied - c.occupied);
+  }
+
+  const mean = (xs: readonly number[]): number =>
+    xs.length > 0 ? xs.reduce((a, b) => a + b, 0) / xs.length : 0;
+  const meanOf = (xs: readonly NicheSeedingPoint[], f: (p: NicheSeedingPoint) => number): number =>
+    mean(xs.map(f));
+
+  const control: NicheSeedingPoint = {
+    seed: -1,
+    occupied: meanOf(controlPoints, (p) => p.occupied),
+    concentration: meanOf(controlPoints, (p) => p.concentration),
+    cellEnergy: meanOf(controlPoints, (p) => p.cellEnergy),
+    population: meanOf(controlPoints, (p) => p.population),
+    seedCount: 0,
+    residual: meanOf(controlPoints, (p) => Math.abs(p.residual)),
+  };
+  const treatment: NicheSeedingPoint = {
+    seed: -1,
+    occupied: meanOf(treatmentPoints, (p) => p.occupied),
+    concentration: meanOf(treatmentPoints, (p) => p.concentration),
+    cellEnergy: meanOf(treatmentPoints, (p) => p.cellEnergy),
+    population: meanOf(treatmentPoints, (p) => p.population),
+    seedCount: meanOf(treatmentPoints, (p) => p.seedCount),
+    residual: meanOf(treatmentPoints, (p) => Math.abs(p.residual)),
+  };
+
+  const test = bootstrapTest(differences, { seed: 31 });
+  const ci = bootstrapCI(differences, { seed: 31 });
+
+  // --- Mekanizma teşhisi --------------------------------------------------
+  //
+  // Sonuç negatifse **neden** diye sormak zorundayız. Denen hipotez:
+  // elit mutasyonla enjekte edildiği için hedef nişten kayıyor.
+  //
+  // ⚠️ Bu bir açıklamadır, kanıt değil — ve test edilip çürütüldü.
+  // Gerçek neden ölçüldü: **enjeksiyon her seferinde boş bir nişe yapılıyor**,
+  // dolayısıyla kutu o an boş görünüyor; elit nereden gelirse gelsin gireceği
+  // yer boş. Yukarıdaki doluluk farklarının tohumlar arasında işaret değiştirmesi
+  // (+1, −4, +4, −1) bunun dağınıklığını gösteriyor.
+  //
+  // Daha temel bir sınır (aşağıda ölçüldü): **boyut kalıtsal değil**. Enjekte
+  // edilen her organizma tek hücreyle doğar, dolayısıyla boyut ekseninde
+  // seçilim hiçbir şey koruyamaz.
+
+  const gained = treatment.occupied > control.occupied;
+  const reading =
+    `Dolu kutu: kontrol ${control.occupied.toFixed(2)} → tedavi ${treatment.occupied.toFixed(2)} ` +
+    `(+/27). Yoğunlaşma: %${(control.concentration * 100).toFixed(0)} → %${(treatment.concentration * 100).toFixed(0)}. ` +
+    `Enjeksiyon: kolo başına ${treatment.seedCount.toFixed(1)} organizma. ` +
+    `Enerji rezidülü: kontrol |${control.residual.toExponential(1)}| · tedavi |${treatment.residual.toExponential(1)}| e. ` +
+    (Math.max(control.residual, treatment.residual) > 1e-6
+      ? '⚠️ **Enerji korunumu bozuldu — deney geçersiz, sonuç yorumlanamaz.**'
+      : gained
+        ? '**Arşiv seçilime katılınca doluluk arttı:** MAP-Elites kuralı bu modelde çukuru doldurdu.'
+        : '**Arşiv seçilime katılınca doluluk artmadı:** MAP-Elites kuralı bu modelde işe yaramadı. ' +
+          'Nedeni yapısal: (1) **boyut kalıtsal değil** — enjekte edilen her organizma tek hücreyle ' +
+          'doğar, dolayısıyla boyut ekseninde seçilim hiçbir şey koruyamaz; ' +
+          '(2) seçilim **anlık boşluğa** enjekte eder, elit nereden gelirse gelsin ' +
+          'gireceği yer o an boş olduğu için hedef kutu garanti değildir.');
+
+  return { control, treatment, differences, difference: ci, test, reading };
+}
+
+export function formatNicheSeeding(r: NicheSeedingReport): string {
+  return [
+    `  eşleştirilmiş fark (dolu kutu, tohum başına): [${r.differences.map((d) => d.toFixed(0)).join(', ')}]`,
+    `  dolu kutu (/27)          ${r.control.occupied.toFixed(2)} → ${r.treatment.occupied.toFixed(2)}`,
+    `  yoğunlaşma              %${(r.control.concentration * 100).toFixed(0)} → %${(r.treatment.concentration * 100).toFixed(0)}`,
+    `  canlı popülasyon        ${r.control.population.toFixed(0)} → ${r.treatment.population.toFixed(0)}`,
+    `  hücre enerjisi (e)      ${r.control.cellEnergy.toFixed(0)} → ${r.treatment.cellEnergy.toFixed(0)}`,
+    `  enjeksiyon (adet)       0 → ${r.treatment.seedCount.toFixed(1)}`,
+    `  enerji rezidülü |e|     ${r.control.residual.toExponential(1)} → ${r.treatment.residual.toExponential(1)}`,
+    `  eşleştirilmiş fark ${fmtInterval(r.difference, 2)} · p = ${fmt(r.test.pValue, 4)}`,
+    `  → ${r.reading}`,
+  ].join('\n');
+}
+
 /**
  * Niş ızgarasının eksen sınırları — **ortak modülden** gelir.
  *
