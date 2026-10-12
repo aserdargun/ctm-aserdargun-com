@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { C } from '../src/sim/biology/energy.ts';
+import { C, shareAlongBond } from '../src/sim/biology/energy.ts';
+import { founderGenomes } from '../src/sim/genome.ts';
+import { Rng } from '../src/sim/rng.ts';
 import { World } from '../src/sim/world.ts';
 import { deserializeWorld, serializeWorld } from '../src/sim/persistence/snapshot.ts';
 import { maxAbsDiff } from '../src/sim/behavior/mlp.ts';
@@ -310,6 +312,31 @@ describe('Snapshot → dünya (branch)', () => {
     }
     expect(a.systemEnergyTotal()).not.toBe(control.systemEnergyTotal());
     expect(b.systemEnergyTotal()).toBe(control.systemEnergyTotal());
+  });
+});
+
+describe('Paylaşma mekaniği', () => {
+  it('mekanizma doğrudur: eşiği aşan/altında kalan çiftte aktarım olur', () => {
+    const g = founderGenomes(new Rng(1), 1)[0]!;
+    const idle = C.CELL_CAPACITY * C.SHARE_IDLE_LEVEL;
+    // Donör eşiğin ÜSTÜNDE, alıcı ALTINDA → aktarım olmalı
+    expect(shareAlongBond(idle + 10, idle - 30, g).drawn).toBeGreaterThan(0);
+    // İkisi de eşiğin altında → aktarım olmamalı (fazlası yok, açık eksiklik)
+    expect(shareAlongBond(idle - 5, idle - 30, g).drawn).toBe(0);
+    expect(shareAlongBond(idle - 30, idle - 5, g).drawn).toBe(0);
+  });
+
+  it('OYUNDA paylaşma hiç tetiklenmiyor — eşik kalibrasyon kusuru', () => {
+    // VALIDATION §6.17: hücreler 0–70 e bandında çalışıyor, boşta eşiği 82 e.
+    // `surplus > 0` koşulu hiç oluşmadığı için paylaşma **ölü kod** ve
+    // `shareEfficiency` genom parametresi hiçbir şey yapmıyor.
+    // Eşik düzeltildiğinde bu test KIRMIZI olacak ve doküman güncellenecek.
+    const w = new World({ seed: 11, population: 48 });
+    for (let t = 0; t < 4000; t++) w.step();
+    const stats = w.sharingStats();
+    expect(stats.idleLevel).toBeGreaterThan(0);
+    expect(stats.maxSurplus).toBe(0);
+    expect(stats.transfers).toBe(0);
   });
 });
 

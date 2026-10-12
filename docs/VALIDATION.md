@@ -14,7 +14,7 @@ Bu raporda **yalnızca gerçekten çalıştırılan** kontroller yer alır.
 
 ```
 Test Files  4 passed (4)
-     Tests  145 passed (145)
+     Tests  147 passed (147)
 ```
 
 ### 1.1 MLP sayısal doğruluğu (`tests/mlp.test.ts`, 14 test)
@@ -1414,6 +1414,62 @@ olarak kullanılabilir** ve ürüne alınabilir.
 - Simülasyon kesintisiz sürüyor (tick 884), **konsol hatası yok**
 
 
+### 6.17 Faz B3 · Somatik mutasyon / hileci deneyi — **ölü kod yolu bulundu**
+
+Yol planının B3'ü: hileci mutasyonun yayılıp yayılmadığını ölçmek. Denenmeden
+önce mimari bir soru soruldu: politika hücre düzeyinde mi?
+
+**Cevap: hayır, ve bu B3'ü imkânsız kılıyor.**
+
+`world.ts → sharingPhase()` paylaşım oranını **organizmanın genomünden** alır:
+
+```js
+shareAlongBond(donor.energy, receiver.energy, genome)   // genome = org.genome
+  → rate = min(surplus, deficit) × SHARE_RATE × (0.25 + genome.shareEfficiency)
+```
+
+Bir organizmanın tüm hücreleri aynı genomu paylaşır. Dolayısıyla **hücreler
+arasında hiçbir davranış farkı yoktur**; bir hücre "çok paylaşan", diğeri
+"az paylaşan" olamaz. **Hilecin tanımı bile yoktur.**
+
+### 6.18 Daha kötüsü: paylaşma mekaniği hiç çalışmıyor
+
+Ölçüm (`strainDecayK = 0.005`, 8.000 tick): 52'ye kadar bağlı çok hücreli
+organizma var, bağlar 7.789/8.000 tick'te mevcut — ama **hiçbir bağ enerji
+taşımıyor.**
+
+| Ölçüm | Değer |
+|---|---|
+| Boşta eşiği (`CELL_CAPACITY × SHARE_IDLE_LEVEL`) | **82,0 e** |
+| Hücre enerjisinin çalıştığı bant | **0–70 e** |
+| Eşiğin **üstünde** olan hücre oranı | **%0,0** |
+| 8.000 tick'te gerçekleşen paylaşım | **0** |
+
+`shareAlongBond` yalnızca `surplus = donor.energy − 82 > 0` olduğunda aktarım
+yapar. Hücreler hiçbir zaman 82 e'nin üstüne çıkmadığı için bu koşul **hiç
+oluşmuyor**.
+
+**Sonuç:** paylaşma tamamen atıl bir kod yoludur ve `shareEfficiency` genom
+parametresi — üründe görünen, soy defterinde raporlanan, deneylerde "müdahale
+edilen" bir parametre — **hiçbir şey yapmıyor.** 0.05'ten 1.0'a kadar
+değiştirildiğinde koloni büyüklüğü, popülasyon ve enerji **birebir aynı** kaldı
+(ölçüldü).
+
+Bu, bir hileci bulmanın değil, **önce bir işbirliği koymanın** meselesidir:
+modelde işbirliği aktı yok, sadece gradyan taşıması (fizik) var.
+
+### 6.19 Doğrulama
+
+Düzeltme değil, **ölçüm aracı** eklendi: `World.sharingStats()` her koşuda
+paylaşım sayısını, görülen maksimum fazlayı ve eşiği raporlar. İki test yazıldı:
+
+- **Mekanizma doğrudur:** eşiği aşan/altında kalan çiftte aktarım olur, altında
+  ikisinde olmaz. → Sorun kodda değil, **eşik kalibrasyonunda.**
+- **Oyunda hiç tetiklenmiyor:** 4.000 tick'te `transfers === 0`. Bu test
+  kusuru **kasıtlı olarak sabitler**; eşik düzeltildiğinde kızarır ve
+  dokümanın güncellenmesini ister.
+
+
 ## 7. Tarayıcı akışı — gerçekten yapıldı
 
 Chromium'da `vite preview` (port 4188) üzerinden doğrulandı:
@@ -1540,7 +1596,7 @@ Bunlar testlerin bulduğu, düzeltildiği ve **yeniden test edildiği** hatalard
 
 ```bash
 npm ci
-npm test                      # 145 test (4 dosya)
+npm test                      # 147 test (4 dosya)
 npm run typecheck             # tsc --noEmit, temiz
 npm run build                 # vite build, başarılı
 

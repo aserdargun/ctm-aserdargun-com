@@ -255,6 +255,18 @@ export class World {
   private readonly esCheckpointReward = new Map<number, number>();
   /** Popülasyon-ES tarafından son güncellemede çekilen organizma sayısı (ölçüm). */
   private populationUpdateCount = 0;
+  /**
+   * Gerçekleşen enerji paylaşımı sayısı (ölçüm).
+   *
+   * Bu sayaç `VALIDATION.md` §6.17'de bulunan bir kusuru kanıtlamak için
+   * eklendi: `shareAlongBond` yalnızca bir hücre boşta eşiğinin (82 e)
+   * **üstünde**, diğeri **altında** olduğunda aktarım yapar. Hücreler
+   * 0–70 e bandında çalıştığı için bu koşul hiç oluşmuyor ve paylaşma
+   * mekaniği **hiç çalışmıyor**. SAYAÇ bunu her koşuda ölçülebilir kılar.
+   */
+  private shareTransferCount = 0;
+  /** Paylaşmanın gerçekleşebilmesi için gereken enerji farkı (e). */
+  private shareMaxSurplus = 0;
 
   /** S-4 üstel arama ayarları (kapalıysa enabled=false). */
   private readonly esConfig: {
@@ -1707,6 +1719,15 @@ export class World {
     this.esLastGain = meanR - baseline;
   }
 
+  /** Paylaşma mekaniğinin çalışma ölçümü (raporlama). */
+  sharingStats(): { transfers: number; maxSurplus: number; idleLevel: number } {
+    return {
+      transfers: this.shareTransferCount,
+      maxSurplus: this.shareMaxSurplus,
+      idleLevel: C.CELL_CAPACITY * C.SHARE_IDLE_LEVEL,
+    };
+  }
+
   /** S-4 üstel arama ölçümleri (raporlama). */
   evolutionSearchStats(): { updates: number; spentMs: number; lastGain: number } {
     return { updates: this.esUpdateCount, spentMs: this.esSpentMs, lastGain: this.esLastGain };
@@ -2119,6 +2140,8 @@ export class World {
       aliveOrderCache: number[] | null;
       esCheckpointReward: Map<number, number>;
       populationUpdateCount: number;
+      shareTransferCount: number;
+      shareMaxSurplus: number;
       esConfig: {
         enabled: boolean;
         interval: number;
@@ -2159,6 +2182,8 @@ export class World {
     init.aliveOrderCache = null;
     init.esCheckpointReward = new Map();
     init.populationUpdateCount = 0;
+    init.shareTransferCount = 0;
+    init.shareMaxSurplus = 0;
     // S-4 **bilinçli olarak kapalı** başlatılır: `esUpdatePhase` dalları
     // `World.fromState` ile kurar; dallarda arama yeniden çalışırsa sonsuz
     // özyineleme olur. Arama yalnız yaşayan dünyada, kurucu seçenekleriyle açılır.

@@ -35,6 +35,14 @@ export interface ColonyOptions {
   bondAffinityOverride?: number;
   /** Zirve değerler için örnekleme aralığı (tick). */
   sampleEvery?: number;
+  /**
+   * Kurucu genomlarının belirli alanlarını zorlar.
+   *
+   * `mutationEnabled: false` ile birlikte kullanılırsa bu değerler soy boyunca
+   * birebir korunur ve tek bir özelliğin etkisi arındırılır. Ana evrimsel
+   * geçiş deneyinde (Faz B3) `shareEfficiency` bu yolla müdahale edilir.
+   */
+  genomeOverride?: Partial<Pick<Genome, 'shareEfficiency' | 'bondAffinity' | 'bondStrength' | 'motility' | 'senseRadius'>>;
 }
 
 export interface ColonyResult {
@@ -133,6 +141,11 @@ export function runColony(options: ColonyOptions): ColonyResult {
   if (bondAffinityOverride !== undefined) {
     for (const org of world.organisms.values()) {
       org.genome.bondAffinity = bondAffinityOverride as Genome['bondAffinity'];
+    }
+  }
+  if (options?.genomeOverride) {
+    for (const org of world.organisms.values()) {
+      Object.assign(org.genome, options.genomeOverride);
     }
   }
 
