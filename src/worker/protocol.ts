@@ -7,6 +7,7 @@
  */
 
 import type { Vec3 } from '../sim/types.ts';
+import type { LifeSnapshot } from '../sim/lab/lifeMap.ts';
 
 /** Kare paketi başlık uzunluğu (float). */
 export const HEADER_FLOATS = 20;
@@ -117,6 +118,7 @@ export type Command =
       /** true ise kazanan politika organizmanın ağırlıklarına yazılır. */
       apply: boolean;
     }
+  | { type: 'lifeMap' }
   | { type: 'ping' };
 
 export interface OrganismSummary {
@@ -208,6 +210,12 @@ export type WorkerResponse =
   | { type: 'evidence'; pack: EvidencePack }
   | { type: 'experimentResult'; experiment: string; payload: unknown }
   | { type: 'evolutionProgress'; generation: number; total: number; best: number; mean: number }
+  /**
+   * Yaşam haritası (Picbreeder ızgarası): üç ölçülebilir betimleyici üzerinden
+   * hangi davranış nişlerinin işgal edildiğini gösterir. Yalnız **ölçüm** —
+   * seçilim `ε = 0` varsayılandadır ve canlı dünyayı değiştirmez.
+   */
+  | { type: 'lifeMapResult'; snapshot: LifeSnapshot }
   | {
       type: 'evolutionResult';
       organismId: number;

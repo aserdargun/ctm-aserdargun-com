@@ -648,3 +648,72 @@ select {
   background: linear-gradient(90deg, #38bdf8, #22d3ee);
   transition: width 120ms linear;
 }
+
+/* --- Yaşam haritası (Faz D) ----------------------------------------------
+ * Izgara soğuk (boş) → sıcak (yüksek enerji) gradyanıyla okunur.
+ * Renk JS tarafından üretilir (hsla); burada yalnız yerleşim var. */
+
+.lifemap__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.lifemap__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.lifemap__layer {
+  display: grid;
+  grid-template-columns: 62px 1fr;
+  /* Etiket ızgaranın üstüne hizalanır: ortalanınca hangi satırın
+     hangi eksene ait olduğu okunmuyor. */
+  align-items: start;
+  gap: 8px;
+}
+
+.lifemap__layerLabel {
+  font-size: 11px;
+  opacity: 0.65;
+  text-transform: lowercase;
+  padding-top: 6px;
+}
+
+.lifemap__grid {
+  display: grid;
+  gap: 2px;
+}
+
+.lifemap__cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 3px;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.82);
+  min-height: 26px;
+}
+
+.lifemap__cell--filled {
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.lifemap__health {
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+.lifemap__health > summary {
+  cursor: pointer;
+  opacity: 0.75;
+}

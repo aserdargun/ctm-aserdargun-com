@@ -14,6 +14,7 @@ import { Hud, Notices, OrganismList, Toolbar } from './ui/Hud.tsx';
 import { InspectorPanel, LineagePanel, MicroscopePanel, ObserverPanel } from './ui/Panels.tsx';
 import { DataPanel, ExperimentsPanel, SettingsPanel } from './ui/ExperimentPanels.tsx';
 import { EvolutionPanel } from './ui/EvolutionPanel.tsx';
+import { LifeMapPanel } from './ui/LifeMapPanel.tsx';
 import { getStrings } from './i18n/index.ts';
 import { H, RES, RESOURCE_FLOATS } from './worker/protocol.ts';
 import { downloadJson, saveRecord, StorageError } from './engine/storage.ts';
@@ -84,6 +85,9 @@ export function App(): React.ReactElement {
           break;
         case 'evolutionProgress':
           s.evolutionProgress(message.generation, message.best);
+          break;
+        case 'lifeMapResult':
+          s.setLifeMap(message.snapshot);
           break;
         case 'evolutionResult':
           s.evolutionDone({
@@ -224,6 +228,7 @@ export function App(): React.ReactElement {
             {panel === 'lineage' && <LineagePanel client={client} />}
             {panel === 'experiments' && <ExperimentsPanel client={client} />}
             {panel === 'evolution' && <EvolutionPanel client={client} />}
+            {panel === 'lifemap' && <LifeMapPanel client={client} />}
             {panel === 'observer' && <ObserverPanel client={client} />}
             {panel === 'data' && <DataPanel client={client} />}
             {panel === 'settings' && <SettingsPanel />}

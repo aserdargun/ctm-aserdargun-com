@@ -279,6 +279,29 @@ görünürdü.
 arşiv) hâlâ açık. Ölçüm artık **hangi** nişlerin boş olduğunu gösterdiği için
 arşiv nereye yazılacak bellidir: yavaş/tek hücreli uçlar.
 
+### 2.2e Faz D ürün tarafı — Yaşam Haritası paneli **yayında**
+
+(`VALIDATION.md` §6.26–6.27)
+
+HUD'da yeni düğme. 3×3×3 ızgara menzil katmanları hâlinde çiziliyor;
+renk yoğunluğu kutudaki en iyi bireyin enerjisi.
+
+**Betimleyici hesabı tek kaynağa taşındı** (`src/sim/lab/lifeMap.ts`).
+Deneyler ve ürün aynı sabitleri kullanıyor. İki kopya ayrışırsa aynı sayı
+iki farklı yorumla raporlanır — §2.2d'deki hatanın yapısal nedeni buydu.
+
+**Seçilim `ε = 0`:** arşiv her kutudaki en iyi bireyi saklıyor ama seçilime
+katılmıyor; canlı dünya değişmiyor. Test bunu doğruluyor (takipçili ve
+takipçisiz dünya bit düzeyinde aynı, enerji korunumu bozulmuyor).
+
+**Tarayıcıda en değerli gözlem:** eksen çökme dedektörü **gerçekten ateşledi**.
+Tick 263'te bütün organizmalar tek hücreliydi, boyut ekseni ayrım üretmiyordu
+ve panel dürüstçe uyardı; organizmalar büyüdükçe (tick 941) uyarı kendiliğinden
+kayboldu. Yani panel ölü bir yeşil değil — anlık gerçeği yansıtıyor.
+
+Maliyet ölçüldü: her tick `centroidOf` çağrısı 3000 tick'te 907 ms → 863 ms.
+Kare başına gönderim yok, panel açıkken 1500 ms'de bir anlık görüntü istenir.
+
 ### 2.3 Gözlemci: canlı model doğrulanmadı
 
 - Hiçbir API anahtarı yoktu; **gerçek bir sağlayıcı çağrısı yapılmadı**.

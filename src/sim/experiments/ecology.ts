@@ -22,7 +22,7 @@
 import { bootstrapCI, bootstrapTest, fmt, fmtInterval, type HypothesisTest, type Interval } from '../stats.ts';
 import { deserializeWorld, serializeWorld } from '../persistence/snapshot.ts';
 import { GENOME_BOUNDS } from '../genome.ts';
-import { C } from '../biology/energy.ts';
+import { LIFE_SIZE_MAX, LIFE_SPEED_MAX } from '../lab/lifeMap.ts';
 import { genomeDistance } from './colony.ts';
 import type { Genome } from '../types.ts';
 import { World } from '../world.ts';
@@ -2306,18 +2306,19 @@ export function formatModes(r: ModesReport): string {
 // --------------------------------------------------- niş kapsama (yaşam haritası çekirdeği)
 
 /**
- * Niş ızgarasının eksen sınırları — `tools/calibrate-niche-axes.ts` çıktısından.
+ * Niş ızgarasının eksen sınırları — **ortak modülden** gelir.
  *
- * ⚠️ Bu iki sabit **gözlemden ayarlanmış bir "iyi görünen" aralık değildir**;
- * kalibrasyon ayrı, çok tohumlu ve uzun bir koşudan gelir, sonra dondurulur.
- * Kalibrasyonu ölçümle aynı pencerede yapmak, eksenlerin ölçülen dünyaya göre
- * sessizce kaymasına ve ölçümün kendi kendini doğrulamasına yol açar.
+ * ⚠️ Değerler burada tanımlanmaz; `src/sim/lab/lifeMap.ts` tek kaynaktır ve
+ * üründeki yaşam haritası paneli de aynı sabitleri kullanır. İki ayrı kopya
+ * zamanla ayrışır ve aynı sayı iki farklı yorumla raporlanır — bu bir kez
+ * yaşandı (deneylerdeki hız "yer değiştirme", üst sınır ise "mb/tick" idi;
+ * gözlemlerin 1581/1582'si tavana kırpılıyor ve eksen sıfır bilgi taşıyordu).
  *
- * Boyut ekseni doğrudan yapısal sabitten türer (`log2(MAX_ORGANISM_CELLS)`):
- * kalibrasyonda bu tavanın gerçekten erişildiği görüldü.
+ * Kalibrasyon `tools/calibrate-niche-axes.ts` çıktısından gelir ve
+ * dondurulmuştur; gözlemden ayarlanmış bir "iyi görünen" aralık değildir.
  */
-export const NICHE_SPEED_MAX = 0.12; // mb/tick — kalibrasyonda gözlenen maks 0.1121
-export const NICHE_SIZE_MAX = Math.log2(C.MAX_ORGANISM_CELLS); // 24 hücre → 4.585
+export const NICHE_SPEED_MAX = LIFE_SPEED_MAX;
+export const NICHE_SIZE_MAX = LIFE_SIZE_MAX;
 
 export interface NicheCell {
   /** Hız kutusu (0 = en yavaş). */

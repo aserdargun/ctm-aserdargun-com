@@ -183,6 +183,11 @@ export class SimClient {
   runExperiment(experiment: string, seed: number): void {
     this.send({ type: 'runExperiment', experiment, seed });
   }
+
+  /** Yaşam haritasının (Picbreeder ızgarası) anlık görüntüsünü ister. Yalnız ölçüm. */
+  lifeMap(): void {
+    this.send({ type: 'lifeMap' });
+  }
 }
 
 export type { DecisionSnapshot, EvidencePack, LineageSummary, OrganismSummary, RockSeed, SpeedMultiplier };

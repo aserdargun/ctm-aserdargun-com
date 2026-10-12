@@ -313,6 +313,13 @@ export function Toolbar({ client }: { client: SimClient }): React.ReactElement {
         </button>
         <button
           type="button"
+          aria-pressed={useStore.getState().panel === 'lifemap'}
+          onClick={() => useStore.getState().togglePanel('lifemap')}
+        >
+          {t.actions.lifemap}
+        </button>
+        <button
+          type="button"
           aria-pressed={useStore.getState().panel === 'observer'}
           onClick={() => useStore.getState().togglePanel('observer')}
         >

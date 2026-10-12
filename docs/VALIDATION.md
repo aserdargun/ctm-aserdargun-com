@@ -1619,7 +1619,45 @@ patladığını doğruluyor. Aksi hâlde dedektör sessizce hiç yanlsa hep boş
 ve yeşil görünür — en tehlikeli ölçüm aleti budur.
 
 
-## 7. Tarayıcı akışı — gerçekten yapıldı
+### 6.26 Faz D ürün tarafı — **Yaşam Haritası paneli**
+
+Ölçüm artık üründe. HUD'da "Yaşam Haritası" düğmesi, 3×3×3 ızgara
+menzil katmanları hâlinde: renk yoğunluğu = kutudaki en iyi bireyin enerjisi,
+sayı = o kutuda görülen organizma.
+
+**Tasarım kararı — tek kaynak.** Betimleyici hesabı hem deney altyapısında
+hem üründe kullanıldığı için `src/sim/lab/lifeMap.ts` tek kaynak yapıldı;
+`ecology.ts` sabitleri buradan alıyor. İki kopya zamanla ayrışır ve **ayrışan
+iki ölçüm aynı sayıyı iki farklı yorumla üretir** — §6.23'te yaşanan hatanın
+yapısal nedeni buydu.
+
+**Seçilim `ε = 0`.** Arşiv her kutuda en iyi bireyi saklar ama seçilime
+katılmaz; canlı dünya panel açıkken de değişmez. Testle korunuyor: aynı
+tohumda takipçili ve takipçisiz iki dünya bit düzeyinde aynı ilerliyor ve
+enerji korunumu bozulmuyor.
+
+**Maliyet ölçüldü, tahmin edilmedi.** Takipçi her tick `centroidOf` çağırır;
+3000 tick'te `step` yalnız 907 ms, merkez konumu eklenince 863 ms. Kare
+başına gönderim yok; panel açıkken 1500 ms'de bir tek anlık görüntü istenir.
+
+### 6.27 Tarayıcıda doğrulama — dedektör **gerçekten** ateşledi
+
+`vite preview` (port 4188) üzerinde gözlemlendi:
+
+| Tick | Görünüm | Panel |
+|---|---|---|
+| 263 | 6/27 kutu · %66 · 12.617 gözlem | ⚠️ **"Eksen çöktü: boyut"** |
+| 941 | 8/27 kutu · %77 · 58.624 gözlem | uyarı **kayboldu** |
+| 1422 | 9/27 kutu · %75 · 107.021 gözlem | uyarı yok |
+
+Bu, §6.25'te yazılan dersin üründe de geçerli olduğunun kanıtı: dedektör
+"her zaman yeşil" değil. Tick 263'te bütün organizmalar tek hücreliydi, boyut
+ekseni gerçekten ayrım üretmiyordu ve panel bunu **dürüstçe** söyledi.
+Organizmalar büyüdükçe uyarı kendiliğinden temizlendi — yani uyarı bir
+ölçüm değil, anlık gerçeği yansıtıyor.
+
+Muhasebe farkı panel açıkken de korundu (−0,001 e). Konsol hatası **0**;
+tek mesaj önceden var olan `THREE.Clock` kullanımdan kaldırma uyarısı.
 
 Chromium'da `vite preview` (port 4188) üzerinden doğrulandı:
 
@@ -1635,6 +1673,10 @@ Chromium'da `vite preview` (port 4188) üzerinden doğrulandı:
 | **Konsol hatası yok** | ✅ 0 hata |
 | **"Dal oluştur" butonu çalışıyor** | ✅ "Dal oluşturuldu" bildirimi |
 | Dal sonrası simülasyon kesintisiz sürüyor | ✅ tick 474 → 765 |
+| **Yaşam Haritası düğmesi** | ✅ panel açıldı |
+| **Izgara doluyor** | ✅ 9/27 kutu, 107.021 gözlem |
+| **Eksen çökme dedektörü canlı** | ✅ tick 263'te "boyut" uyarısı, tick 941'de kendiliğinden temizlendi |
+| **Muhasebe farkı panel açıkken** | ✅ −0,001 e |
 
 ### 7.1 `branch` yolu uçtan uca doğrulandı
 

@@ -9,6 +9,7 @@ import { create } from 'zustand';
 import type { DecisionSnapshot, EvidencePack, LineageSummary, OrganismSummary, SpeedMultiplier } from './client.ts';
 import type { ClientStatus } from './client.ts';
 import type { LocalSummary } from '../worker/evidence.ts';
+import type { LifeSnapshot } from '../sim/lab/lifeMap.ts';
 
 export type Language = 'tr' | 'en';
 export type PanelId =
@@ -17,6 +18,7 @@ export type PanelId =
   | 'lineage'
   | 'experiments'
   | 'evolution'
+  | 'lifemap'
   | 'observer'
   | 'data'
   | 'settings'
@@ -105,6 +107,8 @@ interface StoreState {
 
   // --- Evrim Atölyesi (S-3) ---
   evolution: EvolutionState;
+  // --- Yaşam haritası (Faz D) ---
+  lifeMap: LifeSnapshot | null;
   localSummary: LocalSummary | null;
   modelReport: unknown | null;
   modelState: 'idle' | 'loading' | 'done' | 'error' | 'no-key';
@@ -153,6 +157,7 @@ interface StoreState {
   evolutionProgress: (generation: number, best: number) => void;
   evolutionDone: (result: EvolutionResult) => void;
   evolutionReset: () => void;
+  setLifeMap: (snapshot: LifeSnapshot) => void;
   setLocalSummary: (summary: LocalSummary) => void;
   setModelState: (state: StoreState['modelState'], error?: string | null) => void;
   setModelReport: (report: unknown) => void;
@@ -226,6 +231,7 @@ export const useStore = create<StoreState>((set, get) => ({
     finished: false,
     result: null,
   } as EvolutionState,
+  lifeMap: null,
   localSummary: null,
   modelReport: null,
   modelState: 'idle',
@@ -293,6 +299,8 @@ export const useStore = create<StoreState>((set, get) => ({
     set({
       evolution: { running: false, organismId: null, generation: 0, total: 0, history: [], finished: false, result: null },
     }),
+
+  setLifeMap: (snapshot) => set({ lifeMap: snapshot }),
 
   setEvidence: (pack) => set({ evidence: pack, localSummary: null, modelReport: null, modelState: 'idle' }),
   setLocalSummary: (summary) => set({ localSummary: summary }),
