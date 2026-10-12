@@ -330,13 +330,31 @@ kapalıyken de doluluk artmadı. Yanlış açıklama doğrulamadan önce yazıld
 Arşiv üründe ölçüm olarak kalıyor (ε = 0). Faz D'nin bugünkü hali: çukur
 ölçüldü, görselleştirildi, doldurulması denendi — başarısız.
 
-### 2.3 Gözlemci: canlı model doğrulanmadı
+### 2.3 Gözlemci: anahtarsız yol doğrulandı, canlı çağrı ölçülmedi
 
-- Hiçbir API anahtarı yoktu; **gerçek bir sağlayıcı çağrısı yapılmadı**.
-- MiniMax'in güncel görsel istek şeması canlı belgeden doğrulanmadı.
-- Görüntü gözlemciye **gönderilmiyor** (`imageHint` yalnız tick/kamera taşıyor).
-- Sonraki adım: `CTM_API_KEY` ile gerçek çağrı, şemanın resmî belgeden
-  doğrulanması, `sourceMode: "vision-assisted"` yolunun gerçek kareyle çalıştırılması.
+(`VALIDATION.md` §6.32)
+
+**1. Kanıt denetimi hiç test edilmemişti** — `verifyNumericClaims`,
+`extractNumericClaims`, `buildLocalSummary`. Onlar olmadan panel model
+halüsinasyonlarını doğrulanmış diye sunabilirdi. 16 test yazıldı.
+
+**2. Yanlış kabul bulundu.** "Bu 3 organizma bağ kurdu" → 3 sayısı
+`bondCount=3` ile eşleşip doğrulanmış geçiyordu; panelde "3 bağ ✓" görünüyordu.
+Denetim **değer** karşılaştırır, anlam karşılaştırmaz. Artık sonuç
+`matchedMetric` taşıyor ve panel "3 ← bondCount" yazıyor.
+
+**3. Rota üretim yapısında hiç erişilemezdi.** `vite dev` proxy'liyordu,
+`preview` (yani build sonrası) **proxy'sizdi**: `POST /api/observer` → **502**.
+Yani dil modeli yolu hiçbir ortamda çalışmıyordu. `preview.proxy` eklendi;
+artık **503** dönüyor — yani rota ulaşılıyor, sunucu dürüstçe "anahtar yok"
+diyor.
+
+**Anahtarsız yol tarayıcıda uçtan uca doğrulandı:** panel açılıyor, yerel kural
+özeti + gözlemler + belirsizlikler + sonraki deney + 13 ölçüm listeleniyor,
+oyun kesilmiyor, konsoldaki tek hata 503'ün kendisi (önceden 502'ydi).
+
+**Hâlâ ölçülmedi:** gerçek sağlayıcı çağrısı (`CTM_API_KEY` yok),
+`vision-assisted` yolu, MiniMax görsel şemasının canlı doğrulaması.
 
 ### 2.4 Tarayıcıda test edilmemiş yollar
 

@@ -503,7 +503,7 @@ function ObserverReport({ report }: { report: unknown }): React.ReactElement | n
     interpretations?: string[];
     uncertainties?: string[];
     nextExperiment?: string;
-    claims?: { value: number; unit: string; verified: boolean }[];
+    claims?: { value: number; unit: string; verified: boolean; matchedMetric: string | null }[];
   };
   if (!r || typeof r !== 'object') return null;
   return (
@@ -516,7 +516,18 @@ function ObserverReport({ report }: { report: unknown }): React.ReactElement | n
               {r.claims.slice(0, 20).map((c, i) => (
                 <tr key={`c${i}`}>
                   <td style={{ textAlign: 'left' }}>{c.value}</td>
-                  <td>{c.unit}</td>
+                  <td>
+                    {c.verified && c.matchedMetric ? (
+                      // Hangi ölçümle eşleştiği gösterilir: denetim **değer**
+                      // karşılaştırır, anlam karşılaştırmaz. "3 organizma
+                      // bağ kurdu" cümlesindeki 3, bondCount=3 ile eşleşip
+                      // doğrulanmış görünebilir; eşleşen metrik yazılmazsa
+                      // bu yanlış kabul görünmez kalır.
+                      <span className="claim__metric">{c.matchedMetric}</span>
+                    ) : (
+                      c.unit
+                    )}
+                  </td>
                   <td className={c.verified ? 'verified' : 'unverified'}>
                     {c.verified ? '✓' : '✗'}
                   </td>

@@ -1693,6 +1693,74 @@ denendi — başarısız.** Bir sonraki adım ancak kalıtsal bir betimleyici
 eklenirse anlamlı olur (örneğin genomdaki bir özellik), çünkü o zaman
 seçilim gerçekten bir şey koruyabilir.
 
+### 6.32 Faz C2 · Gözlemci — **ölçülebilir kısım ölçüldü, canlı çağrı anahtar bekliyor**
+
+Gözlemci paneli iddiası daha önce hiç doğrulanmamıştı. Bu turda üç şey
+**ölçüldü**; biri gerçek bir hata çıkardı.
+
+#### (a) Kanıt denetimi hiç test edilmemişti
+
+Model yanıtındaki sayıları kanıt paketine karşı denetleyen üç fonksiyon
+(`extractNumericClaims`, `verifyNumericClaims`, `buildLocalSummary`) **sıfır
+teste** sahipti. Onlar olmadan panel, model halüsinasyonlarını "doğrulanmış"
+diye sunabilirdi. 16 test yazıldı; ağırlıklı olarak **reddetme** yönünde,
+çünkü dürüst modelde denetimin işe yaramadığını görmek kolay, reddedemeyen
+denetimlemsizin de kolay görünmesidir.
+
+Denetim kırık mıydı? Kısmen. Zorlayan probe şunu yakaladı:
+
+> "Bu **3 organizma** bağ kurdu." → 3 sayısı `bondCount = 3` ile eşleşiyor
+> ve **doğrulanmış** geçiyor. Ama iddia *bağ* değil *organizma* sayısı
+> hakkındaydı.
+
+Bu bir **yanlış kabul**dir ve panelde "3 bağ ✓" olarak görünür — yani
+kullanıcı, iddiayı kanıtlanmış sanar. Denetim **değer** karşılaştırır,
+**anlam** karşılaştırmaz.
+
+Çözüm metin bağlamını kırılgan ayrıştırmak değil, **eşleşmeyi görünür
+kılmak**: sonuç artık `matchedMetric` taşıyor ve panel "3 ← bondCount"
+yazıyor. Ölçülen gerçeği saklamak yerine gösteriyor.
+
+#### (b) Gözlemci rotası üretim yapısında **erişilemez**di
+
+`vite dev` `/api`'yi 8787'ye proxy'lıyordu ama `preview` (yani `npm run build`
+sonrası üretim yapısı) **proxy'sizdi**. Ölçüldü:
+
+| Yapılandırma | `POST /api/observer` | Anlamı |
+|---|---|---|
+| `preview` (önce) | **502** | Rota hiç yok — gözlemci sunucusuna hiç ulaşılmıyor |
+| `preview` (sonra) | **503** | Rota var, sunucu dürüstçe "anahtar yok" diyor |
+
+Bu bir belirsizlik değil, yapısal bir eksiklikti: **üretim yapısında dil
+modeli yolu hiçbir ortamda çalışmıyordu.** `preview.proxy` eklendi.
+
+#### (c) Anahtarsız yol uçtan uca doğrulandı
+
+Gerçek model çağrısı `CTM_API_KEY` gerektiriyor ve bu anahtar **yalnız
+sunucu ortamında** okunuyor. Anahtarsız yol tamamen doğrulanabilir:
+
+```
+GET  /api/observer/health  → 200 {"provider":"minimax","model":"MiniMax-M2.1","hasKey":false,…}
+POST /api/observer         → 503 {"error":"api anahtarı yok","hint":"CTM_API_KEY …","sourceMode":"local-summary"}
+```
+
+Tarayıcıda gözlemlendi: panel açıldı, "Yerel kural özeti — dil/görsel model
+kullanılmadı" yazdı, gözlemler/yorumlar/belirsizlikler/sonraki deney ve 13
+ölçüm listelendi. Konsoldaki tek hata **503**'tür — yani rota **ulaşıldı**
+ve sunucu nedenini dürüstçe bildirdi (önceki 502 "rota yok"du). Oyun akışı
+kesilmedi.
+
+#### Doğrulanmayan ( dürüstçe)
+
+- **Gerçek sağlayıcı çağrısı yapılmadı** — `CTM_API_KEY` yok. Bu, bu turun
+  bulgusu değil, kullanıcının sağlayacağı bir eksiktir.
+- `vision-assisted` yolu (gerçek kare) hiç çalıştırılmadı.
+- MiniMax'in güncel görsel istek şeması canlı belgeden doğrulanmadı.
+
+> Denetim düzeltmesi **ölçüldü**: sahte sayılar reddediliyor (480, 19, 12,7,
+> 2026, 47), dürüst sayılar kabul ediliyor, ve yanlış kabul artık eşleşen
+> ölçümün adıyla görünür durumda.
+
 ### 6.26 Faz D ürün tarafı — **Yaşam Haritası paneli**
 
 Ölçüm artık üründe. HUD'da "Yaşam Haritası" düğmesi, 3×3×3 ızgara

@@ -30,5 +30,17 @@ export default defineConfig({
   preview: {
     port: 4173,
     strictPort: true,
+    // Gözlemci rotası **yalnız** geliştirme sunucusunda proxy'leniyordu.
+    // Üretim yapısı (`npm run build` + `preview`) statik dosya sunar ve
+    // `/api/observer` isteği 502 alıyordu — yani gözlemci panelindeki dil
+    // modeli yolu **yapılandırma dışında hiçbir yerde erişilemezdi**.
+    // Aynı proxy buraya da ekleniyor; gerçek anahtar olmadan da
+    // "anahtar yok" yolunun uçtan uca çalıştığı doğrulanabiliyor.
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:8787',
+        changeOrigin: true,
+      },
+    },
   },
 });

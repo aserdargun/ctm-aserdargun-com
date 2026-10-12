@@ -266,17 +266,33 @@ export function extractNumericClaims(text: string): number[] {
   return out;
 }
 
-/** Model yanıtındaki sayıların kanıt paketinde karşılığı olup olmadığını denetler. */
+/**
+ * Model yanıtındaki sayıların kanıt paketinde karşılığı olup olmadığını denetler.
+ *
+ * ⚠️ **Bu denetim değer eşleştirmesi yapar, anlam denetimi yapmaz.** Ölçüldü:
+ * "Bu 3 organizma bağ kurdu" cümlesindeki 3, `bondCount = 3` ile eşleşip
+ * **doğrulanmış** geçiyor — ama iddia *bağ* değil *organizma* sayısı
+ * hakkındaydı. Bu bir **yanlış kabul**dir ve sessiz kalırsa gözlemci
+ * yanlış bir iddiayı doğrulanmış diye sunar.
+ *
+ * Bu yüzden sonuç yalnız `verified` bayrağı değil, **eşleşen ölçümün
+ * kimliğini** de taşır: panel "3 ← bondCount" diyebilsin ve insan
+ * (veya denetleyen model) uyumsuzluğu görebilsin. Metin bağlamını ayrıştırmak
+ * kırılgan olurdu; bunun yerine **eşleşmeyi görünür kılıyoruz** — ölçülen
+ * gerçeği saklamak yerine gösteriyoruz.
+ */
 export function verifyNumericClaims(
   text: string,
   pack: EvidencePack,
   tolerance = 0.02,
-): { value: number; unit: string; verified: boolean }[] {
-  const allowed = pack.measurements.map((m) => ({ value: m.value, unit: m.unit }));
+): { value: number; unit: string; verified: boolean; matchedMetric: string | null }[] {
+  const allowed = pack.measurements.map((m) => ({ value: m.value, unit: m.unit, ref: m.metricRef }));
   return extractNumericClaims(text).map((value) => {
     const match = allowed.find(
       (a) => Math.abs(a.value - value) <= Math.max(tolerance, Math.abs(a.value) * tolerance),
     );
-    return match ? { value, unit: match.unit, verified: true } : { value, unit: '—', verified: false };
+    return match
+      ? { value, unit: match.unit, verified: true, matchedMetric: match.ref }
+      : { value, unit: '—', verified: false, matchedMetric: null };
   });
 }
