@@ -1938,3 +1938,127 @@ export function formatEvolutionStrategy(r: EvolutionStrategyReport): string {
   ].join('\n');
 }
 
+
+// --------------------------------------------------- paylaşma eşiği duyarlılığı
+
+export interface ShareThresholdPoint {
+  idleLevel: number;
+  idleEnergy: number;
+  transfers: number;
+  maxSurplus: number;
+  peakColony: number;
+  finalColony: number;
+  finalMultiCellColonies: number;
+  finalPopulation: number;
+  finalMeanEnergyNorm: number;
+  worstLedgerResidual: number;
+}
+
+export interface ShareThresholdReport {
+  seeds: number;
+  ticks: number;
+  points: ShareThresholdPoint[];
+  reading: string;
+}
+
+/**
+ * **Paylaşma eşiği duyarlılık analizi** — `VALIDATION.md` §6.17'de bulunan
+ * kalibrasyon kusurunun etkisini ölçer.
+ *
+ * Bulgu: boşta eşiği 82 e, hücreler 0–70 e bandında çalışıyor → paylaşma hiç
+ * tetiklenmiyor → `shareEfficiency` genom parametresi hiçbir şey yapmıyor.
+ *
+ * **Bu bir düzeltme değil, ölçüm.** Oyun varsayılanı değişmez; buradaki değerler
+ * yalnız "eşiği düşürsek ne olur?" sorusunu yanıtlar.
+ *
+ * **Değerlendirme ölçütü:** bir eşik değeri bulunmalıdır ki (a) paylaşma
+ * gerçekten tetiklensin (transfers > 0), (b) enerji korunumu bozulmasın
+ * (|rezidüel| < 1e-4), (c) çok hücreli yapılar **kaybolmasın** (mekanik
+ * canlanırken ürünün temel özelliği bozulmamalıdır).
+ */
+export function sweepShareThreshold(options?: {
+  idleLevels?: number[];
+  seeds?: number;
+  ticks?: number;
+  strainDecayK?: number;
+}): ShareThresholdReport {
+  const idleLevels = options?.idleLevels ?? [0.82, 0.6, 0.5, 0.4, 0.3];
+  const seeds = options?.seeds ?? 4;
+  const ticks = options?.ticks ?? 8000;
+  const strainDecayK = options?.strainDecayK ?? 0.005;
+
+  const points = idleLevels.map((idleLevel) => {
+    let transfers = 0;
+    let maxSurplus = 0;
+    let peakColony = 0;
+    let finalColony = 0;
+    let finalMulti = 0;
+    let finalPop = 0;
+    let finalEnergy = 0;
+    let residual = 0;
+
+    for (let i = 0; i < seeds; i++) {
+      const world = new World({ seed: 3001 + i, population: 48, strainDecayK, shareIdleLevel: idleLevel });
+      let peak = 0;
+      for (let t = 0; t < ticks; t++) {
+        world.step();
+        if (t % 200 === 0) {
+          const m = world.latestMetrics();
+          if (m && m.largestColonySize > peak) peak = m.largestColonySize;
+        }
+      }
+      const st = world.sharingStats();
+      const m = world.latestMetrics();
+      transfers += st.transfers;
+      maxSurplus = Math.max(maxSurplus, st.maxSurplus);
+      peakColony = Math.max(peakColony, peak);
+      finalColony += m?.largestColonySize ?? 0;
+      finalMulti += m?.coloniesOverFourCells ?? 0;
+      finalPop += world.population();
+      finalEnergy += m ? m.meanEnergy / 100 : 0;
+      const res =
+        world.ledger.initialTotal + world.ledger.externalInput - world.systemEnergyTotal() - world.ledger.dissipated;
+      if (Math.abs(res) > Math.abs(residual)) residual = res;
+    }
+
+    return {
+      idleLevel,
+      idleEnergy: Math.round(100 * idleLevel),
+      transfers,
+      maxSurplus,
+      peakColony,
+      finalColony: Math.round(finalColony / seeds),
+      finalMultiCellColonies: finalMulti / seeds,
+      finalPopulation: Math.round(finalPop / seeds),
+      finalMeanEnergyNorm: finalEnergy / seeds,
+      worstLedgerResidual: residual,
+    };
+  });
+
+  const firstLive = points.find((p) => p.transfers > 0);
+  const reading = firstLive
+    ? `Paylaşma **${firstLive.idleLevel}** eşiğinde (${firstLive.idleEnergy} e) ilk kez tetikleniyor: ` +
+      `${firstLive.transfers} aktarım. Bu noktada çok hücreli yapılar ` +
+      `${firstLive.finalMultiCellColonies.toFixed(2)} (zirve ${firstLive.peakColony}) ve enerji korunumu ` +
+      `|${firstLive.worstLedgerResidual.toExponential(1)}|. Varsayılan 0.82'de aktarım **0**.`
+    : 'Listelenen hiçbir eşikte paylaşma tetiklenmedi.';
+
+  return { seeds, ticks, points, reading };
+}
+
+export function formatShareThreshold(r: ShareThresholdReport): string {
+  const header =
+    '  eşik   eşikEn   aktarım   maxFazla   zirve küme   son küme   son 4+   son pop   son enerji   rezidüel';
+  const rows = r.points.map((p) =>
+    `  ${fmt(p.idleLevel, 5)}   ${String(p.idleEnergy).padStart(6)}   ${String(p.transfers).padStart(8)}   ` +
+    `${fmt(p.maxSurplus, 8)}   ${String(p.peakColony).padStart(9)}   ${String(p.finalColony).padStart(8)}   ` +
+    `${fmt(p.finalMultiCellColonies, 6).padStart(6)}   ${String(p.finalPopulation).padStart(7)}   ` +
+    `${fmt(p.finalMeanEnergyNorm, 10).padStart(11)}   ${fmt(p.worstLedgerResidual, 9)}`,
+  );
+  return [
+    `  ${r.seeds} tohum × ${r.ticks} tick (strainK 0.005)`,
+    header,
+    ...rows,
+    `  → ${r.reading}`,
+  ].join('\n');
+}

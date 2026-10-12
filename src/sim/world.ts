@@ -104,6 +104,13 @@ export interface WorldOptions {
    */
   strainDecayK?: number;
   /**
+   * **Duyarlılık kancası — paylaşmanın boşta eşiği.** Varsayılan
+   * `C.SHARE_IDLE_LEVEL` (= 0.82). Ölçüldü ki bu değer hücrelerin çalıştığı
+   * bandın (0–70 e) üstünde ve paylaşma hiç tetiklenmiyor (§6.17). Yalnız
+   * duyarlılık analizi için ayarlanabilir; oyun varsayılanı **değişmedi**.
+   */
+  shareIdleLevel?: number;
+  /**
    * **S-4 kancası — çatallanmış ortamda yaşam içi üstel arama.** Varsayılan **kapalı**.
    *
    * Gerekçe (`VALIDATION.md` §6.5, §6.10): REINFORCE ve popülasyon-ES başarısız
@@ -267,6 +274,11 @@ export class World {
   private shareTransferCount = 0;
   /** Paylaşmanın gerçekleşebilmesi için gereken enerji farkı (e). */
   private shareMaxSurplus = 0;
+  /**
+   * Boşta eşiği çarpanı (duyarlılık kancası). Varsayılan `C.SHARE_IDLE_LEVEL`.
+   * `VALIDATION.md` §6.19'daki ölçüm bunu kullanır; oyun değişmez.
+   */
+  private readonly shareIdleLevel: number;
 
   /** S-4 üstel arama ayarları (kapalıysa enabled=false). */
   private readonly esConfig: {
@@ -298,6 +310,7 @@ export class World {
 
   constructor(options: WorldOptions) {
     this.rng = new RngBundle(options.seed);
+    this.shareIdleLevel = options.shareIdleLevel ?? C.SHARE_IDLE_LEVEL;
     this.esConfig = {
       enabled: options.esInterval !== undefined || options.esPerturbations !== undefined,
       interval: Math.max(1, options.esInterval ?? 500),
@@ -1093,8 +1106,14 @@ export class World {
           if (!other?.alive) continue;
           const donor = a.energy >= other.energy ? a : other;
           const receiver = donor === a ? other : a;
-          const { drawn } = shareAlongBond(donor.energy, receiver.energy, genome);
+          const { drawn } = shareAlongBond(donor.energy, receiver.energy, genome, this.shareIdleLevel);
           if (drawn <= 0) continue;
+          this.shareTransferCount++;
+          this.shareMaxSurplus = Math.max(
+            this.shareMaxSurplus,
+            Math.max(0, Math.max(donor.energy, receiver.energy) - C.CELL_CAPACITY * this.shareIdleLevel,
+            ),
+          );
           const delivered = drawn * C.TRANSPORT_EFFICIENCY;
           transfers.push({ from: donor.id, to: receiver.id, drawn, delivered });
         }
@@ -1724,7 +1743,7 @@ export class World {
     return {
       transfers: this.shareTransferCount,
       maxSurplus: this.shareMaxSurplus,
-      idleLevel: C.CELL_CAPACITY * C.SHARE_IDLE_LEVEL,
+      idleLevel: C.CELL_CAPACITY * this.shareIdleLevel,
     };
   }
 
@@ -2142,6 +2161,7 @@ export class World {
       populationUpdateCount: number;
       shareTransferCount: number;
       shareMaxSurplus: number;
+      shareIdleLevel: number;
       esConfig: {
         enabled: boolean;
         interval: number;
@@ -2184,6 +2204,7 @@ export class World {
     init.populationUpdateCount = 0;
     init.shareTransferCount = 0;
     init.shareMaxSurplus = 0;
+    init.shareIdleLevel = options.shareIdleLevel ?? C.SHARE_IDLE_LEVEL;
     // S-4 **bilinçli olarak kapalı** başlatılır: `esUpdatePhase` dalları
     // `World.fromState` ile kurar; dallarda arama yeniden çalışırsa sonsuz
     // özyineleme olur. Arama yalnız yaşayan dünyada, kurucu seçenekleriyle açılır.

@@ -331,8 +331,17 @@ export function shareAlongBond(
   donorEnergy: number,
   receiverEnergy: number,
   genome: Genome,
+  /**
+   * Boşta eşiği (`CELL_CAPACITY × SHARE_IDLE_LEVEL`).
+   *
+   * **Ölçüm kancası.** Varsayılan `C.SHARE_IDLE_LEVEL` (= 0.82 → 82 e), ancak
+   * hücreler 0–70 e bandında çalıştığı için bu eşiğin **üstüne hiç çıkılmıyor**
+   * ve paylaşma hiç tetiklenmiyor (`VALIDATION.md` §6.17–6.19). Duyarlılık
+   * analizi için ölçülebilir hâle getirildi; oyun varsayılanı **değişmedi**.
+   */
+  idleLevel: number = C.SHARE_IDLE_LEVEL,
 ): { drawn: number; delivered: number } {
-  const ideal = C.CELL_CAPACITY * C.SHARE_IDLE_LEVEL;
+  const ideal = C.CELL_CAPACITY * idleLevel;
   const surplus = donorEnergy - ideal;
   const deficit = ideal - receiverEnergy;
   if (surplus <= 0 || deficit <= 0) return { drawn: 0, delivered: 0 };

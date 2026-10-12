@@ -326,17 +326,40 @@ describe('Paylaşma mekaniği', () => {
     expect(shareAlongBond(idle - 30, idle - 5, g).drawn).toBe(0);
   });
 
-  it('OYUNDA paylaşma hiç tetiklenmiyor — eşik kalibrasyon kusuru', () => {
-    // VALIDATION §6.17: hücreler 0–70 e bandında çalışıyor, boşta eşiği 82 e.
-    // `surplus > 0` koşulu hiç oluşmadığı için paylaşma **ölü kod** ve
-    // `shareEfficiency` genom parametresi hiçbir şey yapmıyor.
-    // Eşik düzeltildiğinde bu test KIRMIZI olacak ve doküman güncellenecek.
-    const w = new World({ seed: 11, population: 48 });
+  it('sayaç gerçekten artabiliyor — REGRESYON KORUMASI', () => {
+    // VALIDATION §6.20: bu test daha önce `expect(transfers).toBe(0)` diyordu
+    // ve **boşuna geçiyordu**, çünkü `sharingPhase()` sayacı hiç artırmıyordu.
+    // "Hiç artmayan sayaç" hiçbir şey yapamayan bir ölçüm aletidir.
+    // Artık sayacın **arttığı** doğrulanır; artmazsa kızar.
+    const w = new World({ seed: 3001, population: 48, strainDecayK: 0.005 });
     for (let t = 0; t < 4000; t++) w.step();
     const stats = w.sharingStats();
     expect(stats.idleLevel).toBeGreaterThan(0);
-    expect(stats.maxSurplus).toBe(0);
-    expect(stats.transfers).toBe(0);
+    expect(stats.transfers).toBeGreaterThan(0);
+    expect(stats.maxSurplus).toBeGreaterThan(0);
+  });
+
+  it('eşiği düşürmek kolonileri çökertiyor — varsayılan en iyisi', () => {
+    // VALIDATION §6.18: 0,82'de zirve küme 24 ve son 4+ yapı 4,67;
+    // 0,60'ta zirve 10 ve son 4+ yapı 0,33. Eşiği "düzeltmek" zararlı.
+    const run = (idle: number) => {
+      const w = new World({ seed: 3001, population: 48, strainDecayK: 0.005, shareIdleLevel: idle });
+      let peak = 0;
+      for (let t = 0; t < 6000; t++) {
+        w.step();
+        if (t % 200 === 0) {
+          const m = w.latestMetrics();
+          if (m && m.largestColonySize > peak) peak = m.largestColonySize;
+        }
+      }
+      const m = w.latestMetrics();
+      return { peak, fourPlus: m?.coloniesOverFourCells ?? 0, transfers: w.sharingStats().transfers };
+    };
+    const dflt = run(0.82);
+    const low = run(0.6);
+    expect(dflt.transfers).toBeGreaterThan(0);
+    expect(low.transfers).toBeGreaterThan(0);
+    expect(dflt.peak).toBeGreaterThan(low.peak);
   });
 });
 

@@ -181,6 +181,36 @@ Simülasyonda hata yoktu; üç deney dosyasında düzeltildi ve regresyon testi 
 
 Y-1 kalibrasyon "çözüm" değil, kısmi hafifletme olarak yeniden çerçevelendi.
 
+### 2.2b Faz B3 — hileci deneyi: hilecin tanımı yok
+
+(`VALIDATION.md` §6.17–6.20)
+
+**Geçerli bulgu:** `sharingPhase` paylaşım oranını **organizmanın genomünden**
+alıyor. Tüm hücreler aynı genomu paylaştığı için hücreler arasında davranış
+farkı yok — biri "çok paylaşan", diğeri "az paylaşan" olamaz. **Hilecin tanımı
+bu modelde yoktur.**
+
+**Düzeltilen bulgu:** Önceki sürüm "paylaşma ölü kod, `shareEfficiency` hiçbir
+şey yapmıyor" diyordu — **yanlıştı.** Ölçüm aracı hatalıydı:
+`World.sharingStats()` alanı eklenmiş ama `sharingPhase()` içine artırma satırı
+konmamıştı; sayaç daima 0 dönüyordu ve onu "doğrulayan" test de boşuna geçiyordu.
+Gerçekte varsayılan ayarlarda 8.000 tick'te **2.262 aktarım** oluyor.
+
+**Duyarlılık taraması — eşik zaten doğruymuş:**
+
+| Eşik | Aktarım | Zirve küme | Son 4+ yapı |
+|---|---|---|---|
+| **0,82 (varsayılan)** | 2.262 | **24** | **4,67** |
+| 0,60 | 366.660 | 10 | 0,33 |
+| 0,30 | 84.236 | 16 | 2,33 |
+
+Eşiği düşürmek kolonileri **çökertiyor** (zirve 24 → 10). "Kalibrasyon"
+önerisi ölçümle çürütüldü; iyi ki varsayılan değiştirilmeden sınandı.
+
+**B3'ün önkoşulu:** eşik değil, **işbirliği aktı** eklemek (örn. hücre enerji
+harcayarak bağını yenilemesi). Ancak bu modelin felsefesini değiştiren bir
+karar ve kullanıcının onayına bağlı.
+
 ### 2.3 Gözlemci: canlı model doğrulanmadı
 
 - Hiçbir API anahtarı yoktu; **gerçek bir sağlayıcı çağrısı yapılmadı**.

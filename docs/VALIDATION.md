@@ -14,7 +14,7 @@ Bu raporda **yalnızca gerçekten çalıştırılan** kontroller yer alır.
 
 ```
 Test Files  4 passed (4)
-     Tests  147 passed (147)
+     Tests  148 passed (148)
 ```
 
 ### 1.1 MLP sayısal doğruluğu (`tests/mlp.test.ts`, 14 test)
@@ -1414,61 +1414,80 @@ olarak kullanılabilir** ve ürüne alınabilir.
 - Simülasyon kesintisiz sürüyor (tick 884), **konsol hatası yok**
 
 
-### 6.17 Faz B3 · Somatik mutasyon / hileci deneyi — **ölü kod yolu bulundu**
+### 6.17 Faz B3 · Somatik mutasyon / hileci deneyi
 
-Yol planının B3'ü: hileci mutasyonun yayılıp yayılmadığını ölçmek. Denenmeden
-önce mimari bir soru soruldu: politika hücre düzeyinde mi?
+> ⚠️ **DÜZELTME (§6.20):** Bu bölümün ilk yazımı **yanlış bir bulgu** içeriyordu
+> ("paylaşma mekaniği ölü kod"). Yanlışlık ölçüm aracındaydı ve §6.20'de
+> düzeltildi. Aşağıdaki metin **düzeltilmiş hâlidir.**
 
-**Cevap: hayır, ve bu B3'ü imkânsız kılıyor.**
+Yol planının B3'ü: hileci mutasyonun yayılıp yayılmadığını ölçmek.
 
-`world.ts → sharingPhase()` paylaşım oranını **organizmanın genomünden** alır:
+**Mimari bulgu (bu hâlâ geçerli):** `world.ts → sharingPhase()` paylaşım oranını
+**organizmanın genomünden** alır:
 
 ```js
-shareAlongBond(donor.energy, receiver.energy, genome)   // genome = org.genome
-  → rate = min(surplus, deficit) × SHARE_RATE × (0.25 + genome.shareEfficiency)
+shareAlongBond(donor.energy, receiver.energy, org.genome)
 ```
 
 Bir organizmanın tüm hücreleri aynı genomu paylaşır. Dolayısıyla **hücreler
-arasında hiçbir davranış farkı yoktur**; bir hücre "çok paylaşan", diğeri
-"az paylaşan" olamaz. **Hilecin tanımı bile yoktur.**
+arasında davranış farkı yoktur**; bir hücre "çok paylaşan", diğeri "az
+paylaşan" olamaz. **Hilecin tanımı bu modelde yoktur.**
 
-### 6.18 Daha kötüsü: paylaşma mekaniği hiç çalışmıyor
+### 6.18 Paylaşma mekaniği **çalışıyor** — ve eşiği düşürmek **zararlı**
 
-Ölçüm (`strainDecayK = 0.005`, 8.000 tick): 52'ye kadar bağlı çok hücreli
-organizma var, bağlar 7.789/8.000 tick'te mevcut — ama **hiçbir bağ enerji
-taşımıyor.**
+Varsayılan ayarlarda (boşta eşiği 82 e, 8.000 tick, 3 tohum, `strainK 0.005`):
 
-| Ölçüm | Değer |
-|---|---|
-| Boşta eşiği (`CELL_CAPACITY × SHARE_IDLE_LEVEL`) | **82,0 e** |
-| Hücre enerjisinin çalıştığı bant | **0–70 e** |
-| Eşiğin **üstünde** olan hücre oranı | **%0,0** |
-| 8.000 tick'te gerçekleşen paylaşım | **0** |
+| Eşik | Eşik (e) | Aktarım | Görülen maks. fazla | Zirve küme | Son küme | **Son 4+ yapı** | Son pop | Son enerji | Rezidüel |
+|---|---|---|---|---|---|---|---|---|---|
+| **0,82 (varsayılan)** | 82 | 2.262 | 14,23 | **24** | **5** | **4,67** | 176 | 0,297 | −4,8e−8 |
+| 0,60 | 60 | 366.660 | 10,22 | 10 | 3 | 0,33 | 173 | 0,325 | −4,1e−8 |
+| 0,50 | 50 | 287.912 | 20,38 | 9 | 4 | 0,67 | 177 | 0,318 | −5,0e−8 |
+| 0,40 | 40 | 255.748 | 30,23 | 14 | 3 | 0,33 | 177 | 0,302 | −4,0e−8 |
+| 0,30 | 30 | 84.236 | 39,05 | 16 | 3 | 2,33 | 168 | 0,301 | −5,2e−8 |
 
-`shareAlongBond` yalnızca `surplus = donor.energy − 82 > 0` olduğunda aktarım
-yapar. Hücreler hiçbir zaman 82 e'nin üstüne çıkmadığı için bu koşul **hiç
-oluşmuyor**.
+**İki sonuç, ikisi de önemli:**
 
-**Sonuç:** paylaşma tamamen atıl bir kod yoludur ve `shareEfficiency` genom
-parametresi — üründe görünen, soy defterinde raporlanan, deneylerde "müdahale
-edilen" bir parametre — **hiçbir şey yapmıyor.** 0.05'ten 1.0'a kadar
-değiştirildiğinde koloni büyüklüğü, popülasyon ve enerji **birebir aynı** kaldı
-(ölçüldü).
+1. **Mekanizma canlı.** Varsayılan ayarlarda 8.000 tick'te **2.262** gerçek
+   paylaşım gerçekleşiyor. `shareEfficiency` genom parametresi etkisiz **değil**.
+2. **Varsayılan eşik (0,82) en iyisi.** Eşiği düşürmek kolonileri **çökertiyor**:
+   zirve küme 24 → 10, pencerenin sonundaki 4+ hücreli yapılar 4,67 → 0,33.
+   Yüksek eşik, yalnız gerçekten zengin hücreleri iyi beslenmiş seviyeye
+   *eşitleyen* bir ayarlama; düşük eşik kolonileri açlığa pompalıyor.
 
-Bu, bir hileci bulmanın değil, **önce bir işbirliği koymanın** meselesidir:
-modelde işbirliği aktı yok, sadece gradyan taşıması (fizik) var.
+Enerji korunumu her satırda korunuyor (|rezidüel| < 5,2e−8) — taşıma kaybı
+gerçekten harcanıyor.
 
 ### 6.19 Doğrulama
 
-Düzeltme değil, **ölçüm aracı** eklendi: `World.sharingStats()` her koşuda
-paylaşım sayısını, görülen maksimum fazlayı ve eşiği raporlar. İki test yazıldı:
+- **Sayaç artabiliyor:** varsayılan ayarlarda `transfers > 0`. Bu, §6.20'deki
+  hatayı bir daha yakalayan regresyon korumasıdır.
+- **Mekanizma doğrudur:** eşiği aşan/altında kalan çiftte aktarım olur, ikisi de
+  altındayken olmaz.
+- **Enerji korunumu** paylaşma açıkken de sağlam.
 
-- **Mekanizma doğrudur:** eşiği aşan/altında kalan çiftte aktarım olur, altında
-  ikisinde olmaz. → Sorun kodda değil, **eşik kalibrasyonunda.**
-- **Oyunda hiç tetiklenmiyor:** 4.000 tick'te `transfers === 0`. Bu test
-  kusuru **kasıtlı olarak sabitler**; eşik düzeltildiğinde kızarır ve
-  dokümanın güncellenmesini ister.
+### 6.20 Düzeltme kaydı — "ölü kod" bulgusu **yanlıştı**
 
+Önceki düzenlemede şu yazılmıştı: *"paylaşma mekaniği tamamen atıl kod,
+`shareEfficiency` hiçbir şey yapmıyor."* Bu **yanlıştı.**
+
+**Hata zinciri:**
+
+1. `World.sharingStats()` alanı eklendi ama `sharingPhase()` içine
+   **artırma satırı konulmadı.** Sayaç yapısal olarak daima 0 döndü.
+2. Doğrulayan test `expect(transfers).toBe(0)` yazdı — ve **boşuna geçti.**
+3. Ayrıca paylaşma bir "anda" elle örneklenmişti (2 bağ, 0 aktarım); bu da
+   hiçbir zaman tetiklenmediği anlamına gelmez.
+
+Gerçekte varsayılan ayarlarda 8.000 tick'te **2.262** aktarım oluyor.
+
+**Asıl ders:** Hiç artmayan bir sayaç, hiçbir şey yapamayan bir ölçüm
+aletinden kötüdür — senin beklentinle her zaman aynı şeyi söyler ve
+"doğruluyormuş" gibi görünür.
+
+**B3 için sonuç değişmedi, gerekçesi değişti:** hileci hâlâ tanımsız, ama
+nedeni artık "ölü kod" değil — **politikanın hücre düzeyinde olmaması.**
+Düzeltilmesi gereken, eşik değil; B3'ün önkoşulu **işbirliği aktı** (örn. hücre
+enerji harcayarak bağını yenilemesi) eklemektir.
 
 ## 7. Tarayıcı akışı — gerçekten yapıldı
 
@@ -1596,7 +1615,7 @@ Bunlar testlerin bulduğu, düzeltildiği ve **yeniden test edildiği** hatalard
 
 ```bash
 npm ci
-npm test                      # 147 test (4 dosya)
+npm test                      # 148 test (4 dosya)
 npm run typecheck             # tsc --noEmit, temiz
 npm run build                 # vite build, başarılı
 
