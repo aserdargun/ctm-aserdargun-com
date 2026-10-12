@@ -45,6 +45,8 @@ import {
   verifyBranchIndependence,
   formatEvolutionStrategy,
   formatModes,
+  measureNicheCoverage,
+  formatNiche,
 } from '../src/sim/experiments/ecology.ts';
 import {
   calibrateArena,
@@ -265,6 +267,17 @@ function main(): void {
     ? measureModes({ seed: 11, ticks: 6000, sampleEvery: 2000 })
     : measureModes({ seed: 11, ticks: 12_000, sampleEvery: 2000 });
   process.stdout.write(`${formatModes(modes)}\n`);
+
+  process.stdout.write(`\n24/24 Faz D · niş kapsama (yaşam haritası çekirdeği)…\n`);
+  // ⚠️ Hızlı kademede `sampleEvery` 2000 kalırsa 3 örnek düşer ve eğilim
+  // (bilinçli olarak) hiç okunmaz. 1000 ile 6 örnek düşüyor; maliyet farkı
+  // yok çünkü yol uzunluğu her koşuda zaten her tick biriktiriliyor.
+  const niche = measureNicheCoverage({
+    seed: 11,
+    ticks: args.quick ? 6000 : 12_000,
+    sampleEvery: 1000,
+  });
+  process.stdout.write(`${formatNiche(niche)}\n`);
 
   process.stdout.write(`\n22/22 dal (branch) doğruluğu ve maliyeti…\n`);
   const branch = args.quick
@@ -533,6 +546,20 @@ function main(): void {
       '',
       '```',
       formatModes(modes),
+      '```',
+      '',
+      '## Faz D · Niş kapsama (yaşam haritası çekirdeği)',
+      '',
+      'Picbreeder / MAP-Elites kalıbının ölçüm tarafı: üç **ölçülebilir**',
+      'betimleyici (hız, boyut, duyu menzili) üzerinden ızgara kurulur ve hangi',
+      'kutuların işgal edildiği sayılır. Betimleyicilerin hiçbiri genomla',
+      'tahmin edilmiyor — hepsi doğrudan ölçülüyor.',
+      '',
+      'Bu ölçüm, Faz C1\'deki yakınsamanın **yerini** gösteriyor: sorun',
+      'değişimin değil organizmaların aynı davranış kutusuna birikmesi.',
+      '',
+      '```',
+      formatNiche(niche),
       '```',
       '',
       '## Dal (branch) doğruluğu ve maliyeti',

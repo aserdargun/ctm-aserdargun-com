@@ -241,6 +241,44 @@ Bu, literatürdeki "açık uçluluk geçicidir, baskın desenlere çöker"
    olduğu için "rising" diye **yanlış** bir açık uçluluk işareti üretiyordu.
    Yayıncının haklı olduğu ortaya çıktı: gerçek eğilim **falling**.
 
+### 2.2d Faz D · Niş kapsama — yakınsamanın **yeri** ölçüldü
+
+(`VALIDATION.md` §6.23–6.25)
+
+Çukur olduğu biliniyordu ama nerede olduğu bilinmiyordu. Üç ölçülebilir
+betimleyici (hız, boyut, duyu menzili) üzerine 3×3×3 ızgara kuruldu.
+
+**Bu ölçüm ilk çalıştırmada kırıktı ve üç ayrı hata vardı:**
+
+1. **Birim hatası** — hız yer değiştirme olarak ölçülüp `mb/tick` tavanıyla
+   karşılaştırılıyordu; gözlemlerin **1581/1582**'si tavana kırpılıyor,
+   hız ekseni **hiçbir bilgi taşımıyordu**. Doğru birimde aynı gözlemlerde
+   kırpma **0/1582**.
+2. **Ulaşılamayan tavan** — boyut tavanı 48 hücreydi, en büyük organizma
+   8 hücre; 3. kutu yapısal olarak **erişilemez**di.
+3. **Bozuk ilk örnek** — döngüden önce örnek alındığı için seri küçük
+   başlıyordu. 4 örnekli seri "**genişliyor**", aynı koşu 7 örnekte
+   "**daralıyor**" diyordu. Aynı ölçüm, iki zıt yön.
+
+Hiçbiri kendini belli etmiyordu; üçü de makul görünen sayılar üretti.
+
+Düzeltilmiş ölçüm (tohum 11, 12.000 tick): **7/27 kutu dolu**, en yoğun kutuda
+**%52** organizma (kutu 2/0/1 — hızlı, tek hücreli, orta menzilli), dolu kutu
+5.3 → 4.3.
+
+> **Düzeltme kaydı:** önceki "%83 tek kutuya birikmiş" sayısı kırık bir aletle
+> alınmıştı ve **geçersizdir**. Yön değişmedi — yakınsama gerçek — sayı %52'dir.
+
+**Kalıcı değişiklik:** `NicheReport` artık her koşuda **eksen sağlığını**
+raporluyor (kaç gözlem tavana kırpıldı, kaç kutu doldu). Çökme kuralı yalnız
+güvenilir sinyale bakar; eksik kutu arıza değildir, ölçülen biyolojidir.
+Denetleyicinin kendisi de testle doğrulanıyor — aksi hâlde hep boş dönüp yeşil
+görünürdü.
+
+**Yol haritasına etkisi:** Faz D'nin ürün tarafı (görsel yaşam haritası +
+arşiv) hâlâ açık. Ölçüm artık **hangi** nişlerin boş olduğunu gösterdiği için
+arşiv nereye yazılacak bellidir: yavaş/tek hücreli uçlar.
+
 ### 2.3 Gözlemci: canlı model doğrulanmadı
 
 - Hiçbir API anahtarı yoktu; **gerçek bir sağlayıcı çağrısı yapılmadı**.

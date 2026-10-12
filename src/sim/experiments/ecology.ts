@@ -21,6 +21,8 @@
 
 import { bootstrapCI, bootstrapTest, fmt, fmtInterval, type HypothesisTest, type Interval } from '../stats.ts';
 import { deserializeWorld, serializeWorld } from '../persistence/snapshot.ts';
+import { GENOME_BOUNDS } from '../genome.ts';
+import { C } from '../biology/energy.ts';
 import { genomeDistance } from './colony.ts';
 import type { Genome } from '../types.ts';
 import { World } from '../world.ts';
@@ -2297,6 +2299,335 @@ export function formatModes(r: ModesReport): string {
     `  tohum ${r.seed} · ${r.ticks} tick · ${r.samples.length} örnek`,
     header,
     ...rows,
+    `  → ${r.reading}`,
+  ].join('\n');
+}
+
+// --------------------------------------------------- niş kapsama (yaşam haritası çekirdeği)
+
+/**
+ * Niş ızgarasının eksen sınırları — `tools/calibrate-niche-axes.ts` çıktısından.
+ *
+ * ⚠️ Bu iki sabit **gözlemden ayarlanmış bir "iyi görünen" aralık değildir**;
+ * kalibrasyon ayrı, çok tohumlu ve uzun bir koşudan gelir, sonra dondurulur.
+ * Kalibrasyonu ölçümle aynı pencerede yapmak, eksenlerin ölçülen dünyaya göre
+ * sessizce kaymasına ve ölçümün kendi kendini doğrulamasına yol açar.
+ *
+ * Boyut ekseni doğrudan yapısal sabitten türer (`log2(MAX_ORGANISM_CELLS)`):
+ * kalibrasyonda bu tavanın gerçekten erişildiği görüldü.
+ */
+export const NICHE_SPEED_MAX = 0.12; // mb/tick — kalibrasyonda gözlenen maks 0.1121
+export const NICHE_SIZE_MAX = Math.log2(C.MAX_ORGANISM_CELLS); // 24 hücre → 4.585
+
+export interface NicheCell {
+  /** Hız kutusu (0 = en yavaş). */
+  speedBin: number;
+  /** Boyut kutusu (hücre sayısı). */
+  sizeBin: number;
+  /** Duyu menzili kutusu. */
+  rangeBin: number;
+  /** Bu kutuda yaşayan organizma sayısı (pencere sonu). */
+  count: number;
+  /** Bu kutunun en iyi bireyi (enerji norm). */
+  bestEnergyNorm: number;
+  /** Bu kutudaki en iyi bireyin soy kimliği. */
+  bestLineage: number;
+}
+
+/**
+ * Bir eksenin sağlığı — **ölçüm aletinin kendi denetimi.**
+ *
+ * Gerekçe: bu ölçümün ilk sürümünde iki eksen de ölüydü ve hiçbir belirti
+ * vermiyordu. Hız ekseni tavana kırpılıyordu (yanlış birim: iki örnek arasındaki
+ * yer değiştirme "tick başına" sanılıyordu; ölçümde dağılımın %99,9'u tavanın
+ * üstündeydi → herkes üst kutuya düşüyordu). Boyut ekseni ise ters yönde
+ * ölüydü: tavan 48 hücreydi ama en büyük organizma 8 hücreydi, yani 3. kutu
+ * yapısal olarak **hiç erişilemez**di.
+ *
+ * İkisi de "makul görünen" sayılar üretti. Bu yüzden alet, eksenlerinin ne
+ * kadarını gerçekten kullandığını **her koşuda raporlamak zorunda**.
+ */
+export interface NicheAxisHealth {
+  axis: 'hız' | 'boyut' | 'menzil';
+  /** Kutu sayısı. */
+  bins: number;
+  /** Üst sınır (bu eksenin kendi biriminde). */
+  max: number;
+  /** Üst sınıra değen / aşan gözlem — bunlar üst kutuya kırpılır. */
+  clamped: number;
+  /** Toplam gözlem. */
+  total: number;
+  /** En az bir gözlem düşen kutu sayısı. */
+  binsReached: number;
+  /** Gözlenen en küçük değer. */
+  min: number;
+}
+
+export interface NicheReport {
+  seed: number;
+  ticks: number;
+  grid: { speed: number; size: number; range: number };
+  /** Dolu kutu sayısı ve toplam kutu sayısı. */
+  occupied: number;
+  total: number;
+  occupancy: number;
+  /** Zaman içinde dolu kutu sayısı — daralma mı genişleme mi? */
+  occupiedOverTime: number[];
+  /** Pencerenin sonunda dolu kutular. */
+  cells: NicheCell[];
+  /** Her eksenin kendi sağlığı — aletin kendi denetimi. */
+  health: NicheAxisHealth[];
+  /** Bir eksen çöktüyse (tek kutuya kırpıldı veya bir kutu hiç dolmadı) adı. */
+  degenerateAxes: string[];
+  reading: string;
+}
+
+/**
+ * **Niş kapsama ölçümü — yaşam haritasının sayısal çekirdeği.**
+ *
+ * Faz C1 (MODES) "popülasyon daralıyor" dedi. Bu ölçüm bunu somutlaştırır:
+ * **kaç farklı davranış nişi işgal ediliyor?**
+ *
+ * Tasarayıcılar (Picbreeder / MAP-Elites kalıbı): ölçülebilir davranış
+ * betimleyicileri üzerinden bir ızgara kurulur ve her hücrede o davranışın
+ * **en iyi temsilcisi** saklanır. "Yaşam haritası" bu ızgaranın görselleştirilmiş
+ * hâlidir.
+ *
+ * Betimleyiciler (tamamı **ölçülebilir**, genomdan tahmin değil):
+ *  1. **Hız** — merkez hareketi (mb/tick), doğrudan ölçülür
+ *  2. **Boyut** — hücre sayısı
+ *  3. **Duyu menzili** — genom.senseRadius
+ *
+ * `ε = 0` varsayılanla arşiv **yalnız ölçüm** olarak çalışır; ürün davranışı
+ * değişmez. Arşivin seçilimi *doldurması* (ε > 0) ayrı bir adımdır.
+ */
+export function measureNicheCoverage(options?: {
+  seed?: number;
+  ticks?: number;
+  sampleEvery?: number;
+  strainDecayK?: number;
+  population?: number;
+  binsPerAxis?: number;
+}): NicheReport {
+  const seed = options?.seed ?? 11;
+  const ticks = options?.ticks ?? 12_000;
+  const sampleEvery = options?.sampleEvery ?? 1000;
+  const strainDecayK = options?.strainDecayK ?? 0.005;
+  const population = options?.population ?? 48;
+  const B = options?.binsPerAxis ?? 3;
+
+  const world = new World({ seed, population, strainDecayK });
+
+  // Betimleyici aralıkları **sabit** ve **kalibre edilmiş** (bkz. NICHE_* ve
+  // `tools/calibrate-niche-axes.ts`).
+  //
+  // ⚠️ Bu ölçüm iki hatayı düzeltmek için yeniden yazıldı; ikisi de "makul
+  // görünen" sayılar üretiyordu:
+  //
+  //  1. **Birim hatası.** Hız, iki örnek arasındaki *yer değiştirme* olarak
+  //     ölçülüyordu, sonra `SPEED_MAX = 0.08` (mb/tick) ile karşılaştırılıyordu.
+  //     Ölçümde dağılımın 1581/1582'si tavanın üstündeydi → hız ekseni tümüyle
+  //     üst kutuya kırpıldı ve **hiçbir bilgi taşımadı**. Aralık doğru birimde
+  //     olduğunda aynı gözlemlerin 0/1582'si tavanı aşıyor.
+  //
+  //  2. **Pencereye bağlı tanım.** Yer değiştirme rastgele yürüyüşte √Δt ile
+  //     büyür; ölçülen "tick başına hız" örnekleme aralığına göre değişiyordu
+  //     (20 tick'te medyan 0.057, 200 tick'te 0.019). Artık **yol uzunluğu**
+  //     her tick biriktiriliyor ve tick sayısına bölünüyor; bu tanım pencereye
+  //     bağlı değildir. (Her tick ölçmek istenirse maliyet ölçüldü: 3000 tick'te
+  //     `step` yalnız 907 ms, merkez de eklenince 863 ms — yani gürültü içinde.)
+  const RANGE_MIN = GENOME_BOUNDS.senseRadius[0];
+  const RANGE_MAX = GENOME_BOUNDS.senseRadius[1];
+
+  const prevC = new Map<number, { x: number; y: number; z: number }>();
+  const pathOf = new Map<number, number>();
+  const firstOf = new Map<number, number>();
+  // Eksen sağlığı: her eksende kaç gözlem üst sınıra değdi, kaç kutu gerçekten doldu.
+  const clamped = { speed: 0, size: 0, range: 0 };
+  const observed = { speed: 0, size: 0, range: 0 };
+  const binsHit = { speed: new Set<number>(), size: new Set<number>(), range: new Set<number>() };
+  const axisMin = { speed: Infinity, size: Infinity, range: Infinity };
+
+  const occupiedOverTime: number[] = [];
+  const cells = new Map<string, NicheCell>();
+
+  const binOf = (v: number, max: number): number => {
+    if (max <= 0) return 0;
+    return Math.max(0, Math.min(B - 1, Math.floor((v / max) * B)));
+  };
+
+  /** Her tick: merkez konumunu ve yol uzunluğunu biriktir. */
+  const track = (t: number): void => {
+    for (const org of world.organisms.values()) {
+      if (!org.alive || org.cells.length === 0) continue;
+      const c = world.centroidOf(org);
+      const prev = prevC.get(org.id);
+      if (prev) pathOf.set(org.id, (pathOf.get(org.id) ?? 0) + Math.hypot(c.x - prev.x, c.y - prev.y, c.z - prev.z));
+      else firstOf.set(org.id, t);
+      prevC.set(org.id, { ...c });
+    }
+  };
+
+  const sample = (t: number): void => {
+    const occupied = new Set<string>();
+    for (const org of world.organisms.values()) {
+      if (!org.alive || org.cells.length === 0) continue;
+      // Yeni doğan organizmanın henüz bir tick geçmişi yoktur; ölçüme
+      // sokmak onu yanlışlıkla "sıfır hız" kutusuna atardı.
+      const elapsed = t - (firstOf.get(org.id) ?? t);
+      if (elapsed <= 0) continue;
+      const speed = (pathOf.get(org.id) ?? 0) / elapsed;
+      const size = Math.log2(org.cells.length);
+      const range = org.genome.senseRadius - RANGE_MIN;
+
+      if (speed >= NICHE_SPEED_MAX) clamped.speed++;
+      if (size >= NICHE_SIZE_MAX) clamped.size++;
+      if (range >= RANGE_MAX - RANGE_MIN) clamped.range++;
+      observed.speed++;
+      observed.size++;
+      observed.range++;
+      axisMin.speed = Math.min(axisMin.speed, speed);
+      axisMin.size = Math.min(axisMin.size, size);
+      axisMin.range = Math.min(axisMin.range, range);
+
+      const sb = binOf(speed, NICHE_SPEED_MAX);
+      const zb = binOf(size, NICHE_SIZE_MAX);
+      const rb = binOf(range, RANGE_MAX - RANGE_MIN);
+      binsHit.speed.add(sb);
+      binsHit.size.add(zb);
+      binsHit.range.add(rb);
+      const key = `${sb}.${zb}.${rb}`;
+      occupied.add(key);
+
+      const cell = cells.get(key);
+      const energyNorm =
+        org.cells.reduce((a, id) => a + (world.cells.get(id)?.energyNorm ?? 0), 0) / Math.max(1, org.cells.length);
+      if (!cell || energyNorm > cell.bestEnergyNorm) {
+        cells.set(key, {
+          speedBin: sb, sizeBin: zb, rangeBin: rb,
+          count: (cell?.count ?? 0) + 1,
+          bestEnergyNorm: energyNorm,
+          bestLineage: org.lineageId,
+        });
+      } else if (cell) {
+        cell.count += 1;
+      }
+    }
+    occupiedOverTime.push(occupied.size);
+  };
+
+  // ⚠️ Döngüden **önce** örnek almak ayrı bir hataydı: hiç adım atılmadığı için
+  // her organizma "sıfır hız" kutusuna düşüyor ve seri ilk noktadan itibaren
+  // yanlışlıkla küçük başlıyordu. Seri artık yalnız adım sonrası noktalardan
+  // oluşur.
+  for (let t = 1; t <= ticks; t++) {
+    world.step();
+    track(t);
+    if (t % sampleEvery === 0) sample(t);
+  }
+
+  const total = B * B * B;
+  const cellList = [...cells.values()].sort(
+    (a, b) => a.speedBin - b.speedBin || a.sizeBin - b.sizeBin || a.rangeBin - b.rangeBin,
+  );
+
+  // --- Eksen sağlığı: aletin kendi denetimi ---------------------------------
+  const health: NicheAxisHealth[] = [
+    { axis: 'hız', bins: B, max: NICHE_SPEED_MAX, clamped: clamped.speed, total: observed.speed, binsReached: binsHit.speed.size, min: axisMin.speed },
+    { axis: 'boyut', bins: B, max: NICHE_SIZE_MAX, clamped: clamped.size, total: observed.size, binsReached: binsHit.size.size, min: axisMin.size },
+    { axis: 'menzil', bins: B, max: RANGE_MAX - RANGE_MIN, clamped: clamped.range, total: observed.range, binsReached: binsHit.range.size, min: axisMin.range },
+  ];
+  // Çökme kuralı **yalnız güvenilir sinyale** bakar:
+  //
+  //  - `binsReached === 1` → eksen tek kutuya kırpılmış, hiçbir ayrım üretmiyor.
+  //    (Hız ekseninin ilk hâli tam olarak buydu: %99,9 tavana kırpılıyordu.)
+  //  - `clamped/total > 0.9` → neredeyse her gözlem üst sınıra yapışmış.
+  //
+  // ⚠️ "Bazı kutular hiç dolmadı" **tek başına arıza sayılmaz**. Boyut ekseninde
+  // 3. kutu seyrek doludur çünkü organizmaların çoğu 1–2 hücreli — bu bir alet
+  // hatası değil, ölçülen biyolojidir. Bu yüzden eksik kutular yalnız
+  // `binsReached` olarak **raporlanır**, "çöktü" ilan edilmez. Arıza ilan etmek,
+  // ölçülen bir gerçeği gizlemekten daha kötüdür.
+  const degenerateAxes = health
+    .filter((h) => h.binsReached < 2 || (h.total > 0 && h.clamped / h.total > 0.9))
+    .map((h) => h.axis);
+
+  // Eğilim **uç nokta** karşılaştırmasıyla değil, serinin ilk ve son üçte
+  // birinin ortalamasıyla belirlenir: seri 1–5 arasında salınıyor ve uçlar
+  // karşılaştırılınca "genişliyor" gibi yanlış bir eğilim çıkıyor.
+  // (MODES ölçümünde de aynı tuzakla karşılaşılmıştı.)
+  //
+  // ⚠️ Ama "üçte bir" tek bir noktaya düşerse (kısa seride `floor(n/3) == 1`)
+  // bu karşılaştırma yine uç noktadır ve **gürültüyü eğilim diye okur**.
+  // Gözlem: 4 noktalı seri `[2, 5, 4, 4]` "2.0 → 4.0 genişledi" derken aynı
+  // koşu 7 noktalı örneklemede daralma gösteriyordu. Seri yeterince uzun
+  // değilse eğilim iddiası **hiç kurulmaz**.
+  const third = Math.floor(occupiedOverTime.length / 3);
+  const trendKnown = third >= 2;
+  const meanOfSlice = (xs: readonly number[]) => (xs.length > 0 ? meanOf(xs) : 0);
+  const early = trendKnown ? meanOfSlice(occupiedOverTime.slice(0, third)) : 0;
+  const late = trendKnown ? meanOfSlice(occupiedOverTime.slice(-third)) : 0;
+  const top = cellList.reduce((a, c) => (c.count > a.count ? c : a), cellList[0] as NicheCell);
+  const totalOrganisms = cellList.reduce((a, c) => a + c.count, 0);
+  const concentration = totalOrganisms > 0 ? (top?.count ?? 0) / totalOrganisms : 0;
+
+  const trendText = trendKnown
+    ? `Dolu kutu sayısı: ilk üçte ${early.toFixed(1)} → son üçte ${late.toFixed(1)} ortalama. `
+    : `Dolu kutu sayısı: seriden eğilim okunmuyor (yalnız ${occupiedOverTime.length} örnek, ` +
+      `üçte bir için gereken en az 6 örnek sağlanmıyor). `;
+
+  const reading =
+    `${cellList.length}/${total} kutu dolu (%${((cellList.length / total) * 100).toFixed(0)} doluluk). ` +
+    `En yoğun kutuda %${(concentration * 100).toFixed(0)} organizma birikmiş ` +
+    `(kutu ${top?.speedBin}/${top?.sizeBin}/${top?.rangeBin}). ` +
+    trendText +
+    (degenerateAxes.length > 0
+      ? `⚠️ **Eksen çöktü (${degenerateAxes.join(', ')}):** bu eksen ızgarayı taşıyamıyor, ` +
+        `doluluk sayısı bu haliyle yorumlanamaz.`
+      : '') +
+    (degenerateAxes.length === 0 && concentration > 0.5
+      ? '**Belirgin yakınsama:** organizmaların çoğu tek bir davranış kutusunda. ' +
+        'Bu, yaşam haritasının (Faz D) çözeceği problem: arşiv olmadan popülasyon tek çukura düşüyor.'
+      : degenerateAxes.length === 0
+        ? 'Dağılım makul; belirgin bir çukur yok.'
+        : '');
+
+  return {
+    seed, ticks,
+    grid: { speed: B, size: B, range: B },
+    occupied: cellList.length,
+    total,
+    occupancy: cellList.length / total,
+    occupiedOverTime,
+    cells: cellList,
+    health,
+    degenerateAxes,
+    reading,
+  };
+}
+
+export function formatNiche(r: NicheReport): string {
+  const header = `  hız/boyut/menzil  adet   en iyi enerji   soy`;
+  const rows = r.cells.map(
+    (c) =>
+      `  ${String(c.speedBin).padStart(2)}/${c.sizeBin}/${c.rangeBin}      ${String(c.count).padStart(4)}   ` +
+      `${fmt(c.bestEnergyNorm, 11).padStart(12)}   ${String(c.bestLineage).padStart(3)}`,
+  );
+  const healthRows = r.health.map(
+    (h) =>
+      `  ${h.axis.padEnd(7)} üst sınır ${h.max.toFixed(3).padStart(7)} · ` +
+      `gözlem ${String(h.total).padStart(6)} · tavana kırpılan ${String(h.clamped).padStart(6)} ` +
+      `(%${h.total > 0 ? ((h.clamped / h.total) * 100).toFixed(1) : '0.0'}) · ` +
+      `dolu kutu ${h.binsReached}/${h.bins} · en küçük ${Number.isFinite(h.min) ? h.min.toFixed(3) : '—'}` +
+      (r.degenerateAxes.includes(h.axis) ? '   ⚠️ ÇÖKTÜ' : ''),
+  );
+  return [
+    `  tohum ${r.seed} · ${r.ticks} tick · ızgara ${r.grid.speed}×${r.grid.size}×${r.grid.range} = ${r.total} kutu`,
+    header,
+    ...rows,
+    `  dolu kutu zaman serisi: [${r.occupiedOverTime.join(', ')}]`,
+    `  eksen sağlığı (ölçüm aletinin kendi denetimi):`,
+    ...healthRows,
     `  → ${r.reading}`,
   ].join('\n');
 }

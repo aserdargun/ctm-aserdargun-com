@@ -35,11 +35,16 @@ import {
   formatPopulationUpdate,
   formatRegen,
   measureModes,
+  measureNicheCoverage,
   measureRewardDispersion,
   sweepBondDurability,
   sweepResourceRegen,
   formatModes,
+  formatNiche,
+  NICHE_SPEED_MAX,
+  NICHE_SIZE_MAX,
 } from '../src/sim/experiments/ecology.ts';
+import { C } from '../src/sim/biology/energy.ts';
 import {
   calibrateArena,
   evolvePolicy,
@@ -969,6 +974,87 @@ describe('Faz C1 · MODES açık uçluluk metrikleri', () => {
     const lines = formatModes(r).split('\n');
     expect(lines.length).toBe(r.samples.length + 3);
     expect(formatModes(r)).toContain('yenilik');
+  });
+});
+
+describe('Faz D · niş kapsama (yaşam haritası çekirdeği)', () => {
+  it('ızgara doluluğunu ve yoğunlaşmayı raporlar', () => {
+    const r = measureNicheCoverage({ seed: 11, ticks: 4000, sampleEvery: 1000, binsPerAxis: 3 });
+    expect(r.total).toBe(27);
+    expect(r.occupied).toBeGreaterThan(0);
+    expect(r.occupied).toBeLessThanOrEqual(r.total);
+    expect(r.occupancy).toBeGreaterThan(0);
+    expect(r.occupiedOverTime.length).toBeGreaterThan(1);
+    expect(r.cells.every((c) => c.count >= 1)).toBe(true);
+  });
+
+  it('organizmaların çoğu tek kutuya birikmiş — yakınsama', () => {
+    const r = measureNicheCoverage({ seed: 11, ticks: 8000, sampleEvery: 1000 });
+    const total = r.cells.reduce((a, c) => a + c.count, 0);
+    const top = Math.max(...r.cells.map((c) => c.count));
+    expect(total).toBeGreaterThan(0);
+    expect(top / total).toBeGreaterThan(0.3);
+  });
+
+  it('biçimlendirme başlık + satır + yorum üretir', () => {
+    const r = measureNicheCoverage({ seed: 11, ticks: 2000, sampleEvery: 1000 });
+    const lines = formatNiche(r).split('\n');
+    expect(lines.length).toBeGreaterThanOrEqual(r.cells.length + 3);
+    expect(formatNiche(r)).toContain('kutu');
+  });
+
+  // --- aletin kendi denetimi ------------------------------------------------
+  //
+  // Bu blok, ölçümün ilk sürümünde sessizce ölü olan iki ekseni koruyor.
+  // Kırık sınırlar "makul görünen" sayılar ürettiği için regresyon ancak
+  // **açık bir reddedilme** ile yakalanabilir.
+
+  it('eksen sınırları kalibrasyon sabitlerinden gelir', () => {
+    // Boyut tavanı yapısal sabitten türer, gözlemden değil.
+    expect(NICHE_SIZE_MAX).toBeCloseTo(Math.log2(C.MAX_ORGANISM_CELLS), 10);
+    expect(NICHE_SPEED_MAX).toBeGreaterThan(0);
+  });
+
+  it('sağlıklı koşuda hiçbir eksen çökmez ve hız ekseni ayrım üretir', () => {
+    const r = measureNicheCoverage({ seed: 11, ticks: 4000, sampleEvery: 1000 });
+    expect(r.degenerateAxes).toEqual([]);
+    const speed = r.health.find((h) => h.axis === 'hız');
+    expect(speed).toBeDefined();
+    // Hız ekseni tamamen kullanılmalı — birim hatası önceki sürümde
+    // gözlemlerin neredeyse tamamını tavana kırpıyor ve ekseni tek kutuya
+    // düşürüyordu.
+    expect(speed!.binsReached).toBeGreaterThanOrEqual(2);
+    expect(speed!.clamped).toBe(0);
+  });
+
+  it('çökme dedektörü gerçekten tetiklenebiliyor (ölü sayaç değil)', () => {
+    // ⚠️ Kendi hatasını yapmayı zorlayan test. Dedektör hiç yanlışsa
+    // `degenerateAxes` hep boş kalır ve "yeşil" görünür — en tehlikeli
+    // ölçüm aleti budur. Burada ızgara kasıtlı olarak tek kutuya indiriliyor.
+    const r = measureNicheCoverage({ seed: 11, ticks: 4000, sampleEvery: 1000, binsPerAxis: 1 });
+    expect(r.degenerateAxes.length).toBeGreaterThan(0);
+    expect(r.reading).toContain('Eksen çöktü');
+  });
+
+  it('kısa seride eğilim iddiası kurulmaz', () => {
+    // 4 örneklik seri: floor(4/3) = 1, yani "üçte bir" aslında tek uç nokta.
+    // Bu seri önceki sürümde gürültüyü eğilim diye okuyordu.
+    const r = measureNicheCoverage({ seed: 11, ticks: 4000, sampleEvery: 1000 });
+    expect(r.occupiedOverTime.length).toBe(4);
+    expect(r.reading).toContain('eğilim okunmuyor');
+  });
+
+  it('yeterince uzun seride eğilim okunur', () => {
+    const r = measureNicheCoverage({ seed: 11, ticks: 12000, sampleEvery: 1000 });
+    expect(r.occupiedOverTime.length).toBe(12);
+    expect(r.reading).not.toContain('eğilim okunmuyor');
+    expect(r.reading).toContain('ilk üçte');
+  });
+
+  it('eksen sağlığı biçimlendiricide görünür', () => {
+    const text = formatNiche(measureNicheCoverage({ seed: 11, ticks: 2000, sampleEvery: 1000 }));
+    expect(text).toContain('eksen sağlığı');
+    for (const axis of ['hız', 'boyut', 'menzil']) expect(text).toContain(axis);
   });
 });
 

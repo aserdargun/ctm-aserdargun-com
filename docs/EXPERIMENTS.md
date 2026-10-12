@@ -1,7 +1,7 @@
 # Cell to Mind — Deney Sonuçları
 
-**Körüldü:** 2026-10-12T05:39:23.757Z
-**Toplam koşu:** 1921 · **duvar süresi:** 427.9 s
+**Körüldü:** 2026-10-12T06:32:20.267Z
+**Toplam koşu:** 1921 · **duvar süresi:** 459.9 s
 **Mod:** standart
 **Pencere:** 12.000 tick (40.000 tick'lik ekolojik çöküşü kapsamak için `--deep` kullanın)
 
@@ -330,6 +330,34 @@ aktivite. Tümü mevcut dünya verisinden türetilir.
   → Pencere sonu: değişim 0.0001 · yenilik %0.9 · çeşitlilik 0.772 · karmaşıklık 0.226 · tür 12. Eğilim: **falling**. Pencere boyunca 125 benzersiz genom imzası görüldü. **Yakınsama, açık uçluluk değil:** yenilik %37 → %0.9, değişim ~0'a düştü, karmaşıklık 0.38 → 0.23. Popülasyon kısa bir keşiften sonra daralmaya geçiyor — Literatürdeki "açık uçluluk geçicidir, baskın desenlere çöker" bulgusunun bu modeldeki karşılığı (Faldor vd. 2023).
 ```
 
+## Faz D · Niş kapsama (yaşam haritası çekirdeği)
+
+Picbreeder / MAP-Elites kalıbının ölçüm tarafı: üç **ölçülebilir**
+betimleyici (hız, boyut, duyu menzili) üzerinden ızgara kurulur ve hangi
+kutuların işgal edildiği sayılır. Betimleyicilerin hiçbiri genomla
+tahmin edilmiyor — hepsi doğrudan ölçülüyor.
+
+Bu ölçüm, Faz C1'deki yakınsamanın **yerini** gösteriyor: sorun
+değişimin değil organizmaların aynı davranış kutusuna birikmesi.
+
+```
+  tohum 11 · 12000 tick · ızgara 3×3×3 = 27 kutu
+  hız/boyut/menzil  adet   en iyi enerji   soy
+   0/0/1         6   0.53365761730     0
+   1/0/0         7   0.38804752753    10
+   1/0/1       582   0.65682477202     2
+   1/1/1        81   0.61488979286     8
+   2/0/0         4   0.66186117232    10
+   2/0/1       791   0.69358632827     7
+   2/1/1        63   0.65254823971     7
+  dolu kutu zaman serisi: [4, 6, 6, 5, 6, 5, 4, 4, 5, 4, 4, 4]
+  eksen sağlığı (ölçüm aletinin kendi denetimi):
+  hız     üst sınır   0.120 · gözlem   1534 · tavana kırpılan      0 (%0.0) · dolu kutu 3/3 · en küçük 0.000
+  boyut   üst sınır   4.585 · gözlem   1534 · tavana kırpılan      0 (%0.0) · dolu kutu 2/3 · en küçük 0.000
+  menzil  üst sınır   5.000 · gözlem   1534 · tavana kırpılan      0 (%0.0) · dolu kutu 2/3 · en küçük 1.378
+  → 7/27 kutu dolu (%26 doluluk). En yoğun kutuda %52 organizma birikmiş (kutu 2/0/1). Dolu kutu sayısı: ilk üçte 5.3 → son üçte 4.3 ortalama. **Belirgin yakınsama:** organizmaların çoğu tek bir davranış kutusunda. Bu, yaşam haritasının (Faz D) çözeceği problem: arşiv olmadan popülasyon tek çukura düşüyor.
+```
+
 ## Dal (branch) doğruluğu ve maliyeti
 
 `VALIDATION.md` §9 madde 7 bu yolu "test edilmemiş" diye listeliyordu.
@@ -345,9 +373,9 @@ bozuktu**. Düzeltildi; regresyon testi eklendi.
 ```
   çatal noktası: tick 3000 · 1500 adım sonra karşılaştırma
   snapshot boyutu: 2.544.430 bayt
-  çatallama süresi: 37.93 ms · iki dalın koşusu: 2294.4 ms · oran 1.7%
+  çatallama süresi: 42.37 ms · iki dalın koşusu: 2382.8 ms · oran 1.8%
   dallar bit düzeyinde aynı: evet · müdahale sızıntısı: yok · müdahale etkili: evet
-  → Çatallama **doğru**: iki dal bit düzeyinde aynı ilerliyor ve müdahale diğerine sızmıyor. Snapshot 2.54 MB; bir dal açmak 19.0 ms, bir simülasyon adımı 0.765 ms → **bir çatal ≈ 25 tick** maliyetinde. Yani 500 tick'te bir, 16 pertürbasyonlu güncelleme ≈ 79% ek yük demek: üstel strateji yaşam içinde pratikte **bütçelenebilir**. Müdahale testi: müdahalesiz dal referansla AYNI, müdahale görmüş dal AYRILDI. **DİKKAT:** bu maliyet 3000. tick'te ölçüldü ve snapshot boyutuyla ölçeklenir; geç pencerelerde farklı olabilir ve **ölçülmedi**.
+  → Çatallama **doğru**: iki dal bit düzeyinde aynı ilerliyor ve müdahale diğerine sızmıyor. Snapshot 2.54 MB; bir dal açmak 21.2 ms, bir simülasyon adımı 0.794 ms → **bir çatal ≈ 27 tick** maliyetinde. Yani 500 tick'te bir, 16 pertürbasyonlu güncelleme ≈ 85% ek yük demek: üstel strateji yaşam içinde pratikte **bütçelenebilir**. Müdahale testi: müdahalesiz dal referansla AYNI, müdahale görmüş dal AYRILDI. **DİKKAT:** bu maliyet 3000. tick'te ölçüldü ve snapshot boyutuyla ölçeklenir; geç pencerelerde farklı olabilir ve **ölçülmedi**.
 ```
 
 ## S-4 · Çatallanmış ortamda yaşam içi üstel arama
@@ -361,10 +389,10 @@ ortalaması boyunca kaydırılır. Seyrek dünyada koşulur (pop 6, kaynak 6).
   kontrol (arama kapalı): medyan enerji 48.07 e · pop 18 · arama 0
   tedavi  (arama açık) : medyan enerji 48.07 e · pop 18 · arama 24 (4 pertürbasyon × 120 tick)
   ağırlık hareketi: kontrol 0.00000 · tedavi 0.00104
-  maliyet: 4000 tick'in koşusu 32 ms · arama 146 ms → ek yük ≈ 2184 tick
+  maliyet: 4000 tick'in koşusu 33 ms · arama 150 ms → ek yük ≈ 2204 tick
   enerji rezidülü: 0.000000000 e
   eşleştirilmiş fark 0.000 [0.000, 0.000] · p = 1.0000
-  → Çatallanmış arama **ölçülebilir performans artışı üretmedi**: fark 0.000 [0.000, 0.000], p = 1.0000. Ağırlık hareketi: medyan ‖Δθ‖ = 0.0010 (kontrol 0.0000) — yani arama θ'yı hareket ettirdi ama davranış kazanmadı. Ek yük ≈ 2184 tick'lik eşdeğer.
+  → Çatallanmış arama **ölçülebilir performans artışı üretmedi**: fark 0.000 [0.000, 0.000], p = 1.0000. Ağırlık hareketi: medyan ‖Δθ‖ = 0.0010 (kontrol 0.0000) — yani arama θ'yı hareket ettirdi ama davranış kazanmadı. Ek yük ≈ 2204 tick'lik eşdeğer.
 ```
 
 ## Bağ gücü koloni büyüklüğünü artırıyor mu?

@@ -1544,6 +1544,80 @@ arşivi / MAP-Elites yaşam haritası) doğrudan ilgili: **arşiv olmadan popül
 tek bir çukura düşüyor.** MAP-Elites tam olarak bu çukuru kaçınan yöntemdir —
 farklı davranış nişlerini ayrı ayrı korur.
 
+### 6.23 Faz D · Niş kapsama — **önce ölçüm hatası bulundu**
+
+§6.22 "arşiv olmadan popülasyon tek çukura düşüyor" diyordu ama **tek çukur
+nerede** olduğu belirsizdi. MAP-Elites çekirdeği olan bir ızgara kuruldu:
+üç ölçülebilir betimleyici (hız, boyut, duyu menzili), 3×3×3 kutu.
+
+İlk çalıştırma "5/27 kutu dolu, en yoğun kutuda **%83** organizma" dedi. Bu
+sayı **kullanılamazdı** — ve iki ayrı ölçüm hatasından geliyordu:
+
+| Hata | Belirti | Kanıt |
+|---|---|---|
+| **Birim hatası** | Hız, iki örnek arasındaki *yer değiştirme* olarak ölçülüyor, ama `SPEED_MAX = 0.08` **mb/tick** idi. Dağılımın **1581/1582**'si tavanın üstündeydi. | Aynı gözlemler doğru birimde (`/tick`) karşılaştırılınca **0/1582** tavanı aşıyor. |
+| **Yanlış üst sınır** | Boyut tavanı `log2(48)` idi; en büyük organizma **8 hücre**. 3. kutu en az 13 hücre istiyor → **yapısal olarak erişilemez**. | Kalibrasyon koşusunda bu tavan (24 hücre) gerçekten erişildi. |
+| **Bozuk ilk örnek** | Döngüden önce örnek alınıyordu; hiç adım atılmadığı için herkes "sıfır hız" kutusuna düşüyor, seri küçük başlıyordu. | 4 örneklik seri `[2, 5, 4, 4]` → "2.0 → 4.0 **genişledi**"; aynı koşu 7 örnekte daralma gösteriyordu. **Aynı ölçüm, iki zıt yön.** |
+
+**Bunların hiçbiri kendini belli etmiyordu.** Hepsi makul görünen sayılar
+üretti. Kırık bir eksen, ızgarayı taşımadığı hâlde doluluk yüzdesi yazmaya
+devam ediyordu.
+
+### 6.24 Düzeltme ve ölçülen sonuç
+
+Üç düzeltme:
+
+1. **Hız birimi.** Betimleyici artık **yol uzunluğu / tick**; her tick
+   merkez konumu ölçülüp yol biriktiriliyor. Bu tanım örnekleme aralığına
+   bağlı değil (önceki tanım 20 tick'te medyan 0.057, 200 tick'te 0.019
+   veriyordu — rastgele yürüyüşte yer değiştirme √Δt ile büyür). Her tick
+   ölçmenin maliyeti ölçüldü: 3000 tick'te `step` yalnız 907 ms, merkez de
+   eklenince 863 ms — gürültü içinde, yani bedava.
+2. **Kalibre edilmiş sabit tavanlar.** `NICHE_SPEED_MAX = 0.12` ve
+   `NICHE_SIZE_MAX = log2(MAX_ORGANISM_CELLS)`; ikisi de
+   `tools/calibrate-niche-axes.ts` çıktısından. Kalibrasyon **ayrı, çok
+   tohumlu ve uzun** bir koşu — ölçümle aynı pencerede yapılırsa eksenler
+   ölçülen dünyaya göre kayar ve ölçüm kendini doğrular.
+3. **Döngü öncesi örnek kaldırıldı**, kısa seride eğilim iddiası hiç kurulmuyor.
+
+Düzeltilmiş ölçüm (tohum 11, 12.000 tick, ızgara 3×3×3):
+
+| | hız | boyut | menzil |
+|---|---|---|---|
+| Üst sınır | 0.120 | 4.585 | 5.000 |
+| Gözlem | 1534 | 1534 | 1534 |
+| **Tavana kırpılan** | **0 (%0.0)** | **0 (%0.0)** | **0 (%0.0)** |
+| **Dolu kutu** | **3/3** | 2/3 | 2/3 |
+
+**Sonuç (düzeltilmiş):** 7/27 kutu dolu (%26), en yoğun kutuda **%52**
+organizma birikmiş (kutu 2/0/1 — hızlı, tek hücreli, orta menzilli).
+Dolu kutu sayısı ilk üçte 5.3 → son üçte 4.3.
+
+> Düzeltme kaydı: §6.22'deki "%83 tek kutuya birikmiş" sayısı **kırık bir
+> aletle** alınmıştı ve **bu sayı geçersizdir**. Doğru ölçüm %52'dir.
+> **Yön değişmedi** — yakınsama gerçek — ama sayı ve doluluk farklı.
+
+Boyut ve menzil eksenlerinde 3. kutu seyrek doludur. Bu **arıza ilan edilmedi**:
+organizmaların çoğu gerçekten 1–2 hücreli ve menzilleri ortada, yani eksik
+kutu ölçülen biyolojidir, alet hatası değildir.
+
+### 6.25 Ölçüm aletinin kendi kendini denetlemesi
+
+Bu, bu turda çıkan asıl ders ve kalıcı bir değişikliktir. `NicheReport` artık
+her koşuda **eksen sağlığını** raporluyor: üst sınıra kırpılan gözlem sayısı,
+kaç kutunun gerçekten dolduğu, gözlenen en küçük değer.
+
+Çökme kuralı **yalnız güvenilir sinyale** bakar — `binsReached < 2` ya da
+>%90 kırpma. "Bazı kutular hiç dolmadı" **tek başına arıza sayılmaz**; yalnız
+`binsReached` olarak raporlanır. Çünkü bir kutuya hiç düşmemiş olmak, aletin
+çöktüğünü değil **dünyanın orada boş olduğunu** gösterir; ikisini karıştırmak
+ölçülen bir gerçeği gizlemek olurdu.
+
+**Denetleyicinin kendisi de test edilir.** "Çökme dedektörü gerçekten
+tetiklenebiliyor" testi ızgarayı kasıtlı olarak tek kutuya indirip dedektörün
+patladığını doğruluyor. Aksi hâlde dedektör sessizce hiç yanlsa hep boş döner
+ve yeşil görünür — en tehlikeli ölçüm aleti budur.
+
 
 ## 7. Tarayıcı akışı — gerçekten yapıldı
 
