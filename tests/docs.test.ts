@@ -1,0 +1,130 @@
+/**
+ * Cell to Mind — belge tutarlılık testleri.
+ *
+ * Bu projenin bütün disiplini şudur: **belge ölçümle uyuşmalı.** Ama
+ * ölçüm kodunu değiştirdiğinde `docs/EXPERIMENTS.md` kendiliğinden
+ * güncellenmez; yazılı sayı sessizce bayatlar. İki somut boşluk kapatılıyor:
+ *
+ *  1. **Bayat rapor.** Ölçüm kodu değiştiyse üretilmiş rapor yeniden
+ *     üretilmelidir. Bu test, üretim kodunun son değişikliği raporun
+ *     son değişikliğinden yeniyse **kırmızı** döner.
+ *
+ *  2. **Düzeltme kaydının bozulması.** Bir sayı düzeltildiğinde (ör. yanlış
+ *     ölçümden gelen "%83 tek kutu" → doğrusu "%52") hem `VALIDATION.md`
+ *     hem üretilmiş rapor aynı yeni sayıyı taşımalıdır. Sessizce geri
+ *     dönülürse belge yeniden yanlışlaşır — bu, düzeltmenin kendisini
+ *     geçersiz kılar.
+ */
+
+import { describe, expect, it } from 'vitest';
+import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+const ROOT = resolve(__dirname, '..');
+const read = (rel: string): string => readFileSync(resolve(ROOT, rel), 'utf8');
+
+/** Bir dosyanın en son değiştiği commit'in zaman damgası (saniye). */
+function lastCommitTime(rel: string): number {
+  const out = execFileSync('git', ['log', '-1', '--format=%ct', '--', rel], {
+    cwd: ROOT,
+    encoding: 'utf8',
+  }).trim();
+  return Number(out || 0);
+}
+
+describe('belge tutarlılığı · üretilmiş rapor', () => {
+  it('EXPERIMENTS.md var ve boş değil', () => {
+    expect(read('docs/EXPERIMENTS.md').length).toBeGreaterThan(5000);
+  });
+
+  it('rapor, üretim kodundan sonra yeniden üretilmiş', () => {
+    // ⚠️ Bu, projenin en sık yapacağı hatayı yakalar: ölçüm kodunu
+    // değiştirip raporu üretmeyi unutmak. Böyle bir durumda rapordaki
+    // sayılar eski koddan gelir ve belge yanlışlaşır — sessizce.
+    const codeTime = Math.max(
+      lastCommitTime('scripts/run-experiments.ts'),
+      lastCommitTime('src/sim/experiments/ecology.ts'),
+      lastCommitTime('src/sim/experiments/arena.ts'),
+      lastCommitTime('src/sim/experiments/colony.ts'),
+      lastCommitTime('src/sim/stats.ts'),
+    );
+    const reportTime = lastCommitTime('docs/EXPERIMENTS.md');
+    expect(reportTime).toBeGreaterThan(0);
+    expect(reportTime).toBeGreaterThanOrEqual(codeTime);
+  });
+
+  it('rapor her kayıtlı deney bölümünü içerir', () => {
+    const report = read('docs/EXPERIMENTS.md');
+    // Pipeline'ın ürettiği bölüm başlıkları. Biri eksikse rapor bayattır.
+    for (const heading of [
+      'Faz B1 · Ekolojik sönümlenme teşhisi',
+      'Faz C1 · MODES açık uçluluk metrikleri',
+      'Faz D · Niş kapsama (yaşam haritası çekirdeği)',
+      'Dal (branch) doğruluğu ve maliyeti',
+    ]) {
+      expect(report, `raporda eksik bölüm: ${heading}`).toContain(heading);
+    }
+  });
+});
+
+describe('belge tutarlılığı · düzeltme kaydı', () => {
+  it('ε>0 sonucu VALIDATION.md ile üretilmiş raporda AYNI', () => {
+    // ⚠️ Yanlış ölçümden gelen "%83 tek kutu" düzeltilmiş ve "%52" olarak
+    // kaydedilmişti. Sessizce geri dönülürse belge yeniden yanlışlaşır.
+    const validation = read('docs/VALIDATION.md');
+    const report = read('docs/EXPERIMENTS.md');
+
+    // Raporun ε>0 satırından farkı çıkar.
+    const m = report.match(/eşleştirilmiş fark \(dolu kutu, tohum başına\): \[([^\]]*)\]/);
+    expect(m, 'raporda ε>0 fark satırı yok').not.toBeNull();
+    const diffs = (m as RegExpMatchArray)[1]!.split(',').map((s) => Number(s.trim()));
+    expect(diffs.length).toBeGreaterThanOrEqual(4); // 4 eşleştirilmiş tohum
+
+    // Aynı fark dizisi VALIDATION.md'de de geçmeli.
+    //
+    // ⚠️ Belgeler farklı tire işaretleri kullanıyor: üretilmiş rapor ASCII
+    // `-4` yazarken elle yazılan VALIDATION.md tipografik `−4` (U+2212) ve
+    // `+4` kullanıyor. Test, **belgenin güzel tipografisini bozmamak** için
+    // karşılaştırmadan önce normalleştiriyor; eşitliği ölçmek istiyoruz,
+    // tire kodunu değil.
+    const normalize = (s: string): string =>
+      s.replace(/−/g, '-').replace(/,\s*\+/g, ',').replace(/\[\s+/g, '[').replace(/\s+\]/g, ']');
+    const diffText = normalize(`[${diffs.map((d) => d.toFixed(0)).join(', ')}]`);
+    expect(normalize(validation), 'VALIDATION.md fark dizisi rapordan farklı').toContain(diffText);
+
+    // p = 1,0000 her iki belgede de aynı olmalı.
+    expect(validation).toContain('p = 1,0000');
+    expect(report).toContain('p = 1.0000');
+  });
+
+  it('kırık ölçümden gelen eski sayı geçersiz olarak işaretli', () => {
+    const validation = read('docs/VALIDATION.md');
+    // "%83 tek kutu" ifadesi geçiyorsa, yanlış olduğu da yazılmış olmalı.
+    if (validation.includes('%83')) {
+      expect(validation).toMatch(/geçersiz|yanlış|doğrusu/i);
+    }
+  });
+
+  it('doğrulanmayanlar bölümü ε>0 ve gözlemci eksiklerini listeler', () => {
+    const validation = read('docs/VALIDATION.md');
+    const section = validation.slice(validation.indexOf('## 9. Doğrulanmayanlar'));
+    expect(section).toContain('ε > 0');
+    expect(section).toContain('CTM_API_KEY');
+  });
+
+  it('yol haritası Faz D kapanış kriterini başarısız olarak işaretler', () => {
+    const roadmap = read('docs/ROADMAP.md');
+    // Kapanış kriteri gerçekleşmedi; bu gizlenmemeli.
+    expect(roadmap).toMatch(/harita dolmadı|varsayım çürütüldü|kapanış kriteri gerçekleşmedi/i);
+  });
+
+  it('PROGRESS S-4\'ü başarısız olarak işaretler', () => {
+    const progress = read('docs/PROGRESS.md');
+    // S-4 ölçüldü ve işe yaramadı; "yeni açıldı" yazması yanlış olurdu.
+    const i = progress.indexOf('S-4');
+    expect(i).toBeGreaterThan(0);
+    const around = progress.slice(i, i + 260);
+    expect(around).toMatch(/başarısız|denendi/i);
+  });
+});

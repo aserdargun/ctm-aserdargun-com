@@ -421,18 +421,26 @@ TypeError atılıyordu. Düzeltildi, üç regresyon testi eklendi.
 Düzeltme sonrası ölçülen: bir çatal **≈ 24 tick** maliyetinde; 500 tick'te bir
 16 pertürbasyonlu arama ≈ %76 ek yük. **Çatallama hem mümkün hem ucuz.**
 
-Bu, §6.5'teki "yaşam içi öğrenme arama yapamaz" kısıtını tamamlıyor: kısıt
-çatallamanın *mantıksal* biçimindeydi, teknik zorluğunda değil.
+Bu, §6.5'teki "yaşam içi öğrenme arama yapamaz" kısıtını tamamlıyor gibi
+görünüyordu. **Sonradan ölçüldü ve bu çıkarım yanlış çıktı:** çatallama
+kısıtı kaldırmadı, yalnız o teknik engeli kaldırdı. Gerçek engel **kredi
+ataması**ydı ve her iki yöntemde de orada kalıyor (aşağıdaki tablo).
 
 **İki seçenek artık ikisi de açık:**
 
 | Seçenek | Durum | Kanıt |
 |---|---|---|
-| **S-3** evrimsel aramayı ürüne al | ✅ açık | +0.161 ölçüldü |
-| **S-4** çatallanmış ortamda yaşam içi arama | ✅ **yeni açıldı** | çatallama ≈24 tick, ucuz |
+| **S-3** evrimsel aramayı ürüne al | ✅ **üründe** — Evrim Atölyesi | +0,035…+0,072, 0,4–0,6 sn, tarayıcıda doğrulandı |
+| **S-4** çatallanmış ortamda yaşam içi arama | ❌ **denendi, başarısız** | fark 0,000, p = 1,0000; θ hareket etti, davranış kazanmadı (§6.11–6.13) |
 
-S-4 "yaşam öğrenir" anlatısını korur; S-3 onu değiştirir. Hangisinin tercih
-edileceği artık bir **anlatı ve kapsam kararıdır**, teknik kısıt değildir.
+**S-4'ün ölçülen sonucu (bayat not, düzeltildi):** Çatallama ucuz olduğu için
+"yaşam içi arama teknik olarak mümkün" denmişti. Yapıldı ve **işe yaramadı**:
+ağırlıklar hareket etti (‖Δθ‖ = 0,0010) ama davranış kazanmadı, ek yük ≈ 2.200
+tick'lik eşdeğer oldu. Yani çatallama **zorluğu değil, problemi** çözdü:
+asıl engel kredi atamasıydı ve çatallama onu aşmıyor.
+
+Kanıtlı tek yol hâlâ **arenadaki (μ+λ) evrimsel arama**, üründe Evrim
+Atölyesi olarak çalışıyor.
 
 ---
 

@@ -1639,6 +1639,11 @@ Protokol: iki kol, **aynı 4 tohum** (eşleştirilmiş). Kontrol ε = 0, tedavi
 
 Eşleştirilmiş fark **0,00** [−2,75, +2,75], **p = 1,0000**.
 
+Tohum başına eşleştirilmiş farklar (dolu kutu): `[1, -4, 4, -1]`.
+**İşaret tohumlar arasında bile değişiyor** — biri artı, biri eksi. Yani deney
+"hep çalışmıyor" değil, "**rastgele** çalışıyor"; ortalama etki sıfır.
+Bu, sonraki bölümdeki mekanizma teşhisini destekliyor.
+
 **Sonuç: başarısız.** Doluluk artmadı. Canlı sayısı ve toplam hücre enerjisi
 arttı, yani enjeksiyon gerçekten canlı üretiyor — ama ürettiği bireyler
 çukura geri kayıyor.
@@ -1840,6 +1845,52 @@ Bu ızgarayı seçilimle doldurma denendi ve işe yaramadı (dolu kutu değişme
 p = 1,00). Nedeni: boyut kalıtsal değil — enjekte edilen her organizma tek hücreli doğar.
 ```
 
+### 6.33 Belge denetimi — "belge ölçümle uyuşmalı" kuralı **testle** zorlanıyor
+
+Bu projenin bütün disiplini şudur: belge ölçümle uyuşmalı. Ama ölçüm kodunu
+değiştirdiğinde `docs/EXPERIMENTS.md` kendiliğinden güncellenmez ve yazılı
+sayı **sessizce bayatlar**. Hiçbir şey bunu yakalamıyordu.
+
+`tests/docs.test.ts` (8 test) iki somut boşluğu kapatıyor:
+
+1. **Bayat rapor.** Ölçüm kodu (`run-experiments.ts`, `experiments/*.ts`,
+   `stats.ts`) rapordan sonra değişmişse test **kırmızı** döner.
+2. **Düzeltme kaydının bozulması.** Üretilmiş rapordaki eşleştirilmiş fark
+   dizisi ile `VALIDATION.md`'deki aynı dizi karşılaştırılır. Sessizce geri
+   dönülürse (kırık %83 geri gelirse) test düşer.
+
+**Test yazarken gerçek bir boşluk bulundu:** §6.28'deki ε>0 bölümünde tohum
+başına fark dizisi **hiç yazılmamıştı** — raporda `[1, -4, 4, -1]` vardı,
+belgede yoktu. Bu, "farklar işaret değiştiriyor" gözlemini taşıyan kanıttı;
+eksikti, eklendi.
+
+Karşılaştırma tire kodunu normalleştiriyor (rapor ASCII `-4`, elle yazılan
+belge tipografik `−4` kullanıyor). Test **belgenin okunurluğunu bozmamak**
+için eşitliği ölçüyor, biçimi değil.
+
+**Bayat rapor dedektörü gerçekten ateşledi.** Ölçüm koduna kasıtlı bir
+değişiklik yapılıp test çalıştırıldı:
+
+```
+× rapor, üretim kodundan sonra yeniden üretilmiş 47ms
+```
+
+Yani dedektör kırılmış değil — istendiğinde kırmızıya dönüyor. Bu, "denetleyicinin
+kendisini de test et" ilkesinin belge katmanındaki karşılığıdır.
+
+### 6.34 Belgeler gerçekliğe hizalandı
+
+Ölçümler geldi, **belgeler geride kalmıştı**. Üç yanlış iddia düzeltildi:
+
+| Belge | Önceki iddia | Gerçek |
+|---|---|---|
+| `ROADMAP.md` | Faz D "çeşitlilik çöküşünü tek hamlede çözer" | ❌ harita dolmadı (p = 1,0000) |
+| `ROADMAP.md` | D kapanış kriteri: "yaşam haritası doluyor" | ❌ gerçekleşmedi, gerekçesi ölçüldü |
+| `PROGRESS.md` | S-4 "yeni açıldı", çatallama kısıtı kaldırdı | ❌ S-4 denendi ve **başarısız** (p = 1,0000) |
+
+`VALIDATION.md` §9'a iki yeni madde eklendi: ε>0'un başarısızlığı ve
+gözlemcinin gerçek sağlayıcı çağrısının yapılmamış olması.
+
 ### 7.1 `branch` yolu uçtan uca doğrulandı
 
 Bu, §6.8'de bulunan ve düzeltilen `fromState` hatasının **gerçek üründe**
@@ -1912,6 +1963,18 @@ Bu maddeler **yapılmadı** ve dokümana sayı uydurulmadı:
    tüm deneyler §4 **Node'da** koşuyor; tarayıcıda tohumlu istatistik üretilmiyor.
 10. **Tarayıcıda deney paneli.** Deney motoru headless Node'da çalışıyor; worker
     komutlarıyla tarayıcı içinden tetiklenen deneyler **bağlanmadı.**
+11. **Gözlemcinin gerçek sağlayıcı çağrısı.** `CTM_API_KEY` olmadığı için
+    MiniMax'e hiç gidilmedi. Ölçülebilir olan kısım ölçüldü: kanıt denetimi
+    test edildi (16 test), yanlış kabul bulundu ve düzeltildi (§6.32), ve
+    `/api/observer` rotası üretim yapısında **erişilemez** olduğu için
+    düzeltildi. Anahtarsız yol uçtan uca doğrulandı (503 + dürüst neden).
+    Gerçek çağrı, `vision-assisted` yolu ve görsel şemasının canlı
+    doğrulaması **yapılmadı**.
+12. **Arşivin seçilime katılması (ε > 0).** Denendi ve **başarısız** oldu
+    (§6.28): dolu kutu değişmedi (p = 1,0000). MAP-Elites'in "elitini koru"
+    mantığı bu modelde işe yaramıyor çünkü üç betimleyiciden biri (boyut)
+    **kalıtsal değil** (§6.29). Yanlış açıklama ("elit mutasyonla bozuluyor")
+    önce yazıldı, sonra ölçülerek çürütüldü.
 
 ---
 

@@ -74,13 +74,20 @@ Bunlar pazarlık konusu değil; her faz bunlara uymak zorunda.
 
 ## 3. Yol haritası — özet
 
-| Faz | Ad | Süre | Bağımlılık | Kapanış kriteri |
-|---|---|---|---|---|
-| **A** | Ölçüm tabanı | 2 hafta | — | 3 deney gerçekten koşar, CI'lı rapor yazılır |
-| **B** | Ekoloji ve ana geçiş | 3 hafta | A | Koloniler 20.000 tick'te yaşıyor **veya** neden öldüğü kanıtlanmış |
-| **C** | Açık uçluluk aletleri | 2 hafta | A, B | MODES metrikleri + gözlemci puanı raporlanıyor |
-| **D** | Arama motoru | 4 hafta | B, C | Yaşam haritası (MAP-Elites arşivi) doluyor |
-| **E** | Algı, hafıza, fizik | açık uç | C, D | Yeni fazlar aşağıda ayrı |
+| Faz | Ad | Süre | Bağımlılık | Kapanış kriteri | Durum |
+|---|---|---|---|---|---|
+| **A** | Ölçüm tabanı | 2 hafta | — | 3 deney gerçekten koşar, CI'lı rapor yazılır | ✅ |
+| **B** | Ekoloji ve ana geçiş | 3 hafta | A | Koloniler 20.000 tick'te yaşıyor **veya** neden öldüğü kanıtlanmış | ⚪ teşhis edildi, B3 işbirliği bekliyor |
+| **C** | Açık uçluluk aletleri | 2 hafta | A, B | MODES metrikleri + gözlemci puanı raporlanıyor | ⚪ metrikler ölçüldü (yakınsama), gözlemci anahtar bekliyor |
+| **D** | Arama motoru | 4 hafta | B, C | Yaşam haritası (MAP-Elites arşivi) doluyor | ❌ **harita dolmadı** — varsayım çürütüldü, aşağıya bak |
+| **E** | Algı, hafıza, fizik | açık uç | C, D | Yeni fazlar aşağıda ayrı | ⬜ |
+
+**D'nin kapanış kriteri gerçekleşmedi ve bu bir başarısızlık kaydıdır, gizlenmez.**
+Kapanış ölçüldü: arşivin seçilime katılması (ε > 0) dolu kutu sayısını
+değiştirmedi (p = 1,0000). Nedeni **kalıtsız betimleyici**dir — boyut ekseninde
+seçilim hiçbir şey koruyamaz (`VALIDATION.md` §6.28–6.30). D, ancak genomda
+gerçekten var olan bir özellik tanımlayıcı olarak seçilebilir hale gelirse
+yeniden açılmalıdır.
 
 **Öneri: A ve B sırayla, C paralel başlayabilir.** C, B'nin sonucunu
 beklemez; metrikleri ölçer, yorumu bekler.
@@ -259,6 +266,19 @@ Bu, üç sorunu tek hamlede çözer:
 
 Arayüz: **yaşam haritası** — hangi nişler dolu, hangileri hiç dolmadı, hangi
 soydan geldi. Bu, Picbreeder'ın `branching` fikrinin biyolojik karşılığıdır.
+
+> **ÖLÇÜLDÜ — ve varsayım yanlış çıktı.** Bu faz iki kez denendi:
+> arşiv (ε = 0) ölçüm olarak kuruldu ve **üründe çalışıyor** (Yaşam
+> Haritası paneli). Ardından arşivin seçilime katılması (ε > 0) denendi ve
+> **başarısız oldu**: dolu kutu sayısı değişmedi (p = 1,0000). Nedeni
+> yapısal — üç betimleyiciden biri (**boyut**) **kalıtsal değil**, çünkü
+> enjekte edilen her organizma tek hücreli doğar. MAP-Elites'in temel
+> varsayımı, seçilebilir betimleyicinin **kalıtsal** olmasıdır.
+> Ayrıntı: `VALIDATION.md` §6.23–6.30.
+>
+> **Sonuç:** "çeşitlilik çöküşü tek hamlede çözülür" bu model için geçerli
+> değil. D1'in çalışmayan kısmı ancak **kalıtsal** bir betimleyici
+> (genomda gerçekten var olan bir özellik) eklendikten sonra anlamlı olur.
 
 #### D2 — Dolaylı kodlama (1,5 hafta)
 
