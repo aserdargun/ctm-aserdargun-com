@@ -34,6 +34,8 @@ import {
   type Interval,
   type Summary,
 } from '../stats.ts';
+import { World } from '../world.ts';
+import { deserializeWorld, serializeWorld } from '../persistence/snapshot.ts';
 import { runColony, type ColonyResult } from './colony.ts';
 import { runTrial, type TrialResult } from './arena.ts';
 
@@ -865,6 +867,17 @@ export function evolvePolicy(options?: {
   evalTicks?: number;
   resourceCount?: number;
   seedBase?: number;
+  /**
+   * Uygunluk işlevi geçersiz kılması.
+   *
+   * Varsayılan: her politikayı **temiz arena koşularında** değerlendirir
+   * (tek birey, kaynak kısıtlı). Canlı dünyanın bir dalında çalıştırmak
+   * istendiğinde verilir; seçim, mutasyon ve geçmiş mantığı aynen korunur.
+   * S-3 ölçümü bunu kullanır (`VALIDATION.md` §6.14).
+   */
+  evaluate?: (theta: Float64Array) => number;
+  /** Rastgele taban çizgi ölçümü (yalnızca `evaluate` verilirse kullanılır). */
+  evaluateBaseline?: (theta: Float64Array) => number;
 }): EvolutionResult {
   const generations = options?.generations ?? 20;
   const population = options?.population ?? 8;
@@ -879,7 +892,7 @@ export function evolvePolicy(options?: {
   const N = 140;
 
   /** Bir politikayı verilen tohum kümesinde ortalama skorla. */
-  const score = (theta: Float64Array, seedStart: number, count: number, ticks: number): number => {
+  const scoreDefault = (theta: Float64Array, seedStart: number, count: number, ticks: number): number => {
     let sum = 0;
     for (let i = 0; i < count; i++) {
       sum += runTrial({
@@ -893,6 +906,12 @@ export function evolvePolicy(options?: {
     }
     return sum / count;
   };
+
+  // Dışarıdan verilen değerlendirici varsa o geçerli, yoksa temiz arena.
+  const score = options?.evaluate
+    ? (_theta: Float64Array, _seedStart: number, _count: number, _ticks: number) =>
+        (options.evaluate as (t: Float64Array) => number)(_theta)
+    : scoreDefault;
 
   // Arama için **ayrı** bir akış: dünya akışlarından (env/inherit/action)
   // bağımsız olmalı, yoksa mutasyon gürültüsü dünya tohumuyla ilişkili olur.
@@ -1444,5 +1463,184 @@ export function formatExperiment(report: ExperimentReport): string {
     );
   }
   lines.push(`   enerji rezidüelü: ${fmt(report.worstLedgerResidual, 9)} e`);
+  return lines.join('\n');
+}
+
+// --------------------------------------------------- S-3 · dal üzerinde evrim
+
+export interface InWorldEvolutionPoint {
+  generations: number;
+  /** Nesil nesil en iyi bireyin ortalama skoru. */
+  history: number[];
+  baseline: number;
+  best: number;
+  gain: number;
+  /** Kazanan politikanın ortalama enerjisi (başlangıç ve son). */
+  startEnergy: number;
+  endEnergy: number;
+  /** Arama süresi (ms). */
+  spentMs: number;
+  finalPopulation: number;
+  finalMultiCellColonies: number;
+  largestColony: number;
+  worstLedgerResidual: number;
+}
+
+export interface InWorldEvolutionReport {
+  seed: number;
+  forkTick: number;
+  evaluateTicks: number;
+  arms: { label: string; point: InWorldEvolutionPoint }[];
+  reading: string;
+}
+
+/**
+ * **S-3 · Çevrimiçi (μ+λ) aramanın canlı dünyanın bir dalında çalıştığı.**
+ *
+ * Arena deneyi +0.161 bulmuştu (§4.9). Bu ölçüm, aynı yöntemin **canlı dünyanın
+ * anlık görüntüsünden açılan bir dalda** da işe yarayıp yaramadığını sorar.
+ * İkisi arasındaki fark: arena tek bireyli ve kaynak kısıtlıydı; canlı dünya
+ * kalabalık. S-3'ü ürüne almadan önce bu farkın sonucu değiştirip
+ * değiştirmediği **bilinmelidir.**
+ *
+ * Protokol: canlı dünya 3.000 tick ilerletilir, snapshot alınır, her koldan bir
+ * dal açılır ve arama o dalda çalıştırılır. Kontrol kolu arama yapmaz.
+ *
+ * **Arama kodu (`evolvePolicy`) her iki kol için de aynıdır**; tek fark
+ * `generations: 0` (arama yok) ve `generations: 12` (arama).
+ */
+export function experimentInWorldEvolution(options?: {
+  seed?: number;
+  forkTick?: number;
+  evaluateTicks?: number;
+  generations?: number;
+  population?: number;
+  offspring?: number;
+  trainTicks?: number;
+}): InWorldEvolutionReport {
+  const seed = options?.seed ?? 11;
+  const forkTick = options?.forkTick ?? 3000;
+  const evaluateTicks = options?.evaluateTicks ?? 2000;
+  const generations = options?.generations ?? 12;
+  const population = options?.population ?? 8;
+  const offspring = options?.offspring ?? 3;
+  const trainTicks = options?.trainTicks ?? 2000;
+
+  const source = new World({ seed, population: 48 });
+  for (let t = 0; t < forkTick; t++) source.step();
+  const snapshot = serializeWorld(source);
+
+  const runArm = (gens: number): InWorldEvolutionPoint => {
+    const started = performance.now();
+    const fork = deserializeWorld(snapshot);
+    // Değerlendirici: her aday politikayı **canlı dünyanın dalına** enjekte
+    // edip evaluateTicks kadar ilerletir ve 1. organizmanın enerjisini okur.
+    const forkScore = (theta: Float64Array): number => {
+      const probe = deserializeWorld(snapshot);
+      const p = probe.policies.get(1);
+      const o = probe.organisms.get(1);
+      if (!p || !o) return Number.NEGATIVE_INFINITY;
+      p.state.thetaLive.set(theta);
+      p.state.thetaInherited.set(theta);
+      o.neural.thetaLive.set(theta);
+      for (let t = 0; t < evaluateTicks; t++) probe.step();
+      const org = probe.organisms.get(1);
+      if (!org) return Number.NEGATIVE_INFINITY;
+      // ⚠️ **Hücre başına** enerji, toplam değil. Toplam kullanılırsa uygunluk
+      // "daha çok hücre" olmayı ödüllendirir, davranış kalitesini değil.
+      // Bu hata ölçüldü: `generations: 0` (hiç arama yok) kontrol kolunda bile
+      // 74 birimlik sahte "kazanç" çıktı. Arena deneyinin temiz sonucu vermesinin
+      // sebebi de hücre başına normalleştirmiş olmasıdır.
+      let sum = 0;
+      let live = 0;
+      for (const cid of org.cells) {
+        const c = probe.cells.get(cid);
+        if (!c?.alive) continue;
+        sum += c.energy;
+        live++;
+      }
+      return live > 0 ? sum / live : Number.NEGATIVE_INFINITY;
+    };
+
+    const result = evolvePolicy({
+      generations: gens,
+      population,
+      offspring,
+      seedBase: seed,
+      evaluate: forkScore,
+    });
+
+    // Arama bittikten sonra dalı biraz daha ilerletip durumu ölç.
+    for (let t = 0; t < trainTicks; t++) fork.step();
+
+    const org = fork.organisms.get(1);
+    let endEnergy = 0;
+    if (org) {
+      let sum = 0;
+      let live = 0;
+      for (const cid of org.cells) {
+        const c = fork.cells.get(cid);
+        if (!c?.alive) continue;
+        sum += c.energy;
+        live++;
+      }
+      endEnergy = live > 0 ? sum / live : 0;
+    }
+    const m = fork.latestMetrics();
+    const res =
+      fork.ledger.initialTotal + fork.ledger.externalInput - fork.systemEnergyTotal() - fork.ledger.dissipated;
+
+    return {
+      generations: gens,
+      history: result.history.map((h) => h.best),
+      baseline: result.randomBaselineMean,
+      best: result.trainBest,
+      gain: result.trainBest - result.randomBaselineMean,
+      startEnergy: 55,
+      endEnergy,
+      spentMs: performance.now() - started,
+      finalPopulation: fork.population(),
+      finalMultiCellColonies: m?.coloniesOverFourCells ?? 0,
+      largestColony: m?.largestColonySize ?? 0,
+      worstLedgerResidual: res,
+    };
+  };
+
+  const control = runArm(0);
+  const treatment = runArm(generations);
+  const arms = [
+    { label: 'kontrol (arama yok)', point: control },
+    { label: `evrim (${generations} nesil)`, point: treatment },
+  ];
+
+  const reading =
+    treatment.gain > 0
+      ? `Çevrimiçi evrim **canlı dünyanın dalında da işe yarıyor**: rastgele taban ` +
+        `${fmt(treatment.baseline, 3)} → bulunan politika ${fmt(treatment.best, 3)} ` +
+        `(kazanç +${fmt(treatment.gain, 3)}). Bölünmenin ardından organizmanın enerjisi ` +
+        `${fmt(treatment.startEnergy, 0)} → ${fmt(treatment.endEnergy, 0)} e ` +
+        `(kontrol ${fmt(control.endEnergy, 0)} e). Arama ${fmt(treatment.spentMs, 0)} ms sürdü.`
+    : `Çevrimiçi evrim canlı dünyanın dalında kazanç üretmedi: ${fmt(treatment.gain, 3)}.`;
+
+  return { seed, forkTick, evaluateTicks, arms, reading };
+}
+
+export function formatInWorldEvolution(r: InWorldEvolutionReport): string {
+  const lines = [
+    `  tohum ${r.seed} · canlı dünya ${r.forkTick} tick → dal · değerlendirme ${r.evaluateTicks} tick`,
+  ];
+  for (const arm of r.arms) {
+    const p = arm.point;
+    lines.push(
+      `  ${arm.label.padEnd(24)} taban ${fmt(p.baseline, 3)} → bulunan ${fmt(p.best, 3)} (kazanç ${fmt(p.gain, 3)}) · bölünme sonrası enerji ${fmt(p.endEnergy, 0)} e · pop ${p.finalPopulation} · 4+ ${p.finalMultiCellColonies} · süre ${fmt(p.spentMs, 0)} ms`,
+    );
+    if (p.history.length > 0) {
+      const step = Math.max(1, Math.floor(p.history.length / 8));
+      const curve = p.history.filter((_, i) => i % step === 0).map((v) => fmt(v, 3)).join(' → ');
+      lines.push(`    nesil eğrisi: ${curve}`);
+    }
+  }
+  lines.push(`  enerji rezidülü: ${fmt(r.arms[1]?.point.worstLedgerResidual ?? 0, 9)} e`);
+  lines.push(`  → ${r.reading}`);
   return lines.join('\n');
 }

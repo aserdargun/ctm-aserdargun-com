@@ -1320,6 +1320,60 @@ Fark şurada: çevrimiçi arama **seçim yapıyor** — her nesilde en iyisi tut
 burada da tamamlandı ve kalan tek seçenek yine **S-3**.
 
 
+### 6.14 S-3 hazırlığı · in-world arama denendi ve **reddedildi**
+
+S-3'ü ürüne almadan önce kanıtlı +0.161 sonucunun (arena, §4.9) **canlı dünyanın
+bir dalında** da üretilip üretilmediği soruldu. `evolvePolicy`'ye isteğe bağlı bir
+değerlendirici kancası eklenerek (seçim/mutasyon mantığı aynen korunarak) canlı
+dünya dalında arama koşuldu.
+
+**İki ölçüm hatası bulundu ve düzeltildi:**
+
+1. **Doygunluk / yanlış normalleştirme.** Uygunluk organizmanın *toplam*
+   enerjisiydi; bu, hücre sayısıyla artar. `generations: 0` (hiç arama yok)
+   kontrol kolunda bile **74 birimlik sahte "kazanç"** çıktı — arama
+   yapılmamışken. Toplam yerine **hücre başına** enerjiye çevrildi.
+2. **Rastgele tabanların karşılaştırılamazlığı.** İki kolun rastgele taban
+   değerleri farklı çıktı (48.954 vs 34.153): arama RNG akışının farklı
+   noktalarında çekildikleri için aynı örneklem değiller. Taban, kol bağımsız
+   **aynı** politik kümesinden alınmalı.
+
+| Kol | Rastgele taban | Bulunan | Fark |
+|---|---|---|---|
+| Kontrol (**hiç arama yok**) | 48.954 | 55.887 | +6.933 |
+| Evrim (8 nesil) | 34.153 | 69.021 | +34.867 |
+
+Kontrol kolunun +6.933'ü saf "rastgele altıdan en iyisini seç" etkisidir; evrimin
+üstüne düşen **gerçek** artış bundan küçüktür. Rakamlar bu haliyle
+**karşılaştırılabilir değildir** ve S-3'ün kanıtı olarak kullanılamaz.
+
+### 6.15 Tasarım sonucu: arama arenada yapılmalı, dünyada değil
+
+Bu iki hatadan çıkan tasarım kararı nettir:
+
+**S-3, canlı dünyanın dalında değil, arenada çalışmalı.**
+
+| Özellik | Arena (ölçülmüş, §4.9) | Canlı dünya dalı (denendi) |
+|---|---|---|
+| Birey sayısı | 1 — davranış sonucu belirler | ~250 — birey doyuyor, davranış etkisiz |
+| Uygunluk | Hücre başına normalize | Doygunluk ve temel yanlılığı |
+| Eğitim/değerlendirme | Ayrık tohum kümeleri | Aynı dünya, ayrışmıyor |
+| Sonuç | **+0.161, p = 0.343 üstü ama CI ayrışıyor** | Karşılaştırılamaz |
+
+Arena tek bireyli ve kaynak kısıtlı olduğu için **politikanın davranışı gerçekten
+belirliyor.** Canlı dünyada bireyler birbirini doyuruyor; S-4'te de aynı şey
+ölçülmüştü (§6.12: kalabalık dünyada θ hiç hareket etmiyor).
+
+**Ürün kararı:** "Evrim Atölyesi" adıyla, kullanıcı bir organizmanın
+politikasını arenaya gönderir, (μ+λ) arama çalışır, nesil eğrisi gösterilir ve
+kazanan politika seçilen organizmaya uygulanır. Bu hem ölçülmüş yoldur hem de
+kullanıcıya **görünür, denetlenebilir bir öğrenme süreci** sunar.
+
+**Maliyet uyarısı:** ölçülen arama süresi tek koşuda **~123 saniye** (8 nesil).
+Bu ürün içinde **otomatik** çalışmaz; kullanıcı tetiklediği, ilerlemesi
+gösterilen, iptal edilebilen bir işlem olmalıdır.
+
+
 ## 7. Tarayıcı akışı — gerçekten yapıldı
 
 Chromium'da `vite preview` (port 4188) üzerinden doğrulandı:
