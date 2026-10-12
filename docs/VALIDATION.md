@@ -1878,7 +1878,93 @@ değişiklik yapılıp test çalıştırıldı:
 Yani dedektör kırılmış değil — istendiğinde kırmızıya dönüyor. Bu, "denetleyicinin
 kendisini de test et" ilkesinin belge katmanındaki karşılığıdır.
 
-### 6.34 Belgeler gerçekliğe hizalandı
+### 6.35 `npm run e2e` **kırıktı** — ve ölçülebilir tarayıcı kanıtı eksikti
+
+Bu projede tarayıcı doğrulaması hep **elle** yapıldı. Oturumda iki kez güvenilmez
+çıktı: sekme bayatladı ("ölü alet") ve konsol okunamadı. Elle yapılan kanıt
+dosyada kalmıyor.
+
+`package.json`'da `"e2e": "playwright test"` **vardı**, `@playwright/test` bağımlılığı
+**vardı** — ama `playwright.config.ts` **yoktu** ve test dosyası **yoktu**.
+Çalıştırıldığında:
+
+```
+Error: No tests found          (exit 1)
+```
+
+Çünkü yapılandırma olmadığı için Playwright `tests/` dizinini tarıyor, vitest
+dosyalarını yüklemeye çalışıyor ve patlıyordu. Yani **bildirilen bir betik
+çalışmıyordu** — projenin kendi "yazıldı ≠ çalışıyor" sınıfından.
+
+`playwright.config.ts` ve `e2e/sim.spec.ts` (6 test) yazıldı:
+
+| Test | Ne doğrular |
+|---|---|
+| dünya kurulur, tick ilerler, konsol temiz | temel akış |
+| enerji muhasebesi korunuyor | korunum değişmezi |
+| yaşam haritası kutuları doluyor + başarısız yolu saklamıyor | Faz D |
+| denetleyici yanlış pozitif üretmiyor | panel açıkken korunum |
+| Evrim Atölyesi "çalışıyor" diye yalan söylemiyor | dürüst durum |
+| Gözlemci yerel kural özeti üretiyor | anahtarsız dürüst yol |
+
+### 6.36 Yapılandırma sınamasında **ikinci** hata çıktı
+
+Kardeş projelerin iş akışını örnek alıp web sunucusunu `npm exec vite --` ile
+başlattım. Bu **dev sunucusunu** açar — kaynak modülleri anında dönüştürür —
+yani testin konusu olan şey (derlenmiş paket, gerçek worker çözümlemesi,
+gerçek asset yolları) hiç test edilmiyordu.
+
+Belirti headless'ta tuhaftı: uygulama ya hiç render olmuyordu ya da tick 0'da
+kalıyordu (`TİCK 0`, `SİSTEM ENERJİSİ 0 e`) ve sayfa konsolunda
+`pageerror: Unexpected token ']'` çıkıyordu. **Worker hiç oluşmuyordu.**
+
+Doğru çözüm: `vite preview` — `dist/` klasörünü sunar.
+
+| Yapılandırma | Worker | Durum |
+|---|---|---|
+| `npm exec vite --` (dev) | oluşmuyor | ❌ sözdizimi hatası, dünya başlamıyor |
+| `npm exec vite -- preview` | `assets/sim.worker-*.js` | ✅ **tick 160, 48 canlı, 109.550 e** |
+
+Ayrıca öğrenilen: **worker içindeki hatalar sayfa konsoluna düşmez.**
+`page.on('console')` ve `pageerror` bunları yakalamaz; `page.on('worker')`
+kullanılmalı. Bu yüzden ilk teşhiste "hata yok" görünüyordu.
+
+Bu iki bulgu, elle yapılan tarayıcı doğrulamasının neden güvenilmez olduğunu
+gösteriyor: **ölü alet (bayat sekme) ve ölü hata raporu (worker hatası görünmez).**
+Testle değiştirilen şey kanıtın kalıcılığı.
+
+### 6.37 Bu proje **hiç yayınlanmamış**
+
+Ölçüldü: depoda `.github/workflows/` yok, git geçmişinde deploy/hosting ile
+ilgili **hiçbir commit** yok, `dist/` gitignore'da.
+
+Karşılaştırma — `~/Documents/minimax/` altındaki kardeş projelerde:
+
+| Proje | İş akışı |
+|---|---|
+| adp, agr, aia, aos, arl, **cld**, ctx, cul, cvl, … | `deploy-swa-<proje>.yml` (Azure Static Web Apps) |
+| **ctm-aserdargun-com** | **yok** |
+
+Yani bu proje, kardeşlerinin aksine **hiç dağıtılmamış**. Bu, kullanıcının
+kalıcı kuralıyla (aserdargun statik projeleri her iş sonunda deploy edilir,
+URL doğrulanır) çelişen bir eksiktir.
+
+**Neden bu turda dağıtılmadı:** Azure SWA deploy iş akışı repo gizli
+anahtarına bağlıdır
+(`AZURE_STATIC_WEB_APPS_API_TOKEN_SWA_<PROJE>`). Bu anahtarı ve/veya ilgili
+Azure kaynağını oluşturmak kullanıcının işi; sahte bir iş akışı eklemek
+"dağıtıldı" izlenimi verirdi ve ilk çalıştırmada token hatasıyla düşerdi.
+
+⚠️ **Yayınlanırken gözden geçirilmesi gereken mimari sınırlama:**
+`server/index.ts` bir **Node sunucusudur** (gözlemci rotası). Azure Static Web
+Apps **statik** barındırmadır; `/api/observer` orada çalışmaz. Yani yayınlanan
+sitede gözlemci paneli yalnız yerel kural özetini üretir. Bu, kasıtsız
+değil dürüstçe kabul edilmeli — panel bunu zaten yazıyor.
+
+**Bu turda yapılan:** eksik olan e2e altyapısı kuruldu (§6.35–6.36), yani
+dağıtım öncesi kapı hazır. Kalan tek adım Azure kaynağı + gizli anahtar.
+
+### 6.38 Belgeler gerçekliğe hizalandı
 
 Ölçümler geldi, **belgeler geride kalmıştı**. Üç yanlış iddia düzeltildi:
 

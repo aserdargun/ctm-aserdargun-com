@@ -11,3 +11,6 @@ scripts/blender/out/tmp/
 # Yerel gizli anahtarlar (gözlemci API anahtarı yalnızca sunucu ortamında)
 .env
 .env.*
+# Playwright ciktilari
+test-results/
+playwright-report/

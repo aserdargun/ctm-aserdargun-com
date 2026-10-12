@@ -18,7 +18,8 @@
     "experiments": "vite-node scripts/run-experiments.ts",
     "experiments:quick": "vite-node scripts/run-experiments.ts --quick",
     "server": "node server/index.ts",
-    "assets:build": "/Applications/Blender.app/Contents/MacOS/Blender -b --python scripts/blender/make_assets.py"
+    "assets:build": "/Applications/Blender.app/Contents/MacOS/Blender -b --python scripts/blender/make_assets.py",
+    "check": "npm run typecheck && npm run test && npm run e2e"
   },
   "dependencies": {
     "@react-three/drei": "10.7.9",

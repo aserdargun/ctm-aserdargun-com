@@ -356,7 +356,42 @@ oyun kesilmiyor, konsoldaki tek hata 503'ün kendisi (önceden 502'ydi).
 **Hâlâ ölçülmedi:** gerçek sağlayıcı çağrısı (`CTM_API_KEY` yok),
 `vision-assisted` yolu, MiniMax görsel şemasının canlı doğrulaması.
 
-### 2.4 Tarayıcıda test edilmemiş yollar
+### 2.4 e2e altyapısı kuruldu — `npm run e2e` **kırıktı**
+
+(`VALIDATION.md` §6.35–6.36)
+
+`"e2e": "playwright test"` scripti vardı, `@playwright/test` bağımlılığı
+vardı — ama `playwright.config.ts` ve test dosyası **yoktu**. Çalıştırınca
+`Error: No tests found` (exit 1). Yapılandırma olmadığı için Playwright
+`tests/` dizinini tarıyor, vitest dosyalarını yüklemeye çalışıyordu.
+
+Yazılanlar: `playwright.config.ts` + `e2e/sim.spec.ts` (6 test).
+Tümü geçti (22,6 sn). `npm run check` = tip + birim + e2e.
+
+**Kurulum sırasında üç ayrı tuzak ölçüldü — hepsi "ölü test" üretiyordu:**
+
+1. `npm exec vite --` **dev sunucusunu** açar, üretim yapısını değil. Test
+   derlenmiş paketi/worker çözümlemesini sınamıyordu. Doğrusu `vite preview`.
+2. **Worker hataları sayfa konsoluna düşmez.** `console`/`pageerror`
+   yakalamaz; `page.on('worker')` gerekir. Bu yüzden ilk teşhiste "hata yok"
+   görünüyordu.
+3. **Görüntülenen metin ≠ DOM metni.** HUD'da `text-transform: uppercase`
+   var: DOM'da "Canlılar", ekranda "CANLILAR". `innerText` dönüşümü yansıtır,
+   `textContent` yansıtmaz — Playwright kaynak metne göre eşleştirir. Ayrıca
+   HUD negatif işareti tipografik `−` (U+2212) basıyor ve `MUHASEBE FARKI`
+   kenar çubuğunda **değil** banner'da.
+
+### 2.5 Bu proje hiç yayınlanmamış
+
+Kardeş projelerin çoğunda `deploy-swa-<proje>.yml` (Azure Static Web Apps)
+var; **ctm'de hiçbir dağıtım izi yok** — ne iş akışı ne de deploy commit'i.
+
+Dağıtılmadı çünkü Azure SWA gizli anahtarı ve kaynağı kullanıcının.
+`VALIDATION.md` §6.37'de ayrıca not edildi: `server/index.ts` bir Node
+sunucusudur ve SWA'da çalışmaz, yani yayınlanan sitede gözlemci yalnız yerel
+kural özetini üretir.
+
+### 2.6 Tarayıcıda test edilmemiş yollar
 
 Mikroskop etkileşimi (gizli birim susturma, tek karar adımı), dal oluşturma,
 JSON içe/dışa aktarma, IndexedDB kaydet/yükle, gözlemci paneli. Kod yazılı, tipleri
