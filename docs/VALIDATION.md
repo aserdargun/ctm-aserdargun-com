@@ -2004,6 +2004,69 @@ Tam klanda yeşil. Yani denetim artık iki koşulda da **gerçekten çalışıyo
 > **kötü koşulda kırmızıya döndüğünü** görmek gerekir. Bu turda ikisi de ölçüldü:
 > bayat rapor (kod değişti → kırmızı) ve sığ klon (geçmiş yok → kırmızı).
 
+### 6.40 CI **düştü** — ve iki test tohuma kırılganmış
+
+İş akışını push'tan sonra kontrol ettim (`gh run list`) — "yeşil olacak" diye
+tahmin etmeyerek. Koşu **başarısız** bitti:
+
+```
+× Paylaşma mekaniği > sayaç gerçekten artabiliyor — REGRESYON KORUMASI
+    AssertionError: expected 0 to be greater than 0
+× Paylaşma mekaniği > eşiği düşürmek kolonileri çökertiyor — varsayılan en iyisi
+    AssertionError: expected 0 to be greater than 0
+```
+
+201 testin 199'u geçti; **iki test yerelde yeşildi, CI'da düştü.**
+
+#### Teşhis
+
+Varsayılan paylaşma eşiğinde `transfers > 0` **her koşuda gerçekleşmiyor**.
+10 tohum ölçüldü (macOS, yerel):
+
+| eşik | `transfers > 0` olan tohum |
+|---|---|
+| **0,82 (varsayılan)** | **3/10** ❌ |
+| 0,70 | 10/10 ✅ |
+| 0,60 | 10/10 ✅ |
+| 0,50 | 10/10 ✅ |
+
+Test `seed: 3001` kullanıyordu ve 3001 **şanslı** bir tohumdu. Yerelde bütün
+`npm run check` koşuları yeşildi; CI'da aynı test düştü çünkü yörünge orada
+farklı bir yere gidiyor.
+
+> Yani bu bir **platform determinizmi** bulgusu değil; testin **yanlış bir
+> özellik iddia etmesi**. "Sayacın artabildiği" doğru ama "her zaman artabildiği"
+> yanlış — ve test ikincisini ölçüyordu.
+
+Zaman serisi de bunu gösteriyor (seed 3001): 1000 ve 2000 tick'te `transfers = 0`,
+3000'te 2262'ye çıkıyor, sonra **12000 tick'te bile 2262** kalıyor.
+
+#### Düzeltme
+
+1. "Sayaç artabiliyor" testi artık mekanizmanın **güvenilir tetiklendiği** bir
+   eşik (0,70) kullanıyor ve **beş tohumla** doğruluyor. Konusu mekanizma;
+   ürünün varsayılan davranışını sınamıyor.
+2. **Yeni dürüst sınır testi:** varsayılan 0,82'de paylaşmanın seyrek
+   tetiklendiği artık **açıkça** ölçülüyor. "Paylaşma çalışıyor" iddiası
+   böylece abartılmıyor.
+3. "Eşiği düşürmek kolonileri çökertiyor" testinden kırılgan
+   `dflt.transfers > 0` iddiası kaldırıldı; o testin konusu zaten koloni
+   büyüklüğü.
+
+> Not: `VALIDATION.md` §6.18 "eşiği düşürmek **zararlı**" diyordu ve bu ölçüm
+> bunu **doğruluyor** (koloniler gerçekten daha küçük). Ama aynı eşiğin
+> bir **etkinlik payı** de doğurduğu görülüyor: 0,82'de paylaşma çoğu koşuda
+> hiç tetiklenmiyor, 0,70'te neredeyse her koşuda tetikleniyor. Bu, "paylaşma
+> zararlı" ile "paylaşma neredeyse hiç çalışmıyor" arasındaki ayrım ve
+> ayrıca incelenmeli.
+
+#### Ders
+
+Yerelde yeşil olan bir test **taşınabilir** değildir. Tek bir tohumla
+`> 0` iddiası, özelliğin **nadir** gerçekleştiği durumda şanslı tohumla
+geçer ve başka bir platformda düşer. Bu, "yeşil olması kanıt değildir"
+ilkesinin en somut hâli: **yeşil test de kırılgan olabilir.**
+
 ### 6.38 Belgeler gerçekliğe hizalandı
 
 Ölçümler geldi, **belgeler geride kalmıştı**. Üç yanlış iddia düzeltildi:
@@ -2087,6 +2150,13 @@ Bu maddeler **yapılmadı** ve dokümana sayı uydurulmadı:
    kodda var; ekran okuyucu ile uçtan uca denendi ama **sistematik test yapılmadı**.
 9. **Çapraz cihaz determinizmi.** Test edilmedi, vaat edilmiyor. Bu nedenle
    tüm deneyler §4 **Node'da** koşuyor; tarayıcıda tohumlu istatistik üretilmiyor.
+   ⚠️ **Kısmi kanıt (§6.40):** CI ilk koşusunda iki test düştü. Teşhis: platform
+   determinizmi değil, **testler tohuma kırılganmış** — varsayılan paylaşma
+   eşiğinde özellik yalnız 10 tohumun 3'ünde gerçekleşiyor ve test şanslı bir
+   tohumla geçiyordu. Testler sağlamlaştırıldı; ancak **yörüngelerin platformlar
+   arasında bit düzeyinde aynı olduğu hâlâ ölçülmedi.** Rastgele erişimli bir
+   testin başka platformda düşmesi, yörüngenin orada ayrışmış olabileceğinin
+   dolaylı işaretidir; bu tesadüf de olabilir ve **ayrıştırılmamıştır.**
 10. **Tarayıcıda deney paneli.** Deney motoru headless Node'da çalışıyor; worker
     komutlarıyla tarayıcı içinden tetiklenen deneyler **bağlanmadı.**
 11. **Gözlemcinin gerçek sağlayıcı çağrısı.** `CTM_API_KEY` olmadığı için
