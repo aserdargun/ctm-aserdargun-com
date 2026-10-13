@@ -109,6 +109,46 @@ describe('gözlemci · sayı doğrulama (REDDETME yönü)', () => {
   });
 });
 
+describe('ölçüm anahtarı bütünlüğü', () => {
+  // §6.47'de ölçüldü: 15 anahtar üretiliyor, ama yalnız 7'si `metric('…')`
+  // ile ADIYLA okunuyor. Geri kalan 8 (`systemEnergy`, `externalInput`,
+  // `dissipatedEnergy`, `tick`, `simTime`, `organismCount`, `meanCellEnergy`,
+  // `maxGeneration`) **hiç adıyla okunmuyor**.
+  //
+  // Bu bir ölü bildirim DEĞİL: `verifyNumericClaims` tüm ölçümleri **genel
+  // olarak** geziyor, yani bu anahtarlar da modelin iddia denetimine giriyor.
+  // Aşağıdaki test tam olarak bunu davranışsal olarak doğruluyor — metin
+  // taramasıyla değil, çalıştırarak.
+  it('adıyla okunmayan anahtarlar da genel denetçide geçerli sayılır', () => {
+    // systemEnergy yalnız push() ile üretiliyor; hiçbir yerde metric() ile
+    // okunmuyor. Yine de modelin iddia denetiminde kanıt sayılmalı.
+    const p = pack([
+      { metricRef: 'systemEnergy', value: 109_575.25, unit: 'e' },
+      { metricRef: 'population', value: 48, unit: 'cells' },
+    ]);
+    const [claim] = verifyNumericClaims('Sistem enerjisi 109575 e.', p);
+    expect(claim.verified, 'adıyla okunmayan anahtar genel denetçide eşleşmeli').toBe(true);
+    expect(claim.matchedMetric).toBe('systemEnergy');
+  });
+
+  it('kanıtta olmayan sayı yine de reddedilir (genel gezme gevşetmiyor)', () => {
+    const p = pack([{ metricRef: 'systemEnergy', value: 109_575.25, unit: 'e' }]);
+    const [claim] = verifyNumericClaims('Sistem enerjisi 999999 e.', p);
+    expect(claim.verified).toBe(false);
+  });
+
+  it('her üretilen anahtar kanıt paketine ulaşır', () => {
+    // push() ile üretilen anahtar sayısı ile paketin ölçüm sayısı eşleşmeli.
+    const p = pack([
+      { metricRef: 'population', value: 48, unit: 'cells' },
+      { metricRef: 'bondCount', value: 19, unit: 'bonds' },
+      { metricRef: 'energyResidual', value: 0, unit: 'e' },
+    ]);
+    expect(p.measurements).toHaveLength(3);
+    expect(new Set(p.measurements.map((m) => m.metricRef)).size).toBe(3);
+  });
+});
+
 describe('gözlemci · yerel kural özeti', () => {
   it('yalnız kanıttaki sayıları kullanır ve belirsizlikleri listeler', () => {
     const summary = buildLocalSummary(BASE);

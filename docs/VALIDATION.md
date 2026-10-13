@@ -2259,6 +2259,42 @@ Denetleyici **doğrulandı**: yazıldığında kırmızı döndü ve altı ölü
 söyledi; beyanlar temizlenince yeşile döndü. Yani ileride yeni bir tür eklenip
 bağlanmazsa CI onu yakalar.
 
+### 6.47 Ölçüm anahtarı denetimi — **temiz sonuç** (olay türü değil)
+
+§6.46'daki denetimin ikinci kategorisi: beyan edilen **ölçüm anahtarları**
+(`metricRef`).
+
+Ölçüm: `evidence.ts` 15 anahtar üretiyor. Bunların kaçı gerçekten tüketiliyor?
+
+| | anahtar sayısı |
+|---|---|
+| üretilen (`push(...)`) | 15 |
+| **adıyla** okunan (`metric('…')`) | 7 |
+| adıyla okunmayan | 8 |
+
+Adıyla okunmayanlar: `systemEnergy`, `externalInput`, `dissipatedEnergy`,
+`tick`, `simTime`, `organismCount`, `meanCellEnergy`, `maxGeneration`.
+
+**Sonuç: ölü bildirim YOK.** Bu anahtarlar `verifyNumericClaims` tarafından
+**genel olarak** geziliyor (tüm `measurements` dizisini tarıyor) ve kanıt paketi
+tablosunda listeleniyor. Yani hepsi ürün yüzeyine ulaşıyor.
+
+> **Denetimin kendisi de denetlendi:** `systemEnergy` anahtarını bilerek
+> bozduğumda test **kırmızı** döndü, geri alınca yeşile döndü. Metin taramasıyla
+> değil, **çalıştırarak** doğrulandı.
+
+Bu, önemli bir ayrım: §6.46'daki ölü beyan sorunu **sistemik değil, olay
+türlerine özgüydü**. Aynı denetimi diğer kategorilere uygulamak doğru bir adımdı
+ve **negatif sonuç** üretti — yani tarama rastgele değil, seçici.
+
+### 6.48 Ölü beyan denetimi — özet
+
+| kategori | beyan | ölü bulunan | durum |
+|---|---|---|---|
+| olay türleri (`SimEventType`) | 16 | **6** | ✅ kaldırıldı, testle korunuyor |
+| ölçüm anahtarları (`metricRef`) | 15 | 0 | ✅ zaten sağlıklı, testle korunuyor |
+| protein mimarisi (kod) | — | — | kapsam dışı |
+
 ### 6.45 §6.18'in iddiası **düzeltildi** — yönü doğru, gerekçesi yanlış
 
 §6.18 diyordu: *"eşiği düşürmek zararlı, varsayılan en iyisi"* ve bunu
