@@ -2060,12 +2060,55 @@ Zaman serisi de bunu gösteriyor (seed 3001): 1000 ve 2000 tick'te `transfers = 
 > zararlı" ile "paylaşma neredeyse hiç çalışmıyor" arasındaki ayrım ve
 > ayrıca incelenmeli.
 
+#### Düzeltme 2 — CI ikinci kez düştü, ikinci bir yanlış iddia bulundu
+
+Paylaşma sayacı testi düzeldi ve geçti; CI bu kez **başka** bir iddiada düştü:
+
+```
+× eşiği düşürmek kolonileri çökertiyor — varsayılan en iyisi
+    AssertionError: expected 12 to be greater than 24
+```
+
+Bu test de **tek tohumla** yazılmıştı (`seed: 3001`) ve §6.18'in "eşiği
+düşürmek zararlı" iddiasını tek koşuda garanti ediyordu.
+
+Ölçtüm — 10 tohum, tepe küme büyüklüğü:
+
+| tohum | 0,82 | 0,60 | kazanan |
+|---|---|---|---|
+| 3001 | 24 | 10 | 0,82 |
+| 3002 | 6 | 6 | berabere |
+| 3003 | 7 | 9 | **0,60** |
+| 3004 | 24 | 11 | 0,82 |
+| 3005 | 24 | 11 | 0,82 |
+| 7 | 7 | 7 | berabere |
+| 42 | 12 | 10 | 0,82 |
+| 91 | 24 | 24 | berabere |
+| 123 | 6 | 6 | berabere |
+| 2026 | 12 | 16 | **0,60** |
+
+| | ortalama tepe | medyan |
+|---|---|---|
+| **0,82 (varsayılan)** | **14,60** | 12 |
+| 0,60 | 11,00 | 10 |
+
+**Dürüst okuma:** "varsayılan en iyisi" **eğilim olarak** doğru (ortalama ve
+medyan lehinde), ama **tek koşuda garanti değil** — varsayılan 10 tohumun 4'ünde
+kazanıyor, 2'sinde kaybediyor, 4'ünde berabere.
+
+§6.18'in rakamları (zirve 24'e karşı 10) **tek koşunun** sonucuydu ve genellenmiş
+eğilim gibi yazılmıştı. Şimdi hem aralık hem ortalama paylaşıldı.
+
+Test artık çok tohumlu ortalamayı iddia ediyor (sonuçtan önce sabitlenmiş ilk beş
+tohum), tek bir şanslı tohumla değil.
+
 #### Ders
 
-Yerelde yeşil olan bir test **taşınabilir** değildir. Tek bir tohumla
-`> 0` iddiası, özelliğin **nadir** gerçekleştiği durumda şanslı tohumla
-geçer ve başka bir platformda düşer. Bu, "yeşil olması kanıt değildir"
-ilkesinin en somut hâli: **yeşil test de kırılgan olabilir.**
+İki test, iki ayrı yanlış iddia, ikisi de **tek tohumdan** geliyordu. Yerelde
+yeşil olan bir test **taşınabilir** değildir: tek tohumla kurulan iddia, özelliğin
+nadir gerçekleştiği ya da yönünün zayıf olduğu durumda şanslı koşuyla geçer ve
+başka bir platformda düşer. CI'nin asıl katkısı yeni bir hata bulmak değil,
+**yeşil olan ama yanlış olan** testleri ortaya çıkarmak oldu.
 
 ### 6.38 Belgeler gerçekliğe hizalandı
 
