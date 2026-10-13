@@ -112,6 +112,7 @@ durur.
 | Y-2 bağ ömrünü seçilime açma | ❌ başarısız — kayma −0.006 [−0.014, +0.002], p = 0.343 |
 | Üreme tıkanması | ❌ değil tıkanma, **çöküş**: son çeyrekte 1 doğum, pop 166 → 41 |
 | Uzun vadeli dayanıklılık | ❌ §5.4 40.000 tick'e **genellenmiyor** — kalibrasyon kısmi hafifletiyor |
+| **Bağ enerji paylaşımı** (varsayılan ayar) | ⚪ **ölçülebilir etkisi yok**: paylaşmanın matematiksel olarak imkânsız olduğu dünyayla tepe küme **birebir aynı** (fark [0, 0], 12 tohum) |
 
 Son satır önemli: aynı ölçümde evrimsel arama +0.161 kazancı bulurken
 REINFORCE +0.020 (gürültü) buluyor. Darboğaz görevde değil, **öğrenme

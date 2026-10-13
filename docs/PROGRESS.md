@@ -330,6 +330,36 @@ kapalıyken de doluluk artmadı. Yanlış açıklama doğrulamadan önce yazıld
 Arşiv üründe ölçüm olarak kalıyor (ε = 0). Faz D'nin bugünkü hali: çukur
 ölçüldü, görselleştirildi, doldurulması denendi — başarısız.
 
+### 2.2f Paylaşma mekaniği varsayılan ayarda **etkisiz** (ölçüldü)
+
+(`VALIDATION.md` §6.44–6.45)
+
+Eşik, hiçbir hücrenin aşamayacağı **1,50**'ye çekildi → paylaşma
+matematiksel olarak imkânsız. Varsayılan 0,82 ile **aynı 12 tohumda**
+karşılaştırıldı:
+
+| eşik | tetiklenen | ort. tepe |
+|---|---|---|
+| 0,82 (varsayılan) | 3/12 | **15,00** |
+| 1,50 (imkânsız) | 0/12 | **15,00** |
+| 0,70 | 12/12 | 14,92 |
+
+**Eşleştirilmiş tepe farkı [0, 0].** Paylaşma 3 tohumda gerçekten tetiklenmiş
+(2262/2272/1918 aktarım) ama tepe küme hiçbirinde değişmemiş.
+
+Yani **varsayılan ayarda paylaşma çalışıyor ama hiçbir şeyi değiştirmiyor.**
+
+**§6.18'in iddiası düzeltildi.** "Eşiği düşürmek zararlı" yönü doğru ama
+rakamları tek koşunun sonucuydu: gerçek fark 24→10 değil, **15,00 → 11,08**.
+Ve gerekçe değişiyor: paylaşma 0,70'te **daima** çalışmasına rağmen tepe
+14,92 (yani etkisiz); sadece 0,60'ın altında (11,08) ve 0,50'de (7,08) zarar
+başlıyor. Suçlu paylaşmanın kendisi değil, **enerjiyi sürekli boşaltan eşik**.
+
+**İşbirliği aktı kararını bu aydınlatıyor:** paylaşma şu an ölü bir mekanizma.
+Eklenecek gerçek işbirliği aktı "çalışan bir şeyi değiştirmek" değil,
+**ölü bir mekanizmayı etkinleştirmek** olur — yani riski düşük, kazancı da
+belirsiz bir başlangıç.
+
 ### 2.3 Gözlemci: anahtarsız yol doğrulandı, canlı çağrı ölçülmedi
 
 (`VALIDATION.md` §6.32)

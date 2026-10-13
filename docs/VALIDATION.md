@@ -2180,7 +2180,68 @@ Denetim notları teste içine yazıldı: gelecekteki okuyucu bunları yeniden
 Bu, projenin kendi disiplininin gereği: "geçici ölçüm de ölçümdür" —
 yazılan şeyin ölçüldüğüğünden emin olmadan onu kanıt saymamak.
 
-### 6.43 Bu turun özeti
+### 6.44 Paylaşma mekaniği varsayılan ayarda **etkisiz** — sert ölçüm
+
+§6.40'ta "ayrıca incelenmeli" notu düşülmüştü. İncelendi.
+
+**Yöntem:** Eşik, hiçbir hücrenin fiziksel olarak aşamayacağı **1,50**'ye
+çekildi → paylaşma **matematiksel olarak imkânsız**. Bu kol, varsayılan
+0,82 ile **aynı tohumlarda, aynı pencerede** karşılaştırıldı. Tek değişen
+paylaşma eşiği.
+
+12 tohum, 8000 tick, `strainK 0,005`:
+
+| eşik | tetiklenen | ort. aktarım | ort. **tepe** | medyan | min–max |
+|---|---|---|---|---|---|
+| **0,82 (varsayılan)** | **3/12** | 538 | **15,00** | 12 | 6–24 |
+| 1,50 (imkânsız → kapalı) | 0/12 | 0 | **15,00** | 12 | 6–24 |
+| 0,70 | 12/12 | 3167 | 14,92 | 16 | 6–24 |
+| 0,60 | — | — | 11,08 | 10 | 6–24 |
+| 0,50 | — | — | 7,08 | 6 | 5–11 |
+
+**Eşleştirilmiş fark (0,82 − imkânsız): tepe koloni farkı [0, 0].** 12 tohumun
+hiçbirinde fark yok — paylaşma 3 tohumda **gerçekten** tetiklenmiş (2262,
+2272, 1918 aktarım) olmasına rağmen tepe büyüklüğü değişmemiş.
+
+Son popülasyonda fark yalnız tetiklenen 3 tohumda görüldü: +20, −1, +2.
+
+> **Sonuç: varsayılan ayarda enerji paylaşması koloni yapısını ölçülebilir
+> biçimde değiştirmiyor.** Mekanizma çalışıyor (aktarım sayısı artıyor) ama
+> sonucu değiştirmiyor.
+
+### 6.45 §6.18'in iddiası **düzeltildi** — yönü doğru, gerekçesi yanlış
+
+§6.18 diyordu: *"eşiği düşürmek zararlı, varsayılan en iyisi"* ve bunu
+**3 tohumla** destekliyordu (zirve 24'e karşı 10).
+
+Çok tohumlu ölçüm **yönü doğruluyor** ama iki düzeltme getiriyor:
+
+| | §6.18 (3 tohum) | 12 tohum |
+|---|---|---|
+| 0,82 → zirve | 24 | **15,00** |
+| 0,60 → zirve | 10 | **11,08** |
+
+1. **Rakamlar tek koşunun sonucuydu.** Gerçek fark 24 → 10 değil, 15,00 → 11,08.
+   Etki **yönü** anlamlı ama büyüklüğü çok daha küçük.
+2. **Gerekçe değişiyor.** "Paylaşma zararlı" değil, **çok düşük eşik enerjiyi
+   sürekli çekiyor**. Çünkü:
+
+| eşik | paylaşma sıklığı | ort. tepe |
+|---|---|---|
+| 0,82 | 3/12 (seyrek) | 15,00 |
+| 0,70 | **12/12 (daima)** | **14,92** |
+
+Paylaşma **daima** çalışırken bile tepe 14,92 — yani etkisiz. Sadece 0,60'ın
+altına inildiğinde (0,60 → 11,08, 0,50 → 7,08) zarar başlıyor. Yani suçlu
+"paylaşmanın kendisi" değil, **enerjiyi sürekli boşaltan eşik**.
+
+> Düzeltilen karar: Eşiği 0,82'de tutmanın gerekçesi *"paylaşma zararlı"* değil.
+> Doğru gerekçe: *"paylaşma bu modelde zaten etkisiz; düşük eşik onu zararlı
+> hale getiriyor."* Kararın kendisi (0,82'de kal) aynı, gerekçesi düzeldi.
+
+Bu bulgu doğrudan **işbirliği aktı** kararını da aydınlatıyor: paylaşma
+şu an ölü bir mekanizma; eklenecek gerçek işbirliği aktı "çalışan bir şeyi
+değiştirmek" değil, **ölü bir mekanizmayı etkinleştirmek** olur.
 
 | iş | sonuç |
 |---|---|
@@ -2189,6 +2250,8 @@ yazılan şeyin ölçüldüğüğünden emin olmadan onu kanıt saymamak.
 | iki yanlış test iddiası | ✅ bulundu (paylaşma sayacı, varsayılan eşik) |
 | kalan tek tohumlu iddialar | ✅ tarandı, 3/3 sağlam çıktı |
 | üçüncü CI koşusu | ✅ yeşil (ubuntu) |
+| paylaşmanın varsayılan ayardaki etkisi | ⚪ **ölçülebilir etki yok** (§6.44) |
+| §6.18 iddiası | 🔄 **düzeltildi** — yön doğru, rakam ve gerekçe değişti (§6.45) |
 
 ### 6.38 Belgeler gerçekliğe hizalandı
 
