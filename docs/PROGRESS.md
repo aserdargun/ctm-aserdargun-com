@@ -330,7 +330,7 @@ kapalıyken de doluluk artmadı. Yanlış açıklama doğrulamadan önce yazıld
 Arşiv üründe ölçüm olarak kalıyor (ε = 0). Faz D'nin bugünkü hali: çukur
 ölçüldü, görselleştirildi, doldurulması denendi — başarısız.
 
-### 2.2f Paylaşma mekaniği varsayılan ayarda **etkisiz** (ölçüldü)
+### 2.2g Paylaşma mekaniği varsayılan ayarda **etkisiz** (ölçüldü)
 
 (`VALIDATION.md` §6.44–6.45)
 
@@ -359,6 +359,29 @@ başlıyor. Suçlu paylaşmanın kendisi değil, **enerjiyi sürekli boşaltan e
 Eklenecek gerçek işbirliği aktı "çalışan bir şeyi değiştirmek" değil,
 **ölü bir mekanizmayı etkinleştirmek** olur — yani riski düşük, kazancı da
 belirsiz bir başlangıç.
+
+### 2.2h Faz B3 · **İşbirliği aktı eklendi** — mekanizma çalışıyor, kazanç yok
+
+(`VALIDATION.md` §6.55–6.56)
+
+Bağ bütünlüğü eşiğin altına düşünce bağın **iki ucundaki hücreler birlikte**
+enerji harcayarak bağı yeniler. Bedel **ortak** olduğu için ödemeyen hücre de
+yararlanır — yani hileci **kavramsal olarak** tanımlanır. Varsayılan **kapalı**;
+kapalıyken ürün davranışı bit düzeyinde aynı (ölçüldü).
+
+| ölçüm (12 tohum, 8000 tick, eşleştirilmiş) | sonuç |
+|---|---|
+| bağ sayısı farkı | ort **+12,5** [9,0; 16,1], **p = 0,0001** → mekanizma çalışıyor |
+| tepe küme farkı | ort **−0,67** [−3,08; +1,50], **p = 0,59** → **koloni kazancı yok** |
+
+⚠️ Bu turun kendi kendini çürüten ölçümü: ilk ölçüm ortalamada "+%11" kazanç
+bildirdi ve "başarılı" yazıldı; eşleştirilmiş ölçüm bunu çürüttü (farklar
+[-5, +11], yalnız 4/10 artıyor). **Ortalama tek başına kanıt değildir.**
+
+**Kalan adım (kullanıcı kararı):** hilecin **kalıtsal** olması için genoma bir
+işbirliği parametresi eklenmeli. Bu; `Genome` tipi, sınırlar, mutasyon ölçeği,
+**metabolik maliyet** ve kurucu genomlar zincirini değiştirir ve **tüm önceki
+ölçümleri geçersizleştirir**. Tek taraflı yapılmadı.
 
 > Bu ölçüm ilk önce birim testine kondu ve **CI'da zaman aşımına** düştü
 > (24 dünya koşusu > 120 sn). Doğru yer deney motoruydu: `experimentSharingEffect()`,
