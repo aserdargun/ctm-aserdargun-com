@@ -156,6 +156,41 @@ describe('belge tutarlılığı · README sayıları', () => {
   });
 });
 
+describe('belge tutarlılığı · abartılmayan durum iddiaları', () => {
+  // README'nin "Beş unsur nerede?" tablosu ölçümle **çelişiyordu**: aynı
+  // dosyanın sonuç tablosu öğrenme için "❌ etki yok (p = 0.333)" derken,
+  // unsur tablosu "✅ çalışıyor" diyordu. Üçüncü sınıf hata: **abartılmış
+  // durum işareti**.
+  //
+  // Buradaki olgu şu: mekanizma çalışıyor, ama **sonuç üretildiği
+  // gösterilmemiş**. Bu ikisi karıştırıldığında okuyucu yanlış anlıyor.
+
+  it('etkisi ölçülmemiş mekanizmalar "✅ çalışıyor" iddiasında değil', () => {
+    const readme = read('README.md');
+    // ⚠️ İlk iki denemede bölüm ayrıştırması ve anahtar kelime filtresi
+    // kullanıldı ve ikisi de yanlış sonuç verdi: önce "meşru" değişmez
+    // kontrolleri ("Öğrenme kapalıyken ağırlıklar sabit | ✅"), sonra
+    // **ölçülmüş kazanımları** yakaladı ("Evrim Atölyesi | ✅").
+    //
+    // Doğru yaklaşım: **yasaklanan satırları birebir** adlandır. Hem daha
+    // sağlam, hem de neyi neden yasakladığını kendisi anlatıyor.
+    const forbidden = [
+      '| Gerçek ANN ile öğrenme | REINFORCE + hareketli baseline | ✅',
+      '| Kalıtım, mutasyon, uyarlanma | `src/sim/genome.ts`, `src/sim/world.ts` | ✅',
+      '| Tek hücreli → çok hücreli | Bağ grafiği, tomurcuk ayrılması, parçalanma | ✅',
+    ];
+    for (const row of forbidden) {
+      expect(readme.includes(row), `abartılmış durum satırı geri geldi: ${row}`).toBe(false);
+    }
+  });
+
+  it('README ölçülebilir etkisi olmayanları açıkça söylüyor', () => {
+    const readme = read('README.md');
+    expect(readme).toMatch(/etkisi yok/);
+    expect(readme).toMatch(/gösterilmedi/);
+  });
+});
+
 describe('belge tutarlılığı · düzeltme kaydı', () => {
   it('ε>0 sonucu VALIDATION.md ile üretilmiş raporda AYNI', () => {
     // ⚠️ Yanlış ölçümden gelen "%83 tek kutu" düzeltilmiş ve "%52" olarak

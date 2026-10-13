@@ -34,7 +34,7 @@ Anahtar yoksa uygulama **çalışır** ve gözlemci panelinde dürüstçe
 | `npm run dev` | Geliştirme sunucusu (port 5183) |
 | `npm run build` | Tip denetimi + üretim derlemesi |
 | `npm run preview` | Üretim çıktısını sunar (port 4173) |
-| `npm test` | Vitest — 211 test |
+| `npm test` | Vitest — 213 test |
 | `npm run e2e` | Playwright — 6 tarayıcı testi (üretim yapısı üzerinden) |
 | `npm run check` | Tip denetimi + birim + uçtan uca (dağıtım öncesi kapı) |
 | `npm run typecheck` | `tsc --noEmit` |
@@ -86,11 +86,16 @@ baskısını değiştirip sonucu izler; bir canlıyı ve soyunu takip eder.
 
 | Unsur | Nerede | Durum |
 |---|---|---|
-| Tek hücreli → çok hücreli | Bağ grafiği, tomurcuk ayrılması, parçalanma | ✅ çalışıyor |
-| Kalıtım, mutasyon, uyarlanma | `src/sim/genome.ts`, `src/sim/world.ts` | ✅ çalışıyor |
-| Gerçek ANN ile öğrenme | REINFORCE + hareketli baseline | ✅ çalışıyor, gradyan test edildi |
+| Tek hücreli → çok hücreli | Bağ grafiği, tomurcuk ayrılması, parçalanma | ⚠️ mekanizma çalışıyor, **koloniler uzun vadede sönümleniyor** (B1) |
+| Kalıtım, mutasyon, uyarlanma | `src/sim/genome.ts`, `src/sim/world.ts` | ⚠️ kalıtım ve mutasyon çalışıyor; **uyarlanma gösterilmedi** (p = 0.097) |
+| Gerçek ANN ile öğrenme | REINFORCE + hareketli baseline | ⚠️ ağırlıklar değişiyor ve gradyan test edildi; **davranışa etkisi yok** (p = 0.333) |
 | Algı/temsil/hafıza/dünya modeli yönü | Algı modülü gerçek; V1/V2 planı | ⚠️ kısmen (bkz. PROGRESS) |
-| Dil/görsel model gözlemcisi | Kanıt paketi + yerel özet + sunucu rotası | ⚠️ yerel tam, canlı model doğrulanmadı |
+| Dil/görsel model gözlemcisi | Kanıt paketi + yerel özeti + sunucu rotası | ⚠️ yerel tam, **canlı model doğrulanmadı** |
+
+> Bu tablo bilinçli olarak abartmıyor. "Mekanizma çalışıyor" ile "mekanizma
+> **sonuç üretiyor**" aynı şey değildir: paylaşma mekanizması çalışıyor ama
+> ölçülebilir etkisi yok (§6.44), öğrenme mekanizması çalışıyor ama ölçülebilir
+> etkisi yok (§4.5–4.7). Ayrıntı ve kanıt: `docs/VALIDATION.md`.
 
 **Deney paketi yazıldı ve koşuyor.** `npm run experiments` deney paketi
 (1.921 koşu, 26 bölüm) headless koşturur; sonuçlar `docs/EXPERIMENTS.md` içinde ham koşu değerleriyle

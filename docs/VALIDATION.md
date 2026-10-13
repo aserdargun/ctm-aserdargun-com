@@ -2321,7 +2321,49 @@ tarayıcı onları test sayıyordu.
 Ayrıca ilk denetim "makul aralık"a bakıyordu (sayı ≥ dosya sayısı) ve bu,
 sayının bayatlamasına **izin veriyordu**. Denetim kaynağa bağlandı.
 
-### 6.50 Ölü beyan / bayat sayı denetimleri — özet
+### 6.51 README "Beş unsur" tablosu ölçümle **çelişiyordu**
+
+Aynı dosyanın **içinde** iki tablo birbirine zıt konuşuyordu:
+
+| yer | iddia |
+|---|---|
+| sonuç tablosu | "Yaşam içi öğrenme → davranış \| **❌ etki yok** (p = 0.333)" |
+| "Beş unsur" tablosu | "Gerçek ANN ile öğrenme \| **✅ çalışıyor**, gradyan test edildi" |
+
+İkisi de teknik olarak doğru, ama okuyucuya **çelişkili** geliyor. Gerçek
+durum: *mekanizma çalışıyor, **sonuç üretildiği gösterilmemiş**.*
+
+Aynı sınıf hata — ölçülmemiş bir şey varmış gibi sunulması — bu kez
+**durum işaretinde**. Üç satır düzeltildi:
+
+| unsur | eski | yeni |
+|---|---|---|
+| Tek hücreli → çok hücreli | ✅ çalışıyor | ⚠️ mekanizma çalışıyor, koloniler uzun vadede sönümleniyor |
+| Kalıtım, mutasyon, uyarlanma | ✅ çalışıyor | ⚠️ uyarlanma **gösterilmedi** (p = 0.097) |
+| Gerçek ANN ile öğrenme | ✅ çalışıyor | ⚠️ ağırlıklar değişiyor ama **davranışa etkisi yok** (p = 0.333) |
+
+Test yazarken **iki denetim hatası** yapıldı ve ikisi de ölçüldü:
+1. Bölüm ayrıştırması (`indexOf`) yanlış bloğu aldı.
+2. Anahtar kelime filtresi önce **meşru** değişmez kontrolleri ("Öğrenme
+   kapalıyken ağırlıklar sabit \| ✅"), sonra **ölçülmüş kazanımları**
+   ("Evrim Atölyesi \| ✅") yakaladı.
+
+Doğru yaklaşım: **yasaklanan satırları birebir** adlandırmak — hem daha
+sağlam, hem de neyi neden yasakladığını kendisi anlatıyor.
+
+### 6.52 Bayatlık ve abartı sınıfları — genel tablo
+
+Bu seansta bulunan dört sınıf, hepsi aynı kökten: **beyan edilen ile gerçekte
+olan arasındaki fark zorlanmıyordu.**
+
+| # | sınıf | örnek | durum |
+|---|---|---|---|
+| 1 | hiç artmayan sayaç | `sharingPhase()` sayacı | test `toBe(0)` yüzünden yeşildi |
+| 2 | ölçülemez alet | niş ölçümü hız ekseni | tüm gözlemler tavana kırpıldı |
+| 3 | ölü beyan | 6 olay türü | hiç üretilmemiş, sıfır tüketici |
+| 4 | bayat sayı / abartı | README'de 56.159 koşu, "✅ çalışıyor" | kaynağa bağlandı, satırlar düzeltildi |
+
+Dördü de artık CI'da zorlanıyor.
 
 | denetim | bulgu | durum |
 |---|---|---|
@@ -2335,7 +2377,7 @@ sayının bayatlamasına **izin veriyordu**. Denetim kaynağa bağlandı.
 | ölçüm anahtarları (`metricRef`) | 15 | 0 | ✅ zaten sağlıklı, testle korunuyor |
 | protein mimarisi (kod) | — | — | kapsam dışı |
 
-### 6.48 Ölü beyan denetimi — özet tablosu
+### 6.50 Ölü beyan denetimi — özet tablosu
 
 | kategori | beyan | ölü bulunan | durum |
 |---|---|---|---|
