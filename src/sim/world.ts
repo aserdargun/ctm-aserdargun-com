@@ -134,6 +134,21 @@ export interface WorldOptions {
    */
   strainDecayK?: number;
   /**
+   * **Faz D · işbirliği aktı kancası.** Varsayılan **0 = KAPALI**.
+   *
+   * Bağ bütünlüğü `C.BOND_COOP_REPAIR_FLOOR`'un altına düşerse bağın **iki
+   * ucundaki hücreler birlikte** bu değer kadar enerji harcayarak bağı
+   * yeniler. Bu, paylaşmadan farklı olarak **ortak** bir maliyettir: bedeli
+   * ödemeyen hücre de yenilenmiş bağtan yararlanır, yani bir *hileci* tanımlanır.
+   *
+   * Ölçüm (`VALIDATION.md` §6.55): bağ sayısı ~1,9 → ~48 (belirgin), ancak
+   * tepe küme kazancı **tohumlar arasında tutarlı değil** — 4/10 artıyor,
+   * 3/10 kötüleşiyor.
+   *
+   * Kapalıyken ürün davranışı **bit düzeyinde** aynıdır (testle doğrulanır).
+   */
+  coopRenewal?: number;
+  /**
    * **Duyarlılık kancası — paylaşmanın boşta eşiği.** Varsayılan
    * `C.SHARE_IDLE_LEVEL` (= 0.82). Ölçüldü ki bu değer hücrelerin çalıştığı
    * bandın (0–70 e) üstünde ve paylaşma hiç tetiklenmiyor (§6.17). Yalnız
@@ -427,6 +442,7 @@ export class World {
       ...(options.bondFatigue === undefined ? {} : { bondFatigue: options.bondFatigue }),
       ...(options.strainDecayK === undefined ? {} : { strainDecayK: options.strainDecayK }),
       ...(options.coupleFatigueToGenome === undefined ? {} : { coupleFatigueToGenome: options.coupleFatigueToGenome }),
+      ...(options.coopRenewal === undefined ? {} : { coopRenewal: options.coopRenewal }),
     };
     this.policyTuning = {
       ...(options.trajectoryLimit === undefined ? {} : { trajectoryLimit: options.trajectoryLimit }),

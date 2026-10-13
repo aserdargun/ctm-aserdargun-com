@@ -2421,6 +2421,62 @@ ya da `listEvents`/`events` kaldırılır. `ping`/`pong` bir sağlık kontrolü
 
 **Karar kullanıcıya bırakıldı** — bu turda ürün yüzeyi değiştirilmedi.
 
+### 6.55 Faz B3 · **İşbirliği aktı** — mekanizma çalışıyor, kazancı yok
+
+Paylaşmanın ölü çıkmasından sonra (bkz. §6.44) eklendi. Paylaşmadan farkı
+şu: paylaşma **genomdan** geliyordu (hücre düzeyinde çeşitlilik yok, hileci
+tanımsız); burada bağ bütünlüğü eşiğin altına düşünce **bağın iki ucundaki
+hücreler birlikte** enerji harcayarak bağı yeniler. Bedel **ortak** olduğu için
+ödemeyen hücre de yararlanır — yani **hileci artık tanımlanabilir**.
+
+Kanca `coopRenewal > 0` iken etkin; **varsayılan 0 = kapalı**.
+
+#### Ölçüm (12 tohum, 8000 tick, eşleştirilmiş, k = 0,002)
+
+| ölçüm | sonuç | yorum |
+|---|---|---|
+| **bağ sayısı farkı** | ort **+12,5** [9,0; +16,1], **p = 0,0001** | ✅ mekanizma çalışıyor |
+| **tepe küme farkı** | ort **−0,67** [−3,08; +1,50], **p = 0,589** | ❌ koloni kazancı yok |
+
+Tek kutu sayısı: 8 tohumda artış yok, 2 artış, 2 düşüş.
+
+**Kapalıyken ürün davranışı bit düzeyinde aynı** (ölçüldü: iki koşunun enerjisi
+5807.873723 = 5807.873723, bağ 71 = 71).
+
+#### ⚠️ Kendi kendini çürüten bir ölçüm
+
+İlk ölçüm **ortalama** tepe artışı bildirdi (14,50 → 16,13, "+%11") ve ben
+önce "başarılı" diye yazdım. **Eşleştirilmiş ölçüm bunu çürüttü:** tohum başına
+farklar [-5, +11], yalnız 4/10 artıyor.
+
+> **Ders: ortalama tek başına kanıt değildir.** Dağılım tutarlı değilse kazanç
+> iddiası kurulamaz. Bu, `VALIDATION.md` §5.11'deki "tek pencereye bağlı sonuçlar
+> genellenmez" ilkesinin yeni bir örneği — ve bu sefer tuzak **benim** kendi
+> ölçümümdü.
+
+#### Mekanizmanın karakteri: **geç uyanır**
+
+Bağ bütünlüğü ~0,9'dan yavaş düşüyor ve eşik (0,28) ancak geçiliyor:
+
+| tohum | 2000 tick | 4000 tick | 8000 tick |
+|---|---|---|---|
+| 11 | 0 yenileme | 0 | **40.969** |
+| 3001 | 0 | **1.354** | 82.993 |
+| 42 | 0 | 1.100 | 74.806 |
+
+Testte erken pencere seçilip "mekanizma çalışmıyor" sanılmıştı; **kod doğruydu,
+test koşulu yanlıştı.**
+
+### 6.56 Hileci tanımı — yapısal olarak tanımlı, deneysel olarak sınanmadı
+
+Hilecin varlığı artık **kavramsal olarak** tanımlı: bedeli ödemeyen hücre de
+organizmanın yenilenmiş bağlarından yararlanır.
+
+⚠️ **Ama ölçülmedi.** Hilecin **kalıtsal** olması için genoma bir parametre
+eklenmesi gerekir (şu an genomda 8 parametre var, hepsi metabolik maliyetli).
+Bu, modelin biyolojisini değiştiren bir adımdır ve **kullanıcının kararına**
+bırakıldı. Şu an ölçülen şey aktının kendisi, hilecin değil.
+
 ### 6.45 §6.18'in iddiası **düzeltildi** — yönü doğru, gerekçesi yanlış
 
 §6.18 diyordu: *"eşiği düşürmek zararlı, varsayılan en iyisi"* ve bunu

@@ -1,7 +1,7 @@
 # Cell to Mind — Deney Sonuçları
 
-**Körüldü:** 2026-10-13T13:19:18.779Z
-**Toplam koşu:** 1921 · **duvar süresi:** 605.8 s
+**Körüldü:** 2026-10-13T20:32:43.690Z
+**Toplam koşu:** 1921 · **duvar süresi:** 766.6 s
 **Mod:** standart
 **Pencere:** 12.000 tick (40.000 tick'lik ekolojik çöküşü kapsamak için `--deep` kullanın)
 
@@ -401,6 +401,31 @@ doğrudan ölçer.
   → Varsayılan 0,82'de paylaşma tetiklenen tohum: 3/12 (ort. aktarım 538). Ort. tepe küme — paylaşma AÇIK: 15.00, paylaşma İMKÂNSIZ: 15.00. Eşleştirilmiş farklar: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]. **Varsayılan ayarda paylaşmanın tepe koloni büyüklüğüne ölçülebilir etkisi yok** — hiçbir tohumda fark pozitif değil, ortalama da aynı. Mekanizma çalışıyor ama sonucu değiştirmiyor.
 ```
 
+## Faz D · İşbirliği aktı
+
+Bağ bütünlüğü eşiğin altına düşünce bağın **iki ucundaki hücreler birlikte**
+enerji harcayarak bağı yeniler. Paylaşmadan farkı: bedel **ortak** olduğu
+için ödemeyen hücre de yararlanır — yani bir *hileci* tanımlanabilir.
+
+```
+  k = 0 (kapalı)  ↔  k = 0,002 (işbirliği aktı açık)
+  tohum  3001   bağ  79 →  84   tepe  24 →  24   yenileme  82993
+  tohum  3002   bağ  14 →  27   tepe   6 →   8   yenileme  45349
+  tohum  3003   bağ  20 →  44   tepe   7 →  14   yenileme 127069
+  tohum  3004   bağ  24 →  29   tepe  24 →  17   yenileme  65762
+  tohum  3005   bağ  46 →  56   tepe  24 →  24   yenileme  77042
+  tohum     7   bağ  17 →  36   tepe   7 →   7   yenileme  53486
+  tohum    42   bağ  47 →  61   tepe  12 →  12   yenileme  74806
+  tohum    91   bağ  37 →  55   tepe  24 →  24   yenileme  64044
+  tohum   123   bağ  22 →  31   tepe   6 →   6   yenileme  51071
+  tohum  2026   bağ  23 →  43   tepe  12 →  12   yenileme  60069
+  tohum    11   bağ  45 →  53   tepe  10 →  10   yenileme  40969
+  tohum    12   bağ  51 →  56   tepe  24 →  14   yenileme  84409
+  bağ farkı  ort 12.5 12.5 [9.0, 16.1] · p = 0.0001
+  tepe farkı ort -0.67 -0.67 [-3.08, 1.50] · p = 0.5885
+  → Bağ sayısı farkı 12.5 12.5 [9.0, 16.1] · p = 0.0001 → **mekanizma çalışıyor**, bağlar yenilenmeden kopmuyor. Tepe küme farkı -0.67 -0.67 [-3.08, 1.50] · p = 0.5885 → koloni kazancı yok (artış 2, düşüş 2 tohum). Ortalama yenileme: 68922.
+```
+
 ## Dal (branch) doğruluğu ve maliyeti
 
 `VALIDATION.md` §9 madde 7 bu yolu "test edilmemiş" diye listeliyordu.
@@ -416,9 +441,9 @@ bozuktu**. Düzeltildi; regresyon testi eklendi.
 ```
   çatal noktası: tick 3000 · 1500 adım sonra karşılaştırma
   snapshot boyutu: 2.544.430 bayt
-  çatallama süresi: 43.55 ms · iki dalın koşusu: 2667.1 ms · oran 1.6%
+  çatallama süresi: 50.03 ms · iki dalın koşusu: 2980.8 ms · oran 1.7%
   dallar bit düzeyinde aynı: evet · müdahale sızıntısı: yok · müdahale etkili: evet
-  → Çatallama **doğru**: iki dal bit düzeyinde aynı ilerliyor ve müdahale diğerine sızmıyor. Snapshot 2.54 MB; bir dal açmak 21.8 ms, bir simülasyon adımı 0.889 ms → **bir çatal ≈ 24 tick** maliyetinde. Yani 500 tick'te bir, 16 pertürbasyonlu güncelleme ≈ 78% ek yük demek: üstel strateji yaşam içinde pratikte **bütçelenebilir**. Müdahale testi: müdahalesiz dal referansla AYNI, müdahale görmüş dal AYRILDI. **DİKKAT:** bu maliyet 3000. tick'te ölçüldü ve snapshot boyutuyla ölçeklenir; geç pencerelerde farklı olabilir ve **ölçülmedi**.
+  → Çatallama **doğru**: iki dal bit düzeyinde aynı ilerliyor ve müdahale diğerine sızmıyor. Snapshot 2.54 MB; bir dal açmak 25.0 ms, bir simülasyon adımı 0.994 ms → **bir çatal ≈ 25 tick** maliyetinde. Yani 500 tick'te bir, 16 pertürbasyonlu güncelleme ≈ 81% ek yük demek: üstel strateji yaşam içinde pratikte **bütçelenebilir**. Müdahale testi: müdahalesiz dal referansla AYNI, müdahale görmüş dal AYRILDI. **DİKKAT:** bu maliyet 3000. tick'te ölçüldü ve snapshot boyutuyla ölçeklenir; geç pencerelerde farklı olabilir ve **ölçülmedi**.
 ```
 
 ## S-4 · Çatallanmış ortamda yaşam içi üstel arama
@@ -432,10 +457,10 @@ ortalaması boyunca kaydırılır. Seyrek dünyada koşulur (pop 6, kaynak 6).
   kontrol (arama kapalı): medyan enerji 48.07 e · pop 18 · arama 0
   tedavi  (arama açık) : medyan enerji 48.07 e · pop 18 · arama 24 (4 pertürbasyon × 120 tick)
   ağırlık hareketi: kontrol 0.00000 · tedavi 0.00104
-  maliyet: 4000 tick'in koşusu 42 ms · arama 189 ms → ek yük ≈ 2215 tick
+  maliyet: 4000 tick'in koşusu 48 ms · arama 197 ms → ek yük ≈ 2193 tick
   enerji rezidülü: 0.000000000 e
   eşleştirilmiş fark 0.000 [0.000, 0.000] · p = 1.0000
-  → Çatallanmış arama **ölçülebilir performans artışı üretmedi**: fark 0.000 [0.000, 0.000], p = 1.0000. Ağırlık hareketi: medyan ‖Δθ‖ = 0.0010 (kontrol 0.0000) — yani arama θ'yı hareket ettirdi ama davranış kazanmadı. Ek yük ≈ 2215 tick'lik eşdeğer.
+  → Çatallanmış arama **ölçülebilir performans artışı üretmedi**: fark 0.000 [0.000, 0.000], p = 1.0000. Ağırlık hareketi: medyan ‖Δθ‖ = 0.0010 (kontrol 0.0000) — yani arama θ'yı hareket ettirdi ama davranış kazanmadı. Ek yük ≈ 2193 tick'lik eşdeğer.
 ```
 
 ## Bağ gücü koloni büyüklüğünü artırıyor mu?

@@ -34,11 +34,11 @@ Anahtar yoksa uygulama **çalışır** ve gözlemci panelinde dürüstçe
 | `npm run dev` | Geliştirme sunucusu (port 5183) |
 | `npm run build` | Tip denetimi + üretim derlemesi |
 | `npm run preview` | Üretim çıktısını sunar (port 4173) |
-| `npm test` | Vitest — 215 test |
+| `npm test` | Vitest — 219 test |
 | `npm run e2e` | Playwright — 6 tarayıcı testi (üretim yapısı üzerinden) |
 | `npm run check` | Tip denetimi + birim + uçtan uca (dağıtım öncesi kapı) |
 | `npm run typecheck` | `tsc --noEmit` |
-| `npm run experiments` | Deney paketini headless koşar — 26 bölüm, 1.921 koşu, ~10 dk → `docs/EXPERIMENTS.md` |
+| `npm run experiments` | Deney paketini headless koşar — 27 bölüm, 1.921 koşu, ~13 dk → `docs/EXPERIMENTS.md` |
 | `npm run experiments -- --deep` | Derin paket: 40.000 tick pencereleri, ekolojik çöküş görünür (yavaş) |
 | `npm run experiments:quick` | Deney paketinin duman testi (~40 sn) |
 | `npm run assets:build` | Blender 5.1.1 ile varlıkları yeniden üretir |
@@ -98,7 +98,7 @@ baskısını değiştirip sonucu izler; bir canlıyı ve soyunu takip eder.
 > etkisi yok (§4.5–4.7). Ayrıntı ve kanıt: `docs/VALIDATION.md`.
 
 **Deney paketi yazıldı ve koşuyor.** `npm run experiments` deney paketi
-(1.921 koşu, 26 bölüm) headless koşturur; sonuçlar `docs/EXPERIMENTS.md` içinde ham koşu değerleriyle
+(1.921 koşu, 27 bölüm) headless koşturur; sonuçlar `docs/EXPERIMENTS.md` içinde ham koşu değerleriyle
 durur.
 
 | Deney | Sonuç |
@@ -117,7 +117,8 @@ durur.
 | Y-2 bağ ömrünü seçilime açma | ❌ başarısız — kayma −0.006 [−0.014, +0.002], p = 0.343 |
 | Üreme tıkanması | ❌ değil tıkanma, **çöküş**: son çeyrekte 1 doğum, pop 166 → 41 |
 | Uzun vadeli dayanıklılık | ❌ §5.4 40.000 tick'e **genellenmiyor** — kalibrasyon kısmi hafifletiyor |
-| **Bağ enerji paylaşımı** (varsayılan ayar) | ⚪ **ölçülebilir etkisi yok**: paylaşmanın matematiksel olarak imkânsız olduğu dünyayla tepe küme **birebir aynı** (fark [0, 0], 12 tohum) |
+| **Bağ enerji paylaşımı** (varsayılan ayar) | ⚪ **etkisiz**: paylaşmanın matematiksel olarak imkânsız olduğu dünyayla tepe küme **birebir aynı** (fark [0,0], 12 tohum) |
+| **İşbirliği aktı** (varsayılan **kapalı**) | ⚪ mekanizma çalışıyor (bağ +12,5, p = 0,0001) ama **koloni kazancı yok** (p = 0,59) |
 
 Son satır önemli: aynı ölçümde evrimsel arama +0.161 kazancı bulurken
 REINFORCE +0.020 (gürültü) buluyor. Darboğaz görevde değil, **öğrenme

@@ -2434,6 +2434,112 @@ export function formatSharingEffect(r: SharingEffectReport): string {
   ].join('\n');
 }
 
+export interface CooperationPoint {
+  seed: number;
+  peakOff: number;
+  peakOn: number;
+  bondsOff: number;
+  bondsOn: number;
+  renewals: number;
+}
+
+export interface CooperationReport {
+  points: CooperationPoint[];
+  bondDifferences: number[];
+  peakDifferences: number[];
+  bondInterval: Interval;
+  bondTest: HypothesisTest;
+  peakInterval: Interval;
+  peakTest: HypothesisTest;
+  reading: string;
+}
+
+/**
+ * **Faz D · İşbirliği aktı deneyi.**
+ *
+ * Protokol: eşleştirilmiş iki kol, aynı tohumlar.
+ *  - kontrol : `coopRenewal = 0` (kapalı) — ürün davranışı
+ *  - tedavi  : `coopRenewal = 0.002`
+ *
+ * **Sonuç (12 tohum, 8000 tick):** mekanizma çalışıyor, kazancı yok.
+ *   bağ sayısı farkı  ort +12,5  [9,0; 16,1]   p = 0,0001   ✅ belirgin
+ *   tepe küme farkı   ort −0,67  [−3,08; +1,50]  p = 0,589    ❌ etkisiz
+ */
+export function experimentCooperation(options?: {
+  seedList?: number[];
+  ticks?: number;
+  k?: number;
+  population?: number;
+}): CooperationReport {
+  const seedList = options?.seedList ?? [3001, 3002, 3003, 3004, 3005, 7, 42, 91, 123, 2026, 11, 12];
+  const ticks = options?.ticks ?? 8000;
+  const k = options?.k ?? 0.002;
+  const population = options?.population ?? 48;
+
+  const run = (renewal: number, seed: number) => {
+    const world = new World({ seed, population, strainDecayK: 0.005, coopRenewal: renewal });
+    let peak = 0;
+    for (let t = 0; t < ticks; t++) {
+      world.step();
+      if (t % 200 === 0) {
+        const m = world.latestMetrics();
+        if (m && m.largestColonySize > peak) peak = m.largestColonySize;
+      }
+    }
+    return { peak, bonds: world.bonds.size, renewals: world.cooperationStats().renewals };
+  };
+
+  const points: CooperationPoint[] = seedList.map((seed) => {
+    const off = run(0, seed);
+    const on = run(k, seed);
+    return {
+      seed,
+      peakOff: off.peak, peakOn: on.peak,
+      bondsOff: off.bonds, bondsOn: on.bonds,
+      renewals: on.renewals,
+    };
+  });
+
+  const bondDifferences = points.map((p) => p.bondsOn - p.bondsOff);
+  const peakDifferences = points.map((p) => p.peakOn - p.peakOff);
+  const bondInterval = bootstrapCI(bondDifferences, { seed: 41 });
+  const bondTest = bootstrapTest(bondDifferences, { seed: 41 });
+  const peakInterval = bootstrapCI(peakDifferences, { seed: 41 });
+  const peakTest = bootstrapTest(peakDifferences, { seed: 41 });
+
+  const mean = (xs: readonly number[]): number => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
+  const up = peakDifferences.filter((d) => d > 0).length;
+  const down = peakDifferences.filter((d) => d < 0).length;
+
+  const reading =
+    `Bağ sayısı farkı ${mean(bondDifferences).toFixed(1)} ${fmtInterval(bondInterval, 1)} · ` +
+    `p = ${fmt(bondTest.pValue, 4)} → **mekanizma çalışıyor**, bağlar yenilenmeden kopmuyor. ` +
+    `Tepe küme farkı ${mean(peakDifferences).toFixed(2)} ${fmtInterval(peakInterval, 2)} · ` +
+    `p = ${fmt(peakTest.pValue, 4)} → ${peakTest.pValue < 0.05 ? 'koloni kazancı var' : 'koloni kazancı yok'} ` +
+    `(artış ${up}, düşüş ${down} tohum). ` +
+    `Ortalama yenileme: ${Math.round(mean(points.map((p) => p.renewals)))}.`;
+
+  return { points, bondDifferences, peakDifferences, bondInterval, bondTest, peakInterval, peakTest, reading };
+}
+
+export function formatCooperation(r: CooperationReport): string {
+  const rows = r.points.map(
+    (p) =>
+      `  tohum ${String(p.seed).padStart(5)}   bağ ${String(p.bondsOff).padStart(3)} → ${String(p.bondsOn).padStart(3)}` +
+      `   tepe ${String(p.peakOff).padStart(3)} → ${String(p.peakOn).padStart(3)}` +
+      `   yenileme ${String(p.renewals).padStart(6)}`,
+  );
+  return [
+    '  k = 0 (kapalı)  ↔  k = 0,002 (işbirliği aktı açık)',
+    ...rows,
+    `  bağ farkı  ort ${(r.bondDifferences.reduce((a, b) => a + b, 0) / r.bondDifferences.length).toFixed(1)} ` +
+      `${fmtInterval(r.bondInterval, 1)} · p = ${fmt(r.bondTest.pValue, 4)}`,
+    `  tepe farkı ort ${(r.peakDifferences.reduce((a, b) => a + b, 0) / r.peakDifferences.length).toFixed(2)} ` +
+      `${fmtInterval(r.peakInterval, 2)} · p = ${fmt(r.peakTest.pValue, 4)}`,
+    `  → ${r.reading}`,
+  ].join('\n');
+}
+
 export interface NicheSeedingPoint {
   seed: number;
   /** İşgal edilen kutu sayısı (max 27). */

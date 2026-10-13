@@ -51,6 +51,8 @@ import {
   formatNicheSeeding,
   experimentSharingEffect,
   formatSharingEffect,
+  experimentCooperation,
+  formatCooperation,
 } from '../src/sim/experiments/ecology.ts';
 import {
   calibrateArena,
@@ -293,6 +295,10 @@ function main(): void {
   process.stdout.write(`\n26/26 Paylaşma mekaniğinin ölçülebilir etkisi…\n`);
   const sharingEffect = experimentSharingEffect(args.quick ? { ticks: 4000 } : {});
   process.stdout.write(`${formatSharingEffect(sharingEffect)}\n`);
+
+  process.stdout.write(`\n27/27 Faz D · işbirliği aktı (hücre bağını enerjiyle yeniler)…\n`);
+  const cooperation = experimentCooperation(args.quick ? { ticks: 4000 } : {});
+  process.stdout.write(`${formatCooperation(cooperation)}\n`);
 
   process.stdout.write(`\n22/22 dal (branch) doğruluğu ve maliyeti…\n`);
   const branch = args.quick
@@ -596,6 +602,16 @@ function main(): void {
       '',
       '```',
       formatSharingEffect(sharingEffect),
+      '```',
+      '',
+      '## Faz D · İşbirliği aktı',
+      '',
+      'Bağ bütünlüğü eşiğin altına düşünce bağın **iki ucundaki hücreler birlikte**',
+      'enerji harcayarak bağı yeniler. Paylaşmadan farkı: bedel **ortak** olduğu',
+      'için ödemeyen hücre de yararlanır — yani bir *hileci* tanımlanabilir.',
+      '',
+      '```',
+      formatCooperation(cooperation),
       '```',
       '',
       '## Dal (branch) doğruluğu ve maliyeti',

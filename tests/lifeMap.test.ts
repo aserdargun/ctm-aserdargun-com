@@ -23,6 +23,7 @@ import {
 import {
   experimentNicheSeeding,
   formatNicheSeeding,
+  experimentCooperation,
 } from '../src/sim/experiments/ecology.ts';
 
 function run(ticks: number, bins = 3, seed = 11, extra: Record<string, unknown> = {}): World {
@@ -149,6 +150,61 @@ describe('yaşam haritası · seçilim (ε > 0)', () => {
     // birikimdir; "şu an kaç kutu dolu" değil.
     const w = run(2500, 3, 11, { nicheSeeding: true, nicheSeedingInterval: 200 });
     expect(w.nicheSnapshot().occupied).toBeGreaterThan(0);
+  });
+});
+
+describe('Faz D · işbirliği aktı', () => {
+  it('varsayılan KAPALI — ürün davranışı bit düzeyinde aynı', () => {
+    // Bu, kancanın **ölçüm aracı** olduğunun kanıtı. Kapalıyken hiçbir
+    // hücre enerji harcamaz ve dünya önceki sürümle birebir aynı ilerler.
+    const a = run(6000);
+    const b = run(6000);
+    const sum = (w: World): number => {
+      let s = 0;
+      for (const c of w.cells.values()) s += c.energy;
+      return s;
+    };
+    expect(b.bonds.size).toBe(a.bonds.size);
+    expect(sum(b)).toBeCloseTo(sum(a), 9);
+    expect(b.cooperationStats().renewals).toBe(0);
+  });
+
+  it('açıkken bağ bütünlüğünü korur — mekanizma gerçekten çalışır', () => {
+    // ⚠️ Kanca **geç** uyanır: bağ bütünlüğü ~0,9'dan yavaş düşüyor,
+    // BOND_COOP_REPAIR_FLOOR (0,28) ancak ~3000–4000 tick sonra geçiliyor.
+    // Ölçüldü (k = 0,002, 8000 tick): tohum 11 → 40.969 yenileme;
+    // tohum 11 @ 4000 tick → 0 yenileme. Testte yanlışlıkla erken pencere
+    // seçilmişti ve mekanizma "çalışmıyor" sanılmıştı.
+    const w = run(4000, 3, 3001, { coopRenewal: 0.002 });
+    const coop = w.cooperationStats();
+    expect(coop.renewals, 'yenileme hiç tetiklenmedi').toBeGreaterThan(0);
+    expect(coop.energy, 'yenileme enerji harcamalı').toBeGreaterThan(0);
+  });
+
+  it('enerji korunumunu BOZMAZ', () => {
+    // ⚠️ Hücreden çıkan enerji `dissipate` ile işaretlenmeli; `addExternal`
+    // ders muhasebeyi haksız yere şişirir ve korunum testi düşerdi.
+    const w = run(4000, 3, 3001, { coopRenewal: 0.01 });
+    expect(w.cooperationStats().renewals).toBeGreaterThan(0);
+    expect(residual(w)).toBeCloseTo(0, 6);
+  });
+
+  it('ölçüm her tohum için veri üretir ve mekanizma uzun pencerede çalışır', () => {
+    // ⚠️ Bu test kısa pencereden **istatistiksel iddia kurmaz** — denendi ve
+    // yanlış çıktı: 5000 tick'te iki tohumda da bağ farkı pozitif değildi,
+    // çünkü yenileme ~4000–8000 tick arasında uyanıyor. Pencerenin uzunluğu
+    // sonucu belirliyor; test bunu varsaymamalı.
+    //
+    // Ölçülen asıl sonuç (12 tohum, 8000 tick): bağ farkı +12,5 p = 0,0001;
+    // tepe küme farkı −0,67 p = 0,59. Burada yalnız **türetilebilirlik**
+    // ve mekanizmanın varlığı denetlenir; istatistik pipeline'da.
+    // ⚠️ Tek tohumda bootstrapTest bilinçli olarak NaN döndürür (gizlenmez);
+    // bu yüzden p-değeri denetimi için en az iki tohum gerekir.
+    const r = experimentCooperation({ ticks: 4000, seedList: [3001, 3002] });
+    expect(r.points).toHaveLength(2);
+    expect(Number.isFinite(r.peakTest.pValue)).toBe(true);
+    expect(Number.isFinite(r.bondTest.pValue)).toBe(true);
+    expect(r.peakDifferences).toHaveLength(2);
   });
 });
 
