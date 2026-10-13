@@ -2189,6 +2189,12 @@ yazılan şeyin ölçüldüğüğünden emin olmadan onu kanıt saymamak.
 0,82 ile **aynı tohumlarda, aynı pencerede** karşılaştırıldı. Tek değişen
 paylaşma eşiği.
 
+> ⚠️ **Bu ölçüm birim testi değildir** ve ilk denemede yanlış yere kondu.
+> 12 tohum × 2 kol × 8000 tick = 24 dünya koşusu vitest'in 120 sn test sınırını
+> aşıyor ve CI'da `Error: Test timed out in 120000ms` olarak düştü. Doğru yer
+> pipeline'dır: `experimentSharingEffect()` (`src/sim/experiments/ecology.ts`),
+> `npm run experiments` içinde **26. bölüm**. Aşağıdaki sayılar oradan gelir.
+
 12 tohum, 8000 tick, `strainK 0,005`:
 
 | eşik | tetiklenen | ort. aktarım | ort. **tepe** | medyan | min–max |

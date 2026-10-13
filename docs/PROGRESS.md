@@ -360,6 +360,10 @@ Eklenecek gerçek işbirliği aktı "çalışan bir şeyi değiştirmek" değil,
 **ölü bir mekanizmayı etkinleştirmek** olur — yani riski düşük, kazancı da
 belirsiz bir başlangıç.
 
+> Bu ölçüm ilk önce birim testine kondu ve **CI'da zaman aşımına** düştü
+> (24 dünya koşusu > 120 sn). Doğru yer deney motoruydu: `experimentSharingEffect()`,
+> `npm run experiments` içinde 26. bölüm.
+
 ### 2.3 Gözlemci: anahtarsız yol doğrulandı, canlı çağrı ölçülmedi
 
 (`VALIDATION.md` §6.32)

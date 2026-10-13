@@ -2305,6 +2305,135 @@ export function formatModes(r: ModesReport): string {
 
 // --------------------------------------------------- niş kapsama (yaşam haritası çekirdeği)
 
+export interface SharingEffectPoint {
+  seed: number;
+  /** Varsayılan ayarda (0,82) aktarım sayısı. */
+  transfers: number;
+  /** 0,82'de ölçülen tepe koloni büyüklüğü. */
+  peakDefault: number;
+  /** Paylaşmanın matematiksel olarak imkânsız olduğu kolda tepe. */
+  peakImpossible: number;
+  popDefault: number;
+  popImpossible: number;
+}
+
+export interface SharingEffectReport {
+  points: SharingEffectPoint[];
+  /** Eşleştirilmiş tepe farkları (varsayılan − imkânsız). */
+  peakDifferences: number[];
+  /** Paylaşmanın tetiklendiği tohum sayısı. */
+  firing: number;
+  seeds: number;
+  meanPeakDefault: number;
+  meanPeakImpossible: number;
+  /** Tüm farkların en büyüğü — pozitifse paylaşma tepeyi büyütüyor demektir. */
+  maxPeakDifference: number;
+  reading: string;
+}
+
+/**
+ * **Paylaşma mekaniğinin ölçülebilir etkisi.**
+ *
+ * Protokol: iki kol, **aynı tohumlar** (eşleştirilmiş).
+ *  - tedavi  : boşta eşiği 0,82 (varsayılan)
+ *  - kontrol : boşta eşiği **1,50** — hiçbir hücre kapasitesinin üstünde
+ *              olamayacağı için paylaşma **matematiksel olarak imkânsız**
+ *
+ * Yani kontrol kolu "paylaşma kapalı bir dünya"dır. İki kolun tepe koloni
+ * büyüklüğü farkı, paylaşmanın koloni yapısına katkısını doğrudan ölçer.
+ *
+ * Bu birim testi **değildir** — 24 dünya koşusudur ve vitest'in süre sınırını
+ * aşar. Projenin kuralı gereği ölçümler pipeline'da koşar.
+ */
+export function experimentSharingEffect(options?: {
+  /** Tohum listesini geçersiz kılır (varsayılan 12 tohumluk sabit küme). */
+  seedList?: number[];
+  seeds?: number;
+  ticks?: number;
+  seedBase?: number;
+  population?: number;
+}): SharingEffectReport {
+  // Tohum kümesi deneyin kendisinde sabittir.
+  const seedList = options?.seedList ?? [3001, 3002, 3003, 3004, 3005, 7, 42, 91, 123, 2026, 11, 12];
+  const ticks = options?.ticks ?? 8000;
+  const population = options?.population ?? 48;
+
+  const run = (idle: number, seed: number): { peak: number; pop: number; transfers: number } => {
+    const world = new World({ seed, population, strainDecayK: 0.005, shareIdleLevel: idle });
+    let peak = 0;
+    for (let t = 0; t < ticks; t++) {
+      world.step();
+      if (t % 200 === 0) {
+        const m = world.latestMetrics();
+        if (m && m.largestColonySize > peak) peak = m.largestColonySize;
+      }
+    }
+    return { peak, pop: world.population(), transfers: world.sharingStats().transfers };
+  };
+
+  const points: SharingEffectPoint[] = [];
+  for (const seed of seedList) {
+    const d = run(0.82, seed);
+    const b = run(1.5, seed);
+    points.push({
+      seed,
+      transfers: d.transfers,
+      peakDefault: d.peak,
+      peakImpossible: b.peak,
+      popDefault: d.pop,
+      popImpossible: b.pop,
+    });
+  }
+
+  const peakDifferences = points.map((p) => p.peakDefault - p.peakImpossible);
+  const mean = (xs: readonly number[]): number => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
+  const firing = points.filter((p) => p.transfers > 0).length;
+  const meanPeakDefault = mean(points.map((p) => p.peakDefault));
+  const meanPeakImpossible = mean(points.map((p) => p.peakImpossible));
+  const maxPeakDifference = peakDifferences.length ? Math.max(...peakDifferences) : 0;
+
+  const reading =
+    `Varsayılan 0,82'de paylaşma tetiklenen tohum: ${firing}/${points.length} ` +
+    `(ort. aktarım ${Math.round(mean(points.map((p) => p.transfers)))}). ` +
+    `Ort. tepe küme — paylaşma AÇIK: ${meanPeakDefault.toFixed(2)}, ` +
+    `paylaşma İMKÂNSIZ: ${meanPeakImpossible.toFixed(2)}. ` +
+    `Eşleştirilmiş farklar: [${peakDifferences.join(', ')}]. ` +
+    (maxPeakDifference > 0
+      ? `**Paylaşma tepe koloni büyüklüğünü artırıyor** (en büyük fark ${maxPeakDifference}).`
+      : `**Varsayılan ayarda paylaşmanın tepe koloni büyüklüğüne ölçülebilir etkisi yok** — ` +
+        `hiçbir tohumda fark pozitif değil, ortalama da aynı. Mekanizma çalışıyor ` +
+        `ama sonucu değiştirmiyor.`);
+
+  return {
+    points,
+    peakDifferences,
+    firing,
+    seeds: points.length,
+    meanPeakDefault,
+    meanPeakImpossible,
+    maxPeakDifference,
+    reading,
+  };
+}
+
+export function formatSharingEffect(r: SharingEffectReport): string {
+  const rows = r.points.map(
+    (p) =>
+      `  tohum ${String(p.seed).padStart(5)}   aktarım ${String(p.transfers).padStart(6)}   ` +
+      `tepe ${String(p.peakDefault).padStart(3)} / ${String(p.peakImpossible).padStart(3)}   ` +
+      `fark ${String(p.peakDefault - p.peakImpossible).padStart(4)}   ` +
+      `pop ${String(p.popDefault).padStart(4)} / ${String(p.popImpossible).padStart(4)}`,
+  );
+  return [
+    '  eşik 0,82 (varsayılan)  ↔  1,50 (paylaşma matematiksel olarak imkânsız)',
+    ...rows,
+    `  tepe farkı aralığı: [${Math.min(...r.peakDifferences)}, ${r.maxPeakDifference}]   ` +
+      `ort. ${r.meanPeakDefault.toFixed(2)} / ${r.meanPeakImpossible.toFixed(2)}   ` +
+      `tetiklenen ${r.firing}/${r.seeds}`,
+    `  → ${r.reading}`,
+  ].join('\n');
+}
+
 export interface NicheSeedingPoint {
   seed: number;
   /** İşgal edilen kutu sayısı (max 27). */

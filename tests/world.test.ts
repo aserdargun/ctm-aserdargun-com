@@ -386,43 +386,15 @@ describe('Paylaşma mekaniği', () => {
     expect(firing).toBeLessThanOrEqual(10);
   });
 
-  it('varsayılan ayarda paylaşma TEPE koloni büyüklüğünü değiştirmiyor', () => {
-    // §6.44'te ölçülen en sert bulgu. Eşik, hiçbir hücrenin fiziksel olarak
-    // aşamayacağı 1,50'ye çekilir → paylaşma **matematiksel olarak imkânsız**
-    // olur. Varsayılan 0,82 ile karşılaştırılır.
-    //
-    // Ölçüm (12 tohum, 8000 tick, eşleştirilmiş):
-    //   paylaşma tetiklenen tohum 3/12 (2262, 2272, 1918 aktarım)
-    //   TEPE koloni farkı: [0, 0] — hiçbir tohumda fark YOK
-    //   son popülasyon farkı: yalnız tetiklenen 3 tohumda (+20, −1, +2)
-    //
-    // Yani varsayılan ayarda paylaşma, **koloni yapısını ölçülebilir biçimde
-    // değiştirmiyor.** Mekanizma çalışıyor (aktarım sayısı artıyor) ama sonucu
-    // değiştirmiyor. Bu, ürünün "hücreler enerji paylaşır" anlatısı için
-    // dürüst bir sınırdır.
-    const peakOf = (idle: number, seed: number): number => {
-      const w = new World({ seed, population: 48, strainDecayK: 0.005, shareIdleLevel: idle });
-      let peak = 0;
-      for (let t = 0; t < 8000; t++) {
-        w.step();
-        if (t % 200 === 0) {
-          const m = w.latestMetrics();
-          if (m && m.largestColonySize > peak) peak = m.largestColonySize;
-        }
-      }
-      return peak;
-    };
-    const seeds = [3001, 3002, 3003, 3004, 3005, 7, 42, 91, 123, 2026, 11, 12];
-    const diffs = seeds.map((s) => peakOf(0.82, s) - peakOf(1.5, s));
-    // Ölçüm sıfır çıktı: paylaşma tepe koloni büyüklüğünü **artırmıyor**.
-    //
-    // ⚠️ İddia "tam olarak 0" değil, "sıfırdan büyük değil" olarak yazıldı.
-    // Ölçümde her tohum tam 0'ydı; ama `max === 0` demek, başka bir platformda
-    // −1 çıkması hâlinde testi kırmızı yapardı — ve ölçülen şey **paylaşmanın
-    // faydası** olduğuna göre, küçük bir negatif fark bu iddiayı çürütmez.
-    // Ölçülen, net etkisizliktir; iddia da öyle kurulur.
-    expect(Math.max(...diffs)).toBeLessThanOrEqual(0);
-  });
+  // ⚠️ Paylaşmanın tepe koloni büyüklüğüne etkisi **burada ölçülmez**.
+  //
+  // Bu ölçüm 12 tohum × 2 kol × 8000 tick = 24 dünya koşusudur ve vitest'in
+  // 120 sn test sınırını aşıyordu (CI'da "Test timed out in 120000ms").
+  // Dahası: **bu bir ölçüm, birim testi değil** — projenin kuralı
+  // "rapor sayıları pipeline'dan gelmeli".
+  //
+  // Doğru yeri: `experimentSharingEffect()` (src/sim/experiments/ecology.ts),
+  // `npm run experiments` içinde 26. bölüm olarak koşuyor.
 
   it('eşiği düşürmek kolonileri çökertiyor — varsayılan en iyisi', () => {
     // VALIDATION §6.18: 0,82'de zirve küme 24 ve son 4+ yapı 4,67;

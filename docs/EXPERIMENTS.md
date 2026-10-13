@@ -1,7 +1,7 @@
 # Cell to Mind — Deney Sonuçları
 
-**Körüldü:** 2026-10-12T15:10:24.172Z
-**Toplam koşu:** 1921 · **duvar süresi:** 571.9 s
+**Körüldü:** 2026-10-13T13:19:18.779Z
+**Toplam koşu:** 1921 · **duvar süresi:** 605.8 s
 **Mod:** standart
 **Pencere:** 12.000 tick (40.000 tick'lik ekolojik çöküşü kapsamak için `--deep` kullanın)
 
@@ -376,6 +376,31 @@ enjekte et. Bu, arşivin seçilime katılmasıdır (ε > 0).
   → Dolu kutu: kontrol 10.50 → tedavi 10.50 (+/27). Yoğunlaşma: %50 → %51. Enjeksiyon: kolo başına 205.0 organizma. Enerji rezidülü: kontrol |7.0e-8| · tedavi |8.0e-8| e. **Arşiv seçilime katılınca doluluk artmadı:** MAP-Elites kuralı bu modelde işe yaramadı. Nedeni yapısal: (1) **boyut kalıtsal değil** — enjekte edilen her organizma tek hücreyle doğar, dolayısıyla boyut ekseninde seçilim hiçbir şey koruyamaz; (2) seçilim **anlık boşluğa** enjekte eder, elit nereden gelirse gelsin gireceği yer o an boş olduğu için hedef kutu garanti değildir.
 ```
 
+## Paylaşma mekaniğinin ölçülebilir etkisi
+
+Kontrol kolu boşta eşiği **1,50**'ye çekilir: hiçbir hücre kapasitesinin
+üstünde olamayacağı için paylaşma **matematiksel olarak imkânsız** olur.
+İki kol aynı tohumlarda koşar; fark, paylaşmanın koloni yapısına katkısını
+doğrudan ölçer.
+
+```
+  eşik 0,82 (varsayılan)  ↔  1,50 (paylaşma matematiksel olarak imkânsız)
+  tohum  3001   aktarım   2262   tepe  24 /  24   fark    0   pop  184 /  164
+  tohum  3002   aktarım      0   tepe   6 /   6   fark    0   pop  178 /  178
+  tohum  3003   aktarım      0   tepe   7 /   7   fark    0   pop  165 /  165
+  tohum  3004   aktarım      0   tepe  24 /  24   fark    0   pop  163 /  163
+  tohum  3005   aktarım   2272   tepe  24 /  24   fark    0   pop  160 /  161
+  tohum     7   aktarım      0   tepe   7 /   7   fark    0   pop  173 /  173
+  tohum    42   aktarım      0   tepe  12 /  12   fark    0   pop  174 /  174
+  tohum    91   aktarım   1918   tepe  24 /  24   fark    0   pop  170 /  168
+  tohum   123   aktarım      0   tepe   6 /   6   fark    0   pop  170 /  170
+  tohum  2026   aktarım      0   tepe  12 /  12   fark    0   pop  162 /  162
+  tohum    11   aktarım      0   tepe  10 /  10   fark    0   pop  166 /  166
+  tohum    12   aktarım      0   tepe  24 /  24   fark    0   pop  156 /  156
+  tepe farkı aralığı: [0, 0]   ort. 15.00 / 15.00   tetiklenen 3/12
+  → Varsayılan 0,82'de paylaşma tetiklenen tohum: 3/12 (ort. aktarım 538). Ort. tepe küme — paylaşma AÇIK: 15.00, paylaşma İMKÂNSIZ: 15.00. Eşleştirilmiş farklar: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]. **Varsayılan ayarda paylaşmanın tepe koloni büyüklüğüne ölçülebilir etkisi yok** — hiçbir tohumda fark pozitif değil, ortalama da aynı. Mekanizma çalışıyor ama sonucu değiştirmiyor.
+```
+
 ## Dal (branch) doğruluğu ve maliyeti
 
 `VALIDATION.md` §9 madde 7 bu yolu "test edilmemiş" diye listeliyordu.
@@ -391,9 +416,9 @@ bozuktu**. Düzeltildi; regresyon testi eklendi.
 ```
   çatal noktası: tick 3000 · 1500 adım sonra karşılaştırma
   snapshot boyutu: 2.544.430 bayt
-  çatallama süresi: 43.95 ms · iki dalın koşusu: 3021.0 ms · oran 1.5%
+  çatallama süresi: 43.55 ms · iki dalın koşusu: 2667.1 ms · oran 1.6%
   dallar bit düzeyinde aynı: evet · müdahale sızıntısı: yok · müdahale etkili: evet
-  → Çatallama **doğru**: iki dal bit düzeyinde aynı ilerliyor ve müdahale diğerine sızmıyor. Snapshot 2.54 MB; bir dal açmak 22.0 ms, bir simülasyon adımı 1.007 ms → **bir çatal ≈ 22 tick** maliyetinde. Yani 500 tick'te bir, 16 pertürbasyonlu güncelleme ≈ 70% ek yük demek: üstel strateji yaşam içinde pratikte **bütçelenebilir**. Müdahale testi: müdahalesiz dal referansla AYNI, müdahale görmüş dal AYRILDI. **DİKKAT:** bu maliyet 3000. tick'te ölçüldü ve snapshot boyutuyla ölçeklenir; geç pencerelerde farklı olabilir ve **ölçülmedi**.
+  → Çatallama **doğru**: iki dal bit düzeyinde aynı ilerliyor ve müdahale diğerine sızmıyor. Snapshot 2.54 MB; bir dal açmak 21.8 ms, bir simülasyon adımı 0.889 ms → **bir çatal ≈ 24 tick** maliyetinde. Yani 500 tick'te bir, 16 pertürbasyonlu güncelleme ≈ 78% ek yük demek: üstel strateji yaşam içinde pratikte **bütçelenebilir**. Müdahale testi: müdahalesiz dal referansla AYNI, müdahale görmüş dal AYRILDI. **DİKKAT:** bu maliyet 3000. tick'te ölçüldü ve snapshot boyutuyla ölçeklenir; geç pencerelerde farklı olabilir ve **ölçülmedi**.
 ```
 
 ## S-4 · Çatallanmış ortamda yaşam içi üstel arama
@@ -407,10 +432,10 @@ ortalaması boyunca kaydırılır. Seyrek dünyada koşulur (pop 6, kaynak 6).
   kontrol (arama kapalı): medyan enerji 48.07 e · pop 18 · arama 0
   tedavi  (arama açık) : medyan enerji 48.07 e · pop 18 · arama 24 (4 pertürbasyon × 120 tick)
   ağırlık hareketi: kontrol 0.00000 · tedavi 0.00104
-  maliyet: 4000 tick'in koşusu 46 ms · arama 209 ms → ek yük ≈ 2231 tick
+  maliyet: 4000 tick'in koşusu 42 ms · arama 189 ms → ek yük ≈ 2215 tick
   enerji rezidülü: 0.000000000 e
   eşleştirilmiş fark 0.000 [0.000, 0.000] · p = 1.0000
-  → Çatallanmış arama **ölçülebilir performans artışı üretmedi**: fark 0.000 [0.000, 0.000], p = 1.0000. Ağırlık hareketi: medyan ‖Δθ‖ = 0.0010 (kontrol 0.0000) — yani arama θ'yı hareket ettirdi ama davranış kazanmadı. Ek yük ≈ 2231 tick'lik eşdeğer.
+  → Çatallanmış arama **ölçülebilir performans artışı üretmedi**: fark 0.000 [0.000, 0.000], p = 1.0000. Ağırlık hareketi: medyan ‖Δθ‖ = 0.0010 (kontrol 0.0000) — yani arama θ'yı hareket ettirdi ama davranış kazanmadı. Ek yük ≈ 2215 tick'lik eşdeğer.
 ```
 
 ## Bağ gücü koloni büyüklüğünü artırıyor mu?

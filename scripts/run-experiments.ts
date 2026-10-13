@@ -49,6 +49,8 @@ import {
   formatNiche,
   experimentNicheSeeding,
   formatNicheSeeding,
+  experimentSharingEffect,
+  formatSharingEffect,
 } from '../src/sim/experiments/ecology.ts';
 import {
   calibrateArena,
@@ -287,6 +289,10 @@ function main(): void {
     ticks: args.quick ? 6000 : 12_000,
   });
   process.stdout.write(`${formatNicheSeeding(nicheSeeding)}\n`);
+
+  process.stdout.write(`\n26/26 Paylaşma mekaniğinin ölçülebilir etkisi…\n`);
+  const sharingEffect = experimentSharingEffect(args.quick ? { ticks: 4000 } : {});
+  process.stdout.write(`${formatSharingEffect(sharingEffect)}\n`);
 
   process.stdout.write(`\n22/22 dal (branch) doğruluğu ve maliyeti…\n`);
   const branch = args.quick
@@ -579,6 +585,17 @@ function main(): void {
       '',
       '```',
       formatNicheSeeding(nicheSeeding),
+      '```',
+      '',
+      '## Paylaşma mekaniğinin ölçülebilir etkisi',
+      '',
+      'Kontrol kolu boşta eşiği **1,50**\'ye çekilir: hiçbir hücre kapasitesinin',
+      'üstünde olamayacağı için paylaşma **matematiksel olarak imkânsız** olur.',
+      'İki kol aynı tohumlarda koşar; fark, paylaşmanın koloni yapısına katkısını',
+      'doğrudan ölçer.',
+      '',
+      '```',
+      formatSharingEffect(sharingEffect),
       '```',
       '',
       '## Dal (branch) doğruluğu ve maliyeti',
