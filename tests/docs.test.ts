@@ -18,7 +18,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const ROOT = resolve(__dirname, '..');
@@ -101,6 +101,58 @@ describe('belge tutarlılığı · üretilmiş rapor', () => {
     ]) {
       expect(report, `raporda eksik bölüm: ${heading}`).toContain(heading);
     }
+  });
+});
+
+describe('belge tutarlılığı · README sayıları', () => {
+  // README'de elle yazılmış sayılar zamanla bayatlıyor: taramada
+  // "56.159 koşu" ve "201 test" bulundu, gerçekleri 1.921 ve 208.
+  // Bu test sayıları **kaynağa bağlıar**; elle güncellemek gerekmez.
+
+  it('README deney koşu sayısı raporla aynı', () => {
+    const report = read('docs/EXPERIMENTS.md');
+    const runs = report.match(/\*\*Toplam koşu:\*\* (\d+)/)?.[1];
+    expect(runs, 'raporda "Toplam koşu" satırı yok').toBeDefined();
+    // README'de binlik ayracı kullanılır (1.921), raporda düz (1921).
+    // Karşılaştırma sayısal: ayraçlar atılır.
+    const readmeRuns = [...read('README.md').matchAll(/([\d.]+)\s+koşu/g)]
+      .map((m) => Number(m[1].replace(/\./g, '')))
+      .filter((n) => Number.isFinite(n) && n > 100);
+    expect(readmeRuns, 'README\'de koşu sayısı bulunamadı').toContain(Number(runs));
+  });
+
+  it('README bölüm sayısı raporla aynı', () => {
+    const sections = (read('docs/EXPERIMENTS.md').match(/^## /gm) ?? []).length;
+    // Türkçe binlik ayracı olan biçim de kabul edilir (1.921).
+    const forms = [String(sections), sections.toLocaleString('tr-TR')];
+    expect(
+      forms.some((f) => read('README.md').includes(`${f} bölüm`)),
+      `rapor ${sections} bölüm, README'de eşleşen yok`,
+    ).toBe(true);
+  });
+
+  it('README test sayısı gerçek test sayısına bağlı', () => {
+    // ⚠️ İlk denemede bu denetim "makul aralık"a bakıyordu ve sayının
+    // bayatlamasına **izin veriyordu** (README 208 derken gerçek 211 idi) —
+    // yani tam olarak düzeltmeye çalıştığı sorunu çözmedi.
+    //
+    // Şimdi sayı **kaynaktan** sayılıyor. Vitest içinden kendi toplamını
+    // okumak mümkün olmadığı için kaynak taraması kullanılıyor.
+    //
+    // ⚠️ Tarama **yorumları saymamalı**: bu dosyanın kendi açıklamasında geçen
+    // kalıp (aşağıda) gerçek test olmadığı hâlde eşleşiyordu ve sayıyı iki
+    // fazla gösteriyordu. Bu, düzeltmeye çalıştığımız bayatlığın ta kendisi:
+    // **ölçüm aracı kendi dokümanını sayıyordu.** Satır başındaki girinti
+    // zorunlu kılındı.
+    const countTests = (): number =>
+      readdirSync(resolve(ROOT, 'tests'))
+        .filter((f) => f.endsWith('.test.ts'))
+        .reduce((sum, f) => sum + (read(`tests/${f}`).match(/^\s+it\(/gm) ?? []).length, 0);
+
+    const actual = countTests();
+    const declared = read('README.md').match(/Vitest — (\d+) test/)?.[1];
+    expect(declared, 'README\'de "Vitest — N test" satırı yok').toBeDefined();
+    expect(Number(declared), `README ${declared} diyor, kaynakta ${actual} test var`).toBe(actual);
   });
 });
 

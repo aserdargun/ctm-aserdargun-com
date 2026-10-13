@@ -34,11 +34,11 @@ Anahtar yoksa uygulama **çalışır** ve gözlemci panelinde dürüstçe
 | `npm run dev` | Geliştirme sunucusu (port 5183) |
 | `npm run build` | Tip denetimi + üretim derlemesi |
 | `npm run preview` | Üretim çıktısını sunar (port 4173) |
-| `npm test` | Vitest — 201 test |
+| `npm test` | Vitest — 211 test |
 | `npm run e2e` | Playwright — 6 tarayıcı testi (üretim yapısı üzerinden) |
 | `npm run check` | Tip denetimi + birim + uçtan uca (dağıtım öncesi kapı) |
 | `npm run typecheck` | `tsc --noEmit` |
-| `npm run experiments` | Deney paketini headless koşar — 25 bölüm, 1.921 koşu, ~9 dk → `docs/EXPERIMENTS.md` |
+| `npm run experiments` | Deney paketini headless koşar — 26 bölüm, 1.921 koşu, ~10 dk → `docs/EXPERIMENTS.md` |
 | `npm run experiments -- --deep` | Derin paket: 40.000 tick pencereleri, ekolojik çöküş görünür (yavaş) |
 | `npm run experiments:quick` | Deney paketinin duman testi (~40 sn) |
 | `npm run assets:build` | Blender 5.1.1 ile varlıkları yeniden üretir |
@@ -93,7 +93,7 @@ baskısını değiştirip sonucu izler; bir canlıyı ve soyunu takip eder.
 | Dil/görsel model gözlemcisi | Kanıt paketi + yerel özet + sunucu rotası | ⚠️ yerel tam, canlı model doğrulanmadı |
 
 **Deney paketi yazıldı ve koşuyor.** `npm run experiments` deney paketi
-(56.159 koşu) headless koşturur; sonuçlar `docs/EXPERIMENTS.md` içinde ham koşu değerleriyle
+(1.921 koşu, 26 bölüm) headless koşturur; sonuçlar `docs/EXPERIMENTS.md` içinde ham koşu değerleriyle
 durur.
 
 | Deney | Sonuç |

@@ -2287,13 +2287,60 @@ Bu, önemli bir ayrım: §6.46'daki ölü beyan sorunu **sistemik değil, olay
 türlerine özgüydü**. Aynı denetimi diğer kategorilere uygulamak doğru bir adımdı
 ve **negatif sonuç** üretti — yani tarama rastgele değil, seçici.
 
-### 6.48 Ölü beyan denetimi — özet
+### 6.49 README'deki elle yazılmış sayılar bayatlamıştı
+
+Aynı sınıf sorunun üçüncü hâli: **belgede elle yazılmış sayı** üretim
+çıktısından kopuyor. Taramada bulunanlar:
+
+| README'de | gerçek |
+|---|---|
+| "(56.159 koşu)" | **1.921** koşu |
+| "25 bölüm, 1.921 koşu" | **26 bölüm** |
+| "Vitest — 201 test" | **211** test |
+
+Üçü de "makul görünen" yanlış sayılar — 56.159 koşu bile bir yerde gerçekmiş
+gibi duruyordu.
+
+#### Düzeltme ve kalıcı koruma
+
+README'deki sayılar **kaynağa bağlandı**: koşu ve bölüm sayısı
+`docs/EXPERIMENTS.md` başlığından okunuyor (rapor yeniden üretildiğinde değer
+kendiliğinden güncellenir), test sayısı ise `tests/` dizinindeki gerçek `it(`
+satırlarından sayılıyor.
+
+#### Bu işi yaparken üçüncü bir hata — ölçüm aracı **kendi dokümanını sayıyordu**
+
+İlk tarama regex'i `\bit\(` idi ve 213 dedi; gerçek sayı 211. Fark 2: **test
+dosyasının kendi açıklama yorumları** `it('…')` kalıbını içeriyordu ve
+tarayıcı onları test sayıyordu.
+
+> Yani düzeltmeye çalıştığım şeyin ta kendisi bu sınıftaydı: bayatlamayı
+> yakalamak için yazılan ölçüm aracı, **kendi yorumunu kanıt sayıyordu.**
+> Düzeltme: satır başı girinti zorunlu (`^\s+it\(`) — yorumlar eşleşmiyor.
+
+Ayrıca ilk denetim "makul aralık"a bakıyordu (sayı ≥ dosya sayısı) ve bu,
+sayının bayatlamasına **izin veriyordu**. Denetim kaynağa bağlandı.
+
+### 6.50 Ölü beyan / bayat sayı denetimleri — özet
+
+| denetim | bulgu | durum |
+|---|---|---|
+| olay türleri (`SimEventType`) | 16 beyan, **6 ölü** | kaldırıldı + test |
+| ölçüm anahtarları (`metricRef`) | 15 beyan, 0 ölü | test |
+| README elle yazılmış sayılar | **3 bayat** | kaynağa bağlandı + test |
 
 | kategori | beyan | ölü bulunan | durum |
 |---|---|---|---|
 | olay türleri (`SimEventType`) | 16 | **6** | ✅ kaldırıldı, testle korunuyor |
 | ölçüm anahtarları (`metricRef`) | 15 | 0 | ✅ zaten sağlıklı, testle korunuyor |
 | protein mimarisi (kod) | — | — | kapsam dışı |
+
+### 6.48 Ölü beyan denetimi — özet tablosu
+
+| kategori | beyan | ölü bulunan | durum |
+|---|---|---|---|
+| olay türleri | 16 | 6 | kaldırıldı, testle korunuyor |
+| ölçüm anahtarları | 15 | 0 | zaten sağlıklı, testle korunuyar |
 
 ### 6.45 §6.18'in iddiası **düzeltildi** — yönü doğru, gerekçesi yanlış
 
