@@ -2110,6 +2110,27 @@ nadir gerçekleştiği ya da yönünün zayıf olduğu durumda şanslı koşuyla
 başka bir platformda düşer. CI'nin asıl katkısı yeni bir hata bulmak değil,
 **yeşil olan ama yanlış olan** testleri ortaya çıkarmak oldu.
 
+#### CI kapısı yeşile döndü — ölçülerek
+
+```
+success  |  İkinci yanlış test iddiası: "varsayılan en iyisi" tek tohumda garanti…
+failure  |  CI düştü: iki test tohuma kırılganmış — düzeltildi
+failure  |  CI eklendi — ve bayat rapor denetimi CI'da sessizce ÖLÜYDÜ
+```
+
+İlk iki koşu düştü ve ikisi de **yeşil görünen ama yanlış** testleri ortaya
+çıkardı. Üçüncü koşu yeşil: tip denetimi + 202 birim + 6 tarayıcı testi CI'da
+**ubuntu** üzerinde geçiyor.
+
+Bu aynı zamanda `tests/docs.test.ts` bayat rapor denetiminin CI'da **gerçekten
+çalıştığını** kanıtlar: `fetch-depth: 0` olmadan o denetim anlamsız
+değerlerle geçiyordu; şimdi tam geçmişle koşuyor.
+
+> Genel kural: kaotik bir sistemde tek tohumla kurulan test, özelliğin nadir
+> olduğu ya da yönünün zayıf olduğu durumda **yanlış özellik ölçer**.
+> Karşılaştırma iddiaları **çok tohumlu toplam** üzerinden yazılmalı —
+> ya da, olgu seyrekse, "10 tohumun 3'ünde" biçiminde bir **oran**.
+
 ### 6.38 Belgeler gerçekliğe hizalandı
 
 Ölçümler geldi, **belgeler geride kalmıştı**. Üç yanlış iddia düzeltildi:
