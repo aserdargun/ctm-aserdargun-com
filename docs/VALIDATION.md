@@ -2215,6 +2215,50 @@ Son popülasyonda fark yalnız tetiklenen 3 tohumda görüldü: +20, −1, +2.
 > biçimde değiştirmiyor.** Mekanizma çalışıyor (aktarım sayısı artıyor) ama
 > sonucu değiştirmiyor.
 
+### 6.46 Ölü mekanizma denetimi — **6 olay türü hiç üretilmiyordu**
+
+Paylaşmanın ölü çıkması şu soruyu açtı: **başka hangi mekanizmalar gerçekten çalışıyor?**
+
+Ölçüm: 5 tohum × 8000 tick, olay günlüğündeki türlerin sayımı.
+
+| olay türü | toplam | tetiklenen tohum |
+|---|---|---|
+| `learning-update` | 7.088 | 5/5 |
+| `cell-division` | 708 | 5/5 |
+| `death` | 603 | 5/5 |
+| `fragmentation` | 538 | 5/5 |
+| `bond-formation` | 413 | 5/5 |
+| `bud-separation` | 302 | 5/5 |
+| `predation` | 263 | 5/5 |
+| `bond-break` | 85 | 5/5 |
+| `organism-birth`, `nutrient-added`, `experiment-start`, `experiment-end`, `branch-created`, `save-loaded` | **0** | **0/5** |
+
+Üretici taraması altısını da doğruladı: `src/` ağacında **sıfır `pushEvent`**,
+ve UI/deney tarafında **sıfır tüketici**.
+
+**Bu bir boşluk değil, ölü beyan.** Doğumlar zaten `bud-separation` ile
+kaydediliyor; besin ekleme (`addNutrient`) ve dal oluşturma ise
+`World.recordIntervention()` kanalına yazılıyor — kanıt paketi
+(`evidence.ts`) o kanaldan okuduğu için **kanıt izinde eksik yok**. Boş olan
+yalnız `SimEventType` birleşimindeki altı isimdi.
+
+> Sınıf: bu, projede üçüncü "ölü alet" örneği (§6.20 sayaç, §6.23 eksen,
+> §6.46 bildirim). Üçü de **çalışma zamanında görünmez**; üçü de "yanlış özellik
+> ölçme" ya da "kalıcı olarak boş dinleyici" üretiyor.
+
+#### Düzeltme ve kalıcı koruma
+
+1. Altı ölü beyan `SimEventType`'tan **kaldırıldı** — liste artık gerçeği
+   birebir yansıtıyor (10 tür).
+2. `tests/events.test.ts` (3 test) kalıcı koruma sağlıyor:
+   - her bildirilen türün **en az bir üreticisi** var mı,
+   - testin bildirdiği küme, kaynaktaki `SimEventType` ile aynı mı,
+   - `pushEvent` gerçekten kullanılıyor mu.
+
+Denetleyici **doğrulandı**: yazıldığında kırmızı döndü ve altı ölü türü adlarıyla
+söyledi; beyanlar temizlenince yeşile döndü. Yani ileride yeni bir tür eklenip
+bağlanmazsa CI onu yakalar.
+
 ### 6.45 §6.18'in iddiası **düzeltildi** — yönü doğru, gerekçesi yanlış
 
 §6.18 diyordu: *"eşiği düşürmek zararlı, varsayılan en iyisi"* ve bunu

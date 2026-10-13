@@ -198,10 +198,26 @@ export interface HabitatSettings {
   learningEnabled: boolean;
 }
 
+/**
+ * Simülasyonun **gerçekten ürettiği** olay türleri.
+ *
+ * ⚠️ Bu liste ölçülerek temizlendi (2026-10-13, §6.46). Önceden bildirilmiş ama
+ * **hiç yayınlanmayan** altı tür vardı: `organism-birth`, `nutrient-added`,
+ * `experiment-start`, `experiment-end`, `branch-created`, `save-loaded`.
+ * Bunlar çalışma zamanında görünmezdi — yalnız onları dinleyen bir UI filtresi
+ * ya da deney kalıcı olarak boş kalırdı, aynı "ölü sayaç" sınıfından.
+ *
+ * Doğumlar zaten `bud-separation` ile kaydediliyor; besin ekleme ve dal
+ * oluşturma ise `World.recordIntervention()` kanalına yazılıyor (kanıt paketi
+ * bu kanaldan okuyor), yani **kanıt izinde boşluk yok** — boş olan yalnız
+ * beyanlardı.
+ *
+ * `tests/events.test.ts` bu listeyi korur: yeni bir tür eklenip bağlanmazsa
+ * test kırmızı döner.
+ */
 export type SimEventType =
   | 'genesis'
   | 'cell-division'
-  | 'organism-birth'
   | 'bud-separation'
   | 'bond-formation'
   | 'bond-break'
@@ -209,12 +225,7 @@ export type SimEventType =
   | 'death'
   | 'predation'
   | 'learning-update'
-  | 'nutrient-added'
-  | 'intervention'
-  | 'experiment-start'
-  | 'experiment-end'
-  | 'branch-created'
-  | 'save-loaded';
+  | 'intervention';
 
 export interface SimEvent {
   id: number;
