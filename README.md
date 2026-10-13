@@ -50,10 +50,12 @@ Anahtar yoksa uygulama **çalışır** ve gözlemci panelinde dürüstçe
 testi + 6 tarayıcı testi (`npm run check`). Başarısızsa tarayıcı kanıtları
 artifact olarak yüklenir.
 
-> Bu depo şu an **yayınlanmıyor** — Azure Static Web Apps kaynağı ve repo gizli
-> anahtarı gerekiyor. Ayrıca gözlemci rotası (`server/index.ts`) bir Node
-> sunucusudur ve statik barındırmada çalışmaz; yayınlandığında gözlemci paneli
-> yalnız yerel kural özetini üretir. Ayrıntı: `docs/VALIDATION.md` §6.37.
+> Bu depo şu an **yayınlanmıyor** (2026-10-13 tarihinde bilinçli olarak
+> ertelendi). CI kapısı yeşil ve derleme hazır; eksik olan yalnız barındırma.
+> Azure SWA yolu kardeş projelerle aynı kalıbı izler ve repo gizli anahtarı
+> gerektirir. Ayrıca gözlemci rotası (`server/index.ts`) bir Node sunucusudur ve
+> statik barındırmada çalışmaz; yayınlandığında gözlemci paneli yalnız yerel
+> kural özetini üretir. Ayrıntı: `docs/VALIDATION.md` §6.37.
 
 ---
 

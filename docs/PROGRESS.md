@@ -391,6 +391,11 @@ Dağıtılmadı çünkü Azure SWA gizli anahtarı ve kaynağı kullanıcının.
 sunucusudur ve SWA'da çalışmaz, yani yayınlanan sitede gözlemci yalnız yerel
 kural özetini üretir.
 
+**Kullanıcı kararı (2026-10-13): şimdilik yayınlama, sadece kayıtta kalsın.**
+Bilinçli erteleme; eksik değil. CI kapısı yeşil (`master` + PR'da tip + 202
+birim + 6 e2e, ubuntu) ve `npm run build` hazır — koşullar sağlandığında tek
+commit + push + URL doğrulaması yeterli, **kod tarafında hiçbir şey eksik yok**.
+
 ### 2.6 Tarayıcıda test edilmemiş yollar
 
 Mikroskop etkileşimi (gizli birim susturma, tek karar adımı), dal oluşturma,

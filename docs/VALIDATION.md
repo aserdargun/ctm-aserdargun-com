@@ -1961,8 +1961,30 @@ Apps **statik** barındırmadır; `/api/observer` orada çalışmaz. Yani yayın
 sitede gözlemci paneli yalnız yerel kural özetini üretir. Bu, kasıtsız
 değil dürüstçe kabul edilmeli — panel bunu zaten yazıyor.
 
-**Bu turda yapılan:** eksik olan e2e altyapısı kuruldu (§6.35–6.36), yani
-dağıtım öncesi kapı hazır. Kalan tek adım Azure kaynağı + gizli anahtar.
+**Bu turda yapılan:** dağıtım öncesi kapılar kuruldu —
+- e2e altyapısı: `npm run e2e` vardı ama **çalışmıyordu**; düzeltildi, 6 test yazıldı (§6.35–6.36)
+- CI: `master` + PR'da tip + 202 birim + 6 e2e, **ubuntu'da yeşil** (§6.39, §6.40)
+
+Yani proje yayınlanmaya hazır; eksik olan yalnız barındırma.
+
+#### Kullanıcı kararı (2026-10-13): **yayınlama, sadece kayıtta kalsın**
+
+İki yol sunuldu:
+
+| seçenek | durum |
+|---|---|
+| Azure SWA iş akışı (aile kalıbı, `ctm.aserdargun.com`) | ⏸️ ertelendi — repo gizli anahtarı gerekiyor |
+| `website_deploy` ile hemen herkese açık URL | ⏸️ ertelendi |
+| Hiçbir şey yayınlama | ✅ **seçildi** |
+
+Karar: **şimdilik yayınlama yok.** Bu bilinçli bir ertelemedir, bir eksik
+değil; §6.37'deki tespit kayıtta duruyor ve koşullar sağlandığında tek adım
+iş akışını eklemek.
+
+> Not: Bu, kullanıcının kalıcı "her iş sonunda deploy et" kuralından bilinçli
+> bir sapmadır ve burada kayıt altındadır. Erişilebilir olduğunda tek bir
+> commit + push + URL doğrulaması yeterlidir; kod tarafında hiçbir şey eksik
+> değildir.
 
 ### 6.39 CI eklendi — ve bayat rapor denetimi CI'da **ölü**ydü
 
