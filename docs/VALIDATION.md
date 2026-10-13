@@ -2384,6 +2384,43 @@ Dördü de artık CI'da zorlanıyor.
 | olay türleri | 16 | 6 | kaldırıldı, testle korunuyor |
 | ölçüm anahtarları | 15 | 0 | zaten sağlıklı, testle korunuyar |
 
+### 6.53 Protokol denetimi — **5 bağlanmamış üyə**
+
+§6.46'daki denetimin dördüncü kategorisi: `Command` ve `WorkerResponse`
+birleşimleri.
+
+Ölçüm — her üyenin üreticisi (gönderilen komut / gönderilen yanıt) ve
+tüketicisi (işleyen `case`) sayıldı:
+
+| üye | tür | durum |
+|---|---|---|
+| `listEvents` | komut | ⚠️ **hiç çağrılmıyor** |
+| `events` | yanıt | ⚠️ **hiç işlenmiyor** |
+| `ping` | komut | ⚠️ istemci hiç göndermiyor |
+| `pong` | yanıt | ⚠️ hiç işlenmiyor |
+| `ack` | yanıt | ⚠️ gönderiliyor ama hiç okunmuyor |
+
+`App.tsx` şu yanıtları işliyor: `decision`, `error`, `evidence`,
+`evolutionProgress`, `evolutionResult`, `frame`, `lifeMapResult`, `lineages`,
+`organisms`, `ready`, `snapshot`.
+
+#### En somut olanı: olay günlüğü arayüze hiç bağlanmamış
+
+`SimClient.listEvents()` var, komutu gönderiyor; worker `events` yanıtını
+üretiyor — ama **hiçbir yerden bu komut çağrılmıyor** ve **hiçbir yerde
+`events` yanıtı işlenmiyor.** Yani simülasyonun olay günlüğü (7.088 öğrenme
+güncellemesi, 603 ölüm, 302 tomurcuk ayrılması…) üretiliyor ve kayboluyor.
+
+> ⚠️ Ölçüm sırasında bir kendi yanlışımı düzelttim: ilk tarama
+> `experimentResult`'ı tüketicisiz saydı, oysa `App.tsx` işliyor. Filtre
+> yeniden incelendi; sonuç yukarıdaki.
+
+Bu bir **ürün kararı** gerektiriyor: ya olay günlüğü arayüze bağlanır,
+ya da `listEvents`/`events` kaldırılır. `ping`/`pong` bir sağlık kontrolü
+çiftidir ve hiç bağlanmamıştır; `ack` ise genel altyapıdır ve okunmaz.
+
+**Karar kullanıcıya bırakıldı** — bu turda ürün yüzeyi değiştirilmedi.
+
 ### 6.45 §6.18'in iddiası **düzeltildi** — yönü doğru, gerekçesi yanlış
 
 §6.18 diyordu: *"eşiği düşürmek zararlı, varsayılan en iyisi"* ve bunu
