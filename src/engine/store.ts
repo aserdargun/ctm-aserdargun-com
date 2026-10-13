@@ -10,6 +10,7 @@ import type { DecisionSnapshot, EvidencePack, LineageSummary, OrganismSummary, S
 import type { ClientStatus } from './client.ts';
 import type { LocalSummary } from '../worker/evidence.ts';
 import type { LifeSnapshot } from '../sim/lab/lifeMap.ts';
+import type { SimEvent } from '../sim/types.ts';
 
 export type Language = 'tr' | 'en';
 export type PanelId =
@@ -19,6 +20,7 @@ export type PanelId =
   | 'experiments'
   | 'evolution'
   | 'lifemap'
+  | 'events'
   | 'observer'
   | 'data'
   | 'settings'
@@ -109,6 +111,14 @@ interface StoreState {
   evolution: EvolutionState;
   // --- Yaşam haritası (Faz D) ---
   lifeMap: LifeSnapshot | null;
+  /**
+   * Olay günlüğü. `listEvents` komutu uzun süredir gönderiliyor ama
+   * **hiçbir yerden çağrılmıyordu** ve yanıtı da işlenmiyordu — simülasyonun
+   * kaydı üretiliyor ve kayboluyordu. Artık panele bağlı.
+   */
+  events: SimEvent[];
+  /** Halka tamponundaki toplam olay sayısı (gösterilen değil, arka plan). */
+  eventsTotal: number;
   localSummary: LocalSummary | null;
   modelReport: unknown | null;
   modelState: 'idle' | 'loading' | 'done' | 'error' | 'no-key';
@@ -158,6 +168,8 @@ interface StoreState {
   evolutionDone: (result: EvolutionResult) => void;
   evolutionReset: () => void;
   setLifeMap: (snapshot: LifeSnapshot) => void;
+  setEvents: (events: SimEvent[], totalKnown: number) => void;
+  clearEvents: () => void;
   setLocalSummary: (summary: LocalSummary) => void;
   setModelState: (state: StoreState['modelState'], error?: string | null) => void;
   setModelReport: (report: unknown) => void;
@@ -232,6 +244,8 @@ export const useStore = create<StoreState>((set, get) => ({
     result: null,
   } as EvolutionState,
   lifeMap: null,
+  events: [],
+  eventsTotal: 0,
   localSummary: null,
   modelReport: null,
   modelState: 'idle',
@@ -301,6 +315,9 @@ export const useStore = create<StoreState>((set, get) => ({
     }),
 
   setLifeMap: (snapshot) => set({ lifeMap: snapshot }),
+
+  setEvents: (events, eventsTotal) => set({ events, eventsTotal }),
+  clearEvents: () => set({ events: [], eventsTotal: 0 }),
 
   setEvidence: (pack) => set({ evidence: pack, localSummary: null, modelReport: null, modelState: 'idle' }),
   setLocalSummary: (summary) => set({ localSummary: summary }),

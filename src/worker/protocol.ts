@@ -6,7 +6,7 @@
  * kare başına hücre yazılmaz.
  */
 
-import type { Vec3 } from '../sim/types.ts';
+import type { SimEvent, Vec3 } from '../sim/types.ts';
 import type { LifeSnapshot } from '../sim/lab/lifeMap.ts';
 
 /** Kare paketi başlık uzunluğu (float). */
@@ -204,7 +204,7 @@ export type WorkerResponse =
   | { type: 'frame'; buffer: ArrayBuffer; seq: number; measuredSpeed: number; running: boolean }
   | { type: 'organisms'; organisms: OrganismSummary[]; tick: number }
   | { type: 'lineages'; lineages: LineageSummary[] }
-  | { type: 'events'; events: unknown[]; totalKnown: number }
+  | { type: 'events'; events: SimEvent[]; totalKnown: number }
   | { type: 'decision'; decision: DecisionSnapshot }
   | { type: 'snapshot'; snapshotJson: string; tick: number; bytes: number }
   | { type: 'evidence'; pack: EvidencePack }

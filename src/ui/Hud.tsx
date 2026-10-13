@@ -320,6 +320,13 @@ export function Toolbar({ client }: { client: SimClient }): React.ReactElement {
         </button>
         <button
           type="button"
+          aria-pressed={useStore.getState().panel === 'events'}
+          onClick={() => useStore.getState().togglePanel('events')}
+        >
+          {t.actions.events}
+        </button>
+        <button
+          type="button"
           aria-pressed={useStore.getState().panel === 'observer'}
           onClick={() => useStore.getState().togglePanel('observer')}
         >

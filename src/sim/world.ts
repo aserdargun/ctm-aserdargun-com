@@ -352,6 +352,13 @@ export class World {
     bondFatigue?: number;
     strainDecayK?: number;
     coupleFatigueToGenome?: boolean;
+    /**
+     * Faz D · işbirliği aktı (varsayılan 0 = KAPALI). Bağ bütünlüğü
+     * `BOND_COOP_REPAIR_FLOOR`'un altına düştüğünde iki uçtaki hücreler
+     * bu değer kadar enerji harcayarak bağı yeniler. Kapalıyken ürün
+     * davranışı bit düzeyinde aynıdır.
+     */
+    coopRenewal?: number;
   };
 
   // --- Faz D · yaşam haritası arşivi ------------------------------------
@@ -380,6 +387,10 @@ export class World {
   };
   /** Enjeksiyon sayacı (ölçüm). */
   private nicheSeedCount = 0;
+  /** İşbirliği aktı sayacı (ölçüm). */
+  private coopRenewCount = 0;
+  /** İşbirliği aktında harcanan enerji (ölçüm). */
+  private coopRenewEnergy = 0;
   private readonly policyTuning: {
     trajectoryLimit?: number;
     learnRate?: number;
@@ -994,6 +1005,41 @@ export class World {
       bond.integrity -= this.bondTuning.coupleFatigueToGenome
         ? fatigue * (1.6 - bond.strength)
         : fatigue;
+
+      // --- Faz D · İŞBİRLİĞİ AKI (varsayılan KAPALI) --------------------
+      //
+      // Bir bağ, iki hücrenin **ortak** varlığıdır. Yenileme masrafını tek
+      // bir hücre değil, bağın iki ucundaki hücreler birlikte öder; bedeli
+      // ödeyen hücre sayısına değil, bağın **bütünlüğüne** göre dağıtılır.
+      //
+      // ⚠️ Bu yüzden bir **hileci** tanımlanabilir: bedeli ödemeyen hücre de
+      // organizmanın yenilenmiş bağlarından yararlanır. Paylaşmada bu imkânsızdı
+      // — paylaşma genenden geliyordu, hücre düzeyinde çeşitlilik yoktu
+      // (§6.45: paylaşmanın ölçülebilir etkisi yok).
+      //
+      // Kanca `coopRenewal > 0` iken etkin; kapalıyken **hiçbir şey** değişmez
+      // (ürün davranışı korunur). Yenilenen miktar `integrity` 0'a inmesi
+      // beklenmeden yapılır.
+      const coopK = this.bondTuning.coopRenewal ?? 0;
+      if (coopK > 0 && bond.integrity < C.BOND_COOP_REPAIR_FLOOR) {
+        const deficit = C.BOND_COOP_REPAIR_FLOOR - bond.integrity;
+        const perCell = Math.min(deficit, coopK) * 0.5;
+        let drawn = 0;
+        for (const cell of [a, b]) {
+          if (cell.energy <= perCell) continue;
+          cell.energy -= perCell;
+          drawn += perCell;
+        }
+        if (drawn > 0) {
+          bond.integrity += drawn;
+          // Hücreden çıkan enerji sistemden ayrılır → muhasebede erimiş
+          // sayılmalı; `addExternal` DEĞİL, yoksa korunum bozulur.
+          this.ledger.dissipate(drawn);
+          this.coopRenewCount++;
+          this.coopRenewEnergy += drawn;
+        }
+      }
+
       if (bond.integrity <= 0 || d > C.BOND_BREAK_DISTANCE) {
         toRemove.push(bond.id);
       }
@@ -1628,6 +1674,11 @@ export class World {
   /** Kaç kez popülasyon-ES güncellemesi yapıldı (ölçüm). */
   populationUpdatesApplied(): number {
     return this.populationUpdateCount;
+  }
+
+  /** Faz D · işbirliği aktı istatistiği (ölçüm). */
+  cooperationStats(): { renewals: number; energy: number } {
+    return { renewals: this.coopRenewCount, energy: this.coopRenewEnergy };
   }
 
   // ------------------------------------------------ Faz D · yaşam haritası
@@ -2426,7 +2477,10 @@ export class World {
         bondFatigue?: number;
         strainDecayK?: number;
         coupleFatigueToGenome?: boolean;
+        coopRenewal?: number;
       };
+      coopRenewCount: number;
+      coopRenewEnergy: number;
       populationUpdateConfig: { enabled: boolean; rate: number; interval: number };
       nicheConfig: {
         enabled: boolean;
@@ -2487,6 +2541,8 @@ export class World {
     // Duyarlılık kancaları boş bırakılırsa `C` sabitlerine düşer → ürün
     // davranışı korunur. Snapshot'ta saklanmıyorlar çünkü ölçüm aracıdırlar.
     init.bondTuning = {};
+    init.coopRenewCount = 0;
+    init.coopRenewEnergy = 0;
     init.populationUpdateConfig = {
       enabled: options.populationUpdate ?? false,
       rate: options.populationUpdateRate ?? 0.06,

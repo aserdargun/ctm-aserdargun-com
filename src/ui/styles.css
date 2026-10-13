@@ -733,3 +733,61 @@ select {
   font-size: 11px;
   opacity: 0.7;
 }
+
+/* --- Olay günlüğü paneli ------------------------------------------------ */
+.events__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 10px 0;
+}
+
+.events__filters button {
+  font-size: 11px;
+  padding: 3px 7px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: transparent;
+  color: inherit;
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.events__filters button.is-active {
+  opacity: 1;
+  border-color: #38bdf8;
+  background: rgba(56, 189, 248, 0.14);
+}
+
+.events__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 340px;
+  overflow-y: auto;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.events__item {
+  display: grid;
+  grid-template-columns: 62px 108px 1fr;
+  gap: 6px;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+}
+
+.events__tick {
+  opacity: 0.5;
+}
+
+.events__type {
+  opacity: 0.9;
+}
+
+.events__detail {
+  opacity: 0.55;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

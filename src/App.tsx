@@ -15,6 +15,7 @@ import { InspectorPanel, LineagePanel, MicroscopePanel, ObserverPanel } from './
 import { DataPanel, ExperimentsPanel, SettingsPanel } from './ui/ExperimentPanels.tsx';
 import { EvolutionPanel } from './ui/EvolutionPanel.tsx';
 import { LifeMapPanel } from './ui/LifeMapPanel.tsx';
+import { EventsPanel } from './ui/EventsPanel.tsx';
 import { getStrings } from './i18n/index.ts';
 import { H, RES, RESOURCE_FLOATS } from './worker/protocol.ts';
 import { downloadJson, saveRecord, StorageError } from './engine/storage.ts';
@@ -88,6 +89,9 @@ export function App(): React.ReactElement {
           break;
         case 'lifeMapResult':
           s.setLifeMap(message.snapshot);
+          break;
+        case 'events':
+          s.setEvents(message.events, message.totalKnown);
           break;
         case 'evolutionResult':
           s.evolutionDone({
@@ -229,6 +233,7 @@ export function App(): React.ReactElement {
             {panel === 'experiments' && <ExperimentsPanel client={client} />}
             {panel === 'evolution' && <EvolutionPanel client={client} />}
             {panel === 'lifemap' && <LifeMapPanel client={client} />}
+            {panel === 'events' && <EventsPanel client={client} />}
             {panel === 'observer' && <ObserverPanel client={client} />}
             {panel === 'data' && <DataPanel client={client} />}
             {panel === 'settings' && <SettingsPanel />}

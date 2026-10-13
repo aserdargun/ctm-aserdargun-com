@@ -82,6 +82,11 @@ export const C = {
   STRAIN_DECAY_K: 0.02,
   /** Bağın her tick doğal zayıflaması (dayanıklı bir bağ ~30000 tick yaşar). */
   BOND_FATIGUE: 2e-5,
+  /**
+   * Faz D · İşbirliği aktı: bütünlük bu seviyenin altına düşerse hücreler
+   * enerji harcayarak bağı **yeniler**. Ölçüm kancasıdır; üründe kapalıdır.
+   */
+  BOND_COOP_REPAIR_FLOOR: 0.28,
 
   /**
    * Yoğunluğa bağlı rekabet maliyeti katsayısı.
