@@ -184,6 +184,11 @@ describe('Kalıtım ve kimlik', () => {
     const world = makeWorld({ seed: 909, mutationEnabled: false });
     for (let i = 0; i < 3000; i++) world.step();
     const births = world.events.recent(2000).filter((e) => e.type === 'bud-separation');
+    // ⚠️ Tek tohumlu "en az bir kez oldu" iddiası — CI'ın yakaladığı iki
+    // yanlış testten biri böyleydi (VALIDATION §6.40). Bu iddia **denetlendi**:
+    // 10 tohum ölçüldü, hepsinde tetikleniyor ve pay çok geniş:
+    //   85–133 bud olayı (10/10 tohum).
+    // Yani kırılgan değil. Sınır 1'in çok üstünde olduğu için tutuyor.
     expect(births.length).toBeGreaterThan(0);
     for (const e of births) {
       const child = e.organismId === undefined ? undefined : world.organisms.get(e.organismId);
@@ -235,6 +240,7 @@ describe('Kalıtım ve kimlik', () => {
         newborns++;
       }
     }
+    // Denetlendi: 10 tohumda 135–180 yeni doğan (10/10). Kırılgan değil.
     expect(newborns).toBeGreaterThan(0);
   });
 
@@ -256,6 +262,14 @@ describe('Kalıtım ve kimlik', () => {
       }
     }
     // Karşılaştırma anlamlı olsun diye ebeveynlerin gerçekten öğrendiğini doğrula.
+    //
+    // ⚠️ Bu da tek tohumlu "en az bir kez" iddiası; denetlendi: 10 tohumda
+    // 10–23 karşılaştırılabilir ebeveyn (10/10 tohum). Kırılgan değil.
+    //
+    // ⚠️ İLK DENEME ÖLÇÜMÜ GEÇERSİZDİ ve burada düzeltildi: koşullu ifade
+    // (`seed === 4321 ? seed : 4321`) her zaman 4321 döndürdüğü için "tohum
+    // taraması" değil, aynı tohumun on kez ölçümüydü. Sütun tohumdan bağımsız
+    // görünüyordu. Gerçek tarama yeniden yapıldı.
     expect(compared).toBeGreaterThan(0);
   });
 });

@@ -2131,6 +2131,43 @@ değerlerle geçiyordu; şimdi tam geçmişle koşuyor.
 > Karşılaştırma iddiaları **çok tohumlu toplam** üzerinden yazılmalı —
 > ya da, olgu seyrekse, "10 tohumun 3'ünde" biçiminde bir **oran**.
 
+### 6.42 Tek tohumlu iddia taraması — kalan üç test **sağlam** çıktı
+
+CI iki yanlış test buldu; kalan yerlerde de aynı sınıftan iddia var mı diye
+tarama yapıldı. Üç şüpheli bulundu, üçü de **World** kurup tek tohumla
+"en az bir kez oldu" diyen iddialar:
+
+| test | ölçüm (10 tohum) | sonuç |
+|---|---|---|
+| bud-separation doğumu | 85–133 olay | ✅ 10/10 |
+| yeni doğan (θ farkı sıfır) | 135–180 | ✅ 10/10 |
+| öğrenen ebeveyn (karşılaştırılabilir) | 10–23 | ✅ 10/10 |
+
+Üçü de **10/10 tohumda** tetikleniyor ve sınırın çok üstünde (pay geniş).
+Yani CI'ın bulduğu iki test istisnaymış; geri kalanlar kırılgan değil.
+
+Denetim notları teste içine yazıldı: gelecekteki okuyucu bunları yeniden
+ölçmek zorunda kalmasın, ve "tek tohumlu" görünüp çürütülmüş sanılmasın.
+
+> ⚠️ **Tarama sırasında bir ölçüm hatası yapıldı ve düzeltildi.** Üçüncü
+> sütunu ölçerken yazdığım koşullu ifade (`seed === 4321 ? seed : 4321`) her
+> zaman 4321 döndürüyordu; yani "10 tohumlu tarama" değil, **aynı tohumun on
+> kez ölçümü**ydü ve sütun tohumdan bağımsız görünüyordu. Gerçek tarama
+> yeniden yapıldı → 10/10.
+
+Bu, projenin kendi disiplininin gereği: "geçici ölçüm de ölçümdür" —
+yazılan şeyin ölçüldüğüğünden emin olmadan onu kanıt saymamak.
+
+### 6.43 Bu turun özeti
+
+| iş | sonuç |
+|---|---|
+| CI eklendi | ✅ `master` + PR'da tip + 202 birim + 6 e2e |
+| `fetch-depth` tuzağı | ✅ bulundu, `fetch-depth: 0` ile kapatıldı |
+| iki yanlış test iddiası | ✅ bulundu (paylaşma sayacı, varsayılan eşik) |
+| kalan tek tohumlu iddialar | ✅ tarandı, 3/3 sağlam çıktı |
+| üçüncü CI koşusu | ✅ yeşil (ubuntu) |
+
 ### 6.38 Belgeler gerçekliğe hizalandı
 
 Ölçümler geldi, **belgeler geride kalmıştı**. Üç yanlış iddia düzeltildi:
