@@ -24,6 +24,7 @@ import {
   radiusForCount,
   shareAlongBond,
   maxSpeedFor,
+  organismCapacityFor,
 } from './biology/energy.ts';
 import {
   binOf,
@@ -748,7 +749,11 @@ export class World {
       for (const id of org.cells) totalEnergy += this.cells.get(id)?.energy ?? 0;
 
       const obs = computeObservation({
-        energyNorm: totalEnergy / (C.CELL_CAPACITY * cells.length),
+        // `organismCapacityFor` aynı bölmenin adlandırılmış hâli ve `Math.max(1, …)`
+        // ile sıfıra bölmeyi engelliyor. `org.cells.length` 719'da kontrol edilse de
+        // burada `organismCells(org)` kullanılıyor; ikisi ayrışırsa NaM üretilip
+        // doğrudan algı vektörüne, oradan ağa giderdi.
+        energyNorm: totalEnergy / organismCapacityFor(cells.length),
         sizeNorm: (cells.length - 1) / Math.max(1, C.MAX_ORGANISM_CELLS - 1),
         genome: org.genome,
         pos: centroid,

@@ -408,7 +408,6 @@ describe('ölü alet · dışa aktarım gerçekten tüketiliyor mu', () => {
       createShaftMaterial: 'görsel yardımcı; bu turda ürün etkisi araştırılmadı',
       scratchObject: 'görsel yardımcı; bu turda ürün etkisi araştırılmadı',
       ACTIONS: 'eylem sabitleri; bu turda ürün etkisi araştırılmadı',
-      organismCapacityFor: 'kapasite kuralı; bu turda ürün etkisi araştırılmadı',
       summarizeTrials: 'deney yardımcısı; bu turda ürün etkisi araştırılmadı',
       sweepShareThreshold: 'deney yardımcısı; bu turda ürün etkisi araştırılmadı',
       formatShareThreshold: 'deney biçimlendiricisi; bu turda ürün etkisi araştırılmadı',
