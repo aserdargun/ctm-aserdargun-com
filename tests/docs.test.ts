@@ -69,6 +69,50 @@ function lastCommitTime(rel: string): number {
   return t;
 }
 
+/**
+ * `docs/EXPERIMENTS.md` raporunun **gerçek** üretim girdileri: içe aktarma
+ * grafiğinin `scripts/run-experiments.ts` kökünden başlayıp yalnız `src/` ve
+ * `scripts/` altındaki dosyalara yayılan geçişli (transitive) kapanışı.
+ *
+ * Neden grafik: elle yazılmış dosya listesi **yeni bağımlılıkları görmez**.
+ * Ölçülen örnek — `COOPERATION_COST_K` (`biology/energy.ts`) ve kanonik
+ * `genomeDistance` (`sim/genome.ts`) eklendi; raporun sayıları değişti ya da
+ * değişebilirdi, ama rapor-tazelik denetimi o dosyaları **izlemiyordu** ve
+ * sessizce geçti. Elle liste ancak listeyi güncelleyen biri varsa tutar.
+ *
+ * Kapsam bilerek dar: `src/ui/` dışarıda bırakılır, çünkü arayüz rapora girmez.
+ * Böylece arayüz değişiklikleri gereksiz yeniden üretim zorlamaz.
+ */
+function reportInputFiles(): string[] {
+  const ROOT_FILE = 'scripts/run-experiments.ts';
+  const seen = new Set<string>();
+  const queue: string[] = [ROOT_FILE];
+  // Yalnız kaynak içe aktarmaları: tip, değer ve `export ... from`.
+  const IMPORT_RE = /(?:^|\n)\s*(?:import|export)[^;'"]*?from\s*['"](\.[^'"]+)['"]/g;
+
+  while (queue.length > 0) {
+    const rel = queue.pop() as string;
+    if (seen.has(rel)) continue;
+    let src: string;
+    try {
+      src = readFileSync(resolve(ROOT, rel), 'utf8');
+    } catch {
+      continue; // dosya yoksa bu dal takip edilmez
+    }
+    seen.add(rel);
+    for (const m of src.matchAll(IMPORT_RE)) {
+      const spec = m[1] as string;
+      // Uzantısız göreli içe aktarmaları çöz (`./genome.ts` ve `./genome`).
+      const abs = resolve(ROOT, resolve(ROOT, rel, '..', spec));
+      const child = abs.startsWith(ROOT + '/') ? abs.slice(ROOT.length + 1) : null;
+      if (child && (child.startsWith('src/') || child.startsWith('scripts/'))) {
+        queue.push(child);
+      }
+    }
+  }
+  return [...seen];
+}
+
 describe('belge tutarlılığı · üretilmiş rapor', () => {
   it('EXPERIMENTS.md var ve boş değil', () => {
     expect(read('docs/EXPERIMENTS.md').length).toBeGreaterThan(5000);
@@ -78,16 +122,38 @@ describe('belge tutarlılığı · üretilmiş rapor', () => {
     // ⚠️ Bu, projenin en sık yapacağı hatayı yakalar: ölçüm kodunu
     // değiştirip raporu üretmeyi unutmak. Böyle bir durumda rapordaki
     // sayılar eski koddan gelir ve belge yanlışlaşır — sessizce.
-    const codeTime = Math.max(
-      lastCommitTime('scripts/run-experiments.ts'),
-      lastCommitTime('src/sim/experiments/ecology.ts'),
-      lastCommitTime('src/sim/experiments/arena.ts'),
-      lastCommitTime('src/sim/experiments/colony.ts'),
-      lastCommitTime('src/sim/stats.ts'),
-    );
+    //
+    // ⚠️⚠️ İzlenen dosya listesi ARTIK ELLE YAZILMAZ (ölü ölçüm kapsamı).
+    // Önceden yalnız 5 dosya izleniyordu: run-experiments, ecology, arena,
+    // colony, stats. Ama raporun GERÇEK bağımlılıkları arasında
+    // `sim/genome.ts`, `biology/energy.ts`, `world.ts`, `behavior/mlp.ts`,
+    // `lab/lifeMap.ts`, `rng.ts` ve `types.ts` de var. `COOPERATION_COST_K`
+    // (`energy.ts`) ve kanonik `genomeDistance` (`genome.ts`) eklenirken denetim
+    // hiç kırmızıya basmadı — yani **tehlikeli yön** sessiz kalmıştı.
+    // Liste artık içe aktarma grafiğinden türetilir.
+    const codeTime = Math.max(...reportInputFiles().map(lastCommitTime));
     const reportTime = lastCommitTime('docs/EXPERIMENTS.md');
     expect(reportTime).toBeGreaterThan(0);
     expect(reportTime).toBeGreaterThanOrEqual(codeTime);
+  });
+
+  it('raporun bağımlılık kümesi boş değil (koruma türetmeyi başardı mı)', () => {
+    // Yukarıdaki denetimin kendisi sessizce boş dönseydi `Math.max()` → `-Infinity`
+    // olur ve **her şey geçerdi**. Türetilen küme gerçekten kapsayıcı mı?
+    const files = reportInputFiles();
+    expect(files.length).toBeGreaterThan(5);
+    for (const must of [
+      'src/sim/genome.ts',
+      'src/sim/biology/energy.ts',
+      'src/sim/world.ts',
+      'src/sim/stats.ts',
+      'src/sim/experiments/colony.ts',
+    ]) {
+      expect(files, `bağımlılık kümesi eksik: ${must}`).toContain(must);
+    }
+    // Arayüz rapora girmez; küme onu **içermemeli** (aksi hâlde her arayüz
+    // değişikliği raporun yeniden üretilmesini gerektirirdi).
+    expect(files.some((f) => f.startsWith('src/ui/'))).toBe(false);
   });
 
   it('rapor her kayıtlı deney bölümünü içerir', () => {
