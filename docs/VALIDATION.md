@@ -2435,10 +2435,16 @@ Kanca `coopRenewal > 0` iken etkin; **varsayılan 0 = kapalı**.
 
 | ölçüm | sonuç | yorum |
 |---|---|---|
-| **bağ sayısı farkı** | ort **+12,5** [9,0; +16,1], **p = 0,0001** | ✅ mekanizma çalışıyor |
-| **tepe küme farkı** | ort **−0,67** [−3,08; +1,50], **p = 0,589** | ❌ koloni kazancı yok |
+| **son bağ sayısı farkı** | ort **+11,4** | akt bağları sona kadar yaşatıyor |
+| **tepe bağ sayısı farkı** | ort **+0,6** | ⚠️ **bağlar zirvede zaten bol** |
+| **tepe küme farkı** | p ≈ 0,85 | ❌ koloni kazancı yok |
 
-Tek kutu sayısı: 8 tohumda artış yok, 2 artış, 2 düşüş.
+Tek kutu sayısı: 8 tohumda artış yok, 2 artış, 2 düşüş. Maliyet önemsiz:
+işbirliğine harcanan 15,7 e, toplam erimiş 57.734 e'nin binde 0,3'ü.
+
+> ⚠️ İlk yorum ("mekanizma çalışıyor") **eksik**ti: ölçtüğüm +12,5 koşu
+> **sonundaki** bağ sayısıydı, tepe değil. Tepe bağ sayısı neredeyse aynı.
+> Tam teşhis: **§6.57**.
 
 **Kapalıyken ürün davranışı bit düzeyinde aynı** (ölçüldü: iki koşunun enerjisi
 5807.873723 = 5807.873723, bağ 71 = 71).
@@ -2468,6 +2474,56 @@ Testte erken pencere seçilip "mekanizma çalışmıyor" sanılmıştı; **kod d
 test koşulu yanlıştı.**
 
 ### 6.56 Hileci tanımı — yapısal olarak tanımlı, deneysel olarak sınanmadı
+
+Hilecin varlığı **kavramsal** olarak tanımlıdır: bedeli ödemeyen hücre de
+organizmanın yenilenmiş bağlarından yararlanır. Ancak **kalıtsal değil** —
+ölçülebilir çeşitlilik için genoma parametre eklemek gerekir ve bu, tüm
+önceki ölçümleri geçersizleştirir. Kullanıcının kararına bırakıldı.
+
+### 6.57 Neden işe yaramadı — **ölçtüğüm sayı yanlış yeri gösteriyormuş**
+
+Negatif sonuç yetmez; **niye** sorusu ölçülerek yanıtlandı ve ölçüm bir
+şeyi yanlış gösteriyormuş.
+
+#### Önce bir ölçüm hatası bulundu ve düzeltildi
+
+Teşhisi rapora eklerken deneyin `run()` fonksiyonunda **döngü iki kez
+kopyalanmıştı**: dünya 8000 yerine **16.000 tick** işliyordu ve "tepe bağ
+sayısı" koşunun **ikinci yarısından** geliyordu. Raporda "tepeBağ farkı 12,8"
+yazıyordu — o sayı aslında **son** bağ farkıydı.
+
+Belirti: bağımsız ölçüm betiğim **0,4** derken rapor **12,8** diyordu. İki
+ölçümün uyuşmaması aramayı başlattı. **Raporu şüpheliye alan** taraf kazandı.
+
+Düzeltilmiş ve yeniden üretilmiş ölçüm:
+
+| | kapalı (ε = 0) | açık (k = 0,002) |
+|---|---|---|
+| **son** bağ sayısı | 36,6 | 48,0 (**+11,4**) |
+| **tepe** bağ sayısı | **110,4** | **111,0** (+0,6) |
+| tepe küme | 15,00 | 14,33 |
+| tepe popülasyon | 286,9 | 286,6 |
+| ortalama hücre enerjisi | 29,94 | 29,80 |
+| **işbirliğine harcanan** | **0** | **15,7 e** |
+| erimiş enerji (toplam) | 57.734 | 57.734 |
+
+Önceki bölümde "bağ farkı **+12,5**, p = 0,0001 → mekanizma çalışıyor"
+yazmıştım. Bu sayı **koşu sonundaki** bağ sayısıydı. **Zaman içindeki tepe bağ
+sayısı neredeyse aynı** (104,7 → 105,1).
+
+> **Yani akt, koloninin zirvelendiği anda değil, sonradan boşalan yerde işe
+> yarıyor.** Koloni büyürken bağlar zaten bol; akt o anda hiçbir şey kazandırmıyor,
+> çünkü ihtiyaç duyulmuyor.
+
+#### Maliyet de önemsiz
+
+İşbirliğine harcanan 15,7 e, toplam erimiş enerjinin (57.734) binde 0,3'ü.
+Yani akt hem **ucuz** hem **işe yaramaz** — zarar da vermiyor, fayda da etmiyor.
+
+Bu, hileci için genom parametresi kararını da değiştirir: **seçilebilir bir
+işbirliği eğilimi eklemek, hiçbir şey kazandırmayan bir davranışı seçilebilir
+kılırdı.** Parametre eklemenin maliyeti (tüm ölçümlerin geçersizleşmesi) bu
+yüzden bir kazana karşılık getirmiyor. Karar kullanıcıya bırakıldı.
 
 Hilecin varlığı artık **kavramsal olarak** tanımlı: bedeli ödemeyen hücre de
 organizmanın yenilenmiş bağlarından yararlanır.
@@ -2689,3 +2745,9 @@ aralıkları sabit bootstrap tohumuyla tekrarlanabilir. `npm run experiments`
 12.000 tick'lik standart pencere kısa vadeli bulguları (§5.4) kapsar;
 **uzun vadeli çöküşü (§5.12–5.16) görmek için `--deep` gerekir.** Bu ayrım
 bilinçlidir: §5.11'de öğrenildiği gibi tek pencereye bağlı sonuçlar genellenmez.
+
+
+> **Ders:** rapor ile bağımsız ölçüm birbirini doğrulamazsa **raporu şüpheliye
+> al**. Düzeltilen hata, "ölü alet" sınıfının beşinci hâli: **ölü denetim
+> döngüsü** — döngünün iki kez çalışması ölçümü sessizce bozdu, kimse fark
+> etmedi ve uydurma bir "teşhis" doğurdu.

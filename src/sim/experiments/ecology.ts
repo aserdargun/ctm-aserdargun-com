@@ -2440,12 +2440,17 @@ export interface CooperationPoint {
   peakOn: number;
   bondsOff: number;
   bondsOn: number;
+  /** Zaman içindeki EN YÜKSEK bağ sayısı — asıl ölçüt (final sayısı yanıltıcı). */
+  peakBondsOff: number;
+  peakBondsOn: number;
   renewals: number;
 }
 
 export interface CooperationReport {
   points: CooperationPoint[];
   bondDifferences: number[];
+  /** Zaman içindeki tepe bağ sayısı farkları — asıl ölçüt. */
+  peakBondDifferences: number[];
   peakDifferences: number[];
   bondInterval: Interval;
   bondTest: HypothesisTest;
@@ -2479,14 +2484,20 @@ export function experimentCooperation(options?: {
   const run = (renewal: number, seed: number) => {
     const world = new World({ seed, population, strainDecayK: 0.005, coopRenewal: renewal });
     let peak = 0;
+    let peakBonds = 0;
+    // ⚠️ TEK döngü. İlk düzenlemede döngü iki kez kopyalanmıştı: dünya 8000 yerine
+    // 16000 tick işliyordu ve "tepe bağ" sayısı koşunun **ikinci yarısından**
+    // geliyordu. Sonuç: raporda "tepe bağ" başlığı altında aslında SON bağ
+    // sayıları görünüyordu ve teşhis çürütülüyordu.
     for (let t = 0; t < ticks; t++) {
       world.step();
       if (t % 200 === 0) {
         const m = world.latestMetrics();
         if (m && m.largestColonySize > peak) peak = m.largestColonySize;
+        if (world.bonds.size > peakBonds) peakBonds = world.bonds.size;
       }
     }
-    return { peak, bonds: world.bonds.size, renewals: world.cooperationStats().renewals };
+    return { peak, bonds: world.bonds.size, peakBonds, renewals: world.cooperationStats().renewals };
   };
 
   const points: CooperationPoint[] = seedList.map((seed) => {
@@ -2496,11 +2507,13 @@ export function experimentCooperation(options?: {
       seed,
       peakOff: off.peak, peakOn: on.peak,
       bondsOff: off.bonds, bondsOn: on.bonds,
+      peakBondsOff: off.peakBonds, peakBondsOn: on.peakBonds,
       renewals: on.renewals,
     };
   });
 
   const bondDifferences = points.map((p) => p.bondsOn - p.bondsOff);
+  const peakBondDifferences = points.map((p) => p.peakBondsOn - p.peakBondsOff);
   const peakDifferences = points.map((p) => p.peakOn - p.peakOff);
   const bondInterval = bootstrapCI(bondDifferences, { seed: 41 });
   const bondTest = bootstrapTest(bondDifferences, { seed: 41 });
@@ -2517,9 +2530,14 @@ export function experimentCooperation(options?: {
     `Tepe küme farkı ${mean(peakDifferences).toFixed(2)} ${fmtInterval(peakInterval, 2)} · ` +
     `p = ${fmt(peakTest.pValue, 4)} → ${peakTest.pValue < 0.05 ? 'koloni kazancı var' : 'koloni kazancı yok'} ` +
     `(artış ${up}, düşüş ${down} tohum). ` +
+    `Tepe bağ farkı ${mean(peakBondDifferences).toFixed(1)} — ` +
+    `**bağlar zirvede zaten bol; akt onları sonraki evre kurtarıyor, kazanç orada değil.** ` +
     `Ortalama yenileme: ${Math.round(mean(points.map((p) => p.renewals)))}.`;
 
-  return { points, bondDifferences, peakDifferences, bondInterval, bondTest, peakInterval, peakTest, reading };
+  return {
+    points, bondDifferences, peakBondDifferences, peakDifferences,
+    bondInterval, bondTest, peakInterval, peakTest, reading,
+  };
 }
 
 export function formatCooperation(r: CooperationReport): string {
@@ -2527,13 +2545,16 @@ export function formatCooperation(r: CooperationReport): string {
     (p) =>
       `  tohum ${String(p.seed).padStart(5)}   bağ ${String(p.bondsOff).padStart(3)} → ${String(p.bondsOn).padStart(3)}` +
       `   tepe ${String(p.peakOff).padStart(3)} → ${String(p.peakOn).padStart(3)}` +
+      `   tepeBağ ${String(p.peakBondsOff).padStart(4)} → ${String(p.peakBondsOn).padStart(4)}` +
       `   yenileme ${String(p.renewals).padStart(6)}`,
   );
   return [
     '  k = 0 (kapalı)  ↔  k = 0,002 (işbirliği aktı açık)',
     ...rows,
-    `  bağ farkı  ort ${(r.bondDifferences.reduce((a, b) => a + b, 0) / r.bondDifferences.length).toFixed(1)} ` +
+    `  bağ farkı (SON) ort ${(r.bondDifferences.reduce((a, b) => a + b, 0) / r.bondDifferences.length).toFixed(1)} ` +
       `${fmtInterval(r.bondInterval, 1)} · p = ${fmt(r.bondTest.pValue, 4)}`,
+    `  tepeBağ farkı ort ${(r.peakBondDifferences.reduce((a, b) => a + b, 0) / r.peakBondDifferences.length).toFixed(1)}` +
+      `  ← bağlar zirvede zaten bol; kazancın olması gereken yer burasıydı`,
     `  tepe farkı ort ${(r.peakDifferences.reduce((a, b) => a + b, 0) / r.peakDifferences.length).toFixed(2)} ` +
       `${fmtInterval(r.peakInterval, 2)} · p = ${fmt(r.peakTest.pValue, 4)}`,
     `  → ${r.reading}`,

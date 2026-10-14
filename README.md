@@ -118,7 +118,7 @@ durur.
 | Üreme tıkanması | ❌ değil tıkanma, **çöküş**: son çeyrekte 1 doğum, pop 166 → 41 |
 | Uzun vadeli dayanıklılık | ❌ §5.4 40.000 tick'e **genellenmiyor** — kalibrasyon kısmi hafifletiyor |
 | **Bağ enerji paylaşımı** (varsayılan ayar) | ⚪ **etkisiz**: paylaşmanın matematiksel olarak imkânsız olduğu dünyayla tepe küme **birebir aynı** (fark [0,0], 12 tohum) |
-| **İşbirliği aktı** (varsayılan **kapalı**) | ⚪ mekanizma çalışıyor (bağ +12,5, p = 0,0001) ama **koloni kazancı yok** (p = 0,59) |
+| **İşbirliği aktı** (varsayılan **kapalı**) | ⚪ bağları sona kadar yaşatıyor (son bağ +11,4) ama **zirvede hiç fark yok** (tepe bağ +0,6, tepe küme p = 0,85) |
 
 Son satır önemli: aynı ölçümde evrimsel arama +0.161 kazancı bulurken
 REINFORCE +0.020 (gürültü) buluyor. Darboğaz görevde değil, **öğrenme
