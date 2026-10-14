@@ -22,6 +22,8 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { GENOME_KEYS, founderGenomes, genomeDistance } from '../src/sim/genome.ts';
+import { ACTION_NAMES, MLP_SHAPE } from '../src/sim/behavior/mlp.ts';
+import { ACTION_LABELS_EN, ACTION_LABELS_TR } from '../src/i18n/index.ts';
 import { Rng } from '../src/sim/rng.ts';
 import type { Genome } from '../src/sim/types.ts';
 import { join, resolve } from 'node:path';
@@ -433,6 +435,29 @@ describe('ölü alet · dışa aktarım gerçekten tüketiliyor mu', () => {
     for (const [name, why] of Object.entries(KNOWN_UNWIRED)) {
       expect(why.length, `${name} için gerekçe yok`).toBeGreaterThan(20);
     }
+  });
+});
+
+describe('arayüz · etiket kapsamı gerçekten kapsıyor mu', () => {
+  // ⚠️ `GENOME_LABELS` için aynı sınıfın ikinci üyesi.
+  //
+  // `ACTION_LABELS_TR/EN` dört girdi, `MLP_SHAPE.OUTPUTS` dört çıktı — şu an
+  // hizalılar. Ama aralarında **hiçbir bağ yoktu**: eylem uzayı 5'e çıksa
+  // etiketler dörtte kalır ve panel beş eylemi dört adla gösterirdi.
+  // Korunmayan tek şey hizalama.
+  it('eylem etiketleri eylem uzayıyla aynı uzunlukta', () => {
+    const n = MLP_SHAPE.OUTPUTS;
+    expect(ACTION_NAMES.length, `eylem adları ${n} çıktıyla uyuşmuyor`).toBe(n);
+    expect(ACTION_LABELS_TR.length, 'TR etiketleri eylem uzayından kısa').toBe(n);
+    expect(ACTION_LABELS_EN.length, 'EN etiketleri eylem uzayından kısa').toBe(n);
+    // Sıra da önemli: etiket[i] gerçekten ACTION_NAMES[i] için olmalı.
+    for (let i = 0; i < n; i++) {
+      expect(ACTION_LABELS_TR[i], `TR etiketi ${i} boş`).toBeTruthy();
+      expect(ACTION_LABELS_EN[i], `EN etiketi ${i} boş`).toBeTruthy();
+    }
+    // TR/EN gerçekten ayrı listeler olmalı — biri diğerine kopyalanmışsa
+    // dil değiştirmek hiçbir şey değiştirmez ve denetim bunu yakalamazdı.
+    expect(ACTION_LABELS_TR[n - 1]).not.toBe(ACTION_LABELS_EN[n - 1]);
   });
 });
 
