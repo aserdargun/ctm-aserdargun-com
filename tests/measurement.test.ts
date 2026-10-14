@@ -193,6 +193,32 @@ describe('ölçüm kodu · ölü ölçüm kapsamı koruması', () => {
     expect(i18n).not.toMatch(/GENOME_LABELS_\w+: Record<string, string>/);
   });
 
+  it('bir adı iki modül TANIMLAYAMAZ (ölü beyan sınıfının kapısı)', () => {
+    // "genomeDistance" üç modülde üç farklı hesap olarak yaşıyordu; iki modül
+    // aynı adı **tanımlıyordu** (üçüncüsü satır içi bir ifadeydi). Aynı adlı
+    // iki tanım = içe aktarma yoluna göre farklı sayı üreten sessiz bir kova.
+    //
+    // Yeniden dışa aktarma (`export { x }` / `export { x } from …`) tanım
+    // DEĞİLDİR ve bilinçli olarak eşleşmez: tek kanonik tanımın paylaşılması
+    // tam olarak istenen şeydir.
+    const defs = new Map<string, string[]>();
+    for (const f of filesUnder(join(ROOT, 'src'), (p) => /\.tsx?$/.test(p))) {
+      const src = readFileSync(f, 'utf8');
+      for (const m of src.matchAll(/^export\s+(?:async\s+)?function\s+([A-Za-z0-9_]+)/gm)) {
+        const name = m[1] as string;
+        const list = defs.get(name) ?? [];
+        list.push(f.replace(ROOT + '/', ''));
+        defs.set(name, list);
+      }
+    }
+    const dupes = [...defs.entries()]
+      .filter(([, files]) => files.length > 1)
+      .map(([name, files]) => `${name}: ${files.join(' + ')}`);
+    expect(dupes, `aynı ad birden çok modülde tanımlı:\n${dupes.join('\n')}`).toEqual([]);
+    // Tarama gerçekten dosya okuyor olmalı (boş dönse hep geçerdi).
+    expect(defs.size).toBeGreaterThan(50);
+  });
+
   it('genom parametresi metabolik maliyetli (proje kuralı)', () => {
     // `cooperation` bedelsiz olsaydı düşük değerli bireyler her zaman kazanırdı
     // ve hileci deneyi anlamsızlaşırdı. Test maliyetin varlığını korur.

@@ -1,6 +1,6 @@
 # Cell to Mind — Geliştirme Durumu
 
-**Son güncelleme:** 10 Ekim 2026
+**Son güncelleme:** 14 Ekim 2026
 
 Bu belge, görev sınırına yaklaşıldığı noktada **çalışan kodun** durumunu,
 kalan somut eksikleri ve sonraki adımı yazar. Kodun ortasında kullanılamaz taslak
@@ -13,7 +13,7 @@ doğrulanmıştır.
 
 | Alan | Durum | Kanıt |
 |---|---|---|
-| Saf TS simülasyon çekirdeği | ✅ | 145 test, 4 dosya, ~95 sn |
+| Saf TS simülasyon çekirdeği | ✅ | 238 test, 9 dosya, ~95 sn |
 | Enerji korunumu (kapalı sistem) | ✅ | rezidüel = **0.0000** (arena'da 0.0 e, kolonide 1.7e-8 e) |
 | Bölünme / parçalanma / paylaşım muhasebesi | ✅ | testler |
 | Bağ grafiği → gerçek çok hücrelilik | ✅ | 4+ hücreli yapılar test edildi |
@@ -50,10 +50,18 @@ kod değil, **modelin davranışıdır.** Tam sonuçlar `VALIDATION.md` §4 ve
 
 | Deney | Sonuç | Nerede |
 |---|---|---|
-| **1 · Bağ gücü** | ✅ **güçlü pozitif.** En büyük küme 2.33 → **21.25**, fark [16.42, 21.00], p < 0.0001, %100 iyileşme. 4+ hücreli yapı 0 → 31.3 | `VALIDATION.md` §4.3 |
-| **2 · Evrim** | ⚪ **sonuçsuz.** Fark +0.011 [−0.001, +0.025], p = 0.097. Mutasyon genom kaymasını **artırmadı** (0.006 ↔ 0.007) | §4.4 |
-| **3 · Öğrenme** | ❌ **negatif.** Fark +0.020 [−0.022, +0.061], p = 0.333, %83 iyileşme olasılığı | §4.5 |
-| **Zorluk kalibrasyonu** | 📐 Varsayılan habitat **çok kolay**: rastgele politika 0.928, headroom yalnız 0.072 | §4.2 |
+| **1 · Bağ gücü** | ✅ **güçlü pozitif.** En büyük küme 2.083 → **19.167**, fark **+17.083** [14.833, 19.167], p = 0.0001, %100 iyileşme. 4+ hücreli yapı 0 → 28.9 | `VALIDATION.md` §4.3 |
+| **2 · Evrim** | ⚪ **sonuçsuz.** 0.358 → 0.350, fark −0.008 [−0.024, +0.008], p = 0.3035, %15.4 iyileşme. Mutasyon genom kaymasını **artırmadı** (0.005 ↔ 0.005) | §4.4 |
+| **3 · Öğrenme** | ⚪ **etki yok.** 0.840 → 0.841, fark +0.001 [−0.037, +0.037], p = 0.9764, %51.8 iyileşme olasılığı | §4.5 |
+| **Zorluk kalibrasyonu** | 📐 Varsayılan habitat **çok kolay**: rastgele politika 0.922, headroom yalnız 0.078 | §4.2 |
+
+> ⚠️ **Bu tablo 14 Ekim'de düzeltildi.** Üç deneyin de sayıları `766e0b9`'dan
+> (dokuzuncu parametre eklendi) **önceki** koşulardan geliyordu. En ciddisi
+> öğrenme deneyi: "❌ negatif" etiketi hem taze ölçümle (fark +0.001,
+> %51.8 iyileşme) hem de **kendi alıntıladığı sayılarla** çelişiyordu —
+> alıntıladığı +0.020 fark ve %83 iyileşme, pozitif yöndeydi. Doğrusu "etki
+> yok". Kaynak: `docs/EXPERIMENTS.md` (koloni deneyleri 4.000 tick — `--deep`
+> bunları değiştirmez).
 
 **Eski kabul hedefi geçersiz kılındı.** "20 tohumun en az 15'i" eşik testi
 artık kullanılmıyor: başarı ile şansı ayıramaz. Yerine bootstrap güven aralığı
@@ -589,7 +597,7 @@ Atölyesi olarak çalışıyor.
    Kalibrasyon kısmi hafifletiyor, çöküşü engellemiyor.
 2. **Ekosistem yavaş sönümleniyor:** 20.000 tick'te 78 hücre. Kapalı enerji
    sisteminde bu beklenen; dış besin eklemek mümkün ve defterde kaydediliyor.
-3. **Varsayılan habitat ölçüm için çok kolay:** rastgele politika 0.928. Ürün
+3. **Varsayılan habitat ölçüm için çok kolay:** rastgele politika 0.922. Ürün
    açısından "rahat", deney açısından "ölçülemez". İkisini aynı anda optimize
    etmek mümkün değil — bu bilinçli bir karar noktası.
 4. **Öğrenme darboğazı: REINFORCE varyansı.** Ölçüm zinciri darboğazı

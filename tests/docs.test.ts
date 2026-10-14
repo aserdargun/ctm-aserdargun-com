@@ -170,6 +170,97 @@ describe('belge tutarlılığı · üretilmiş rapor', () => {
     expect(reportTime).toBeGreaterThanOrEqual(codeTime);
   });
 
+  it('anlatı belgeleri üretilmiş raporun sayılarını TAŞIYOR', () => {
+    // ⚠️ Bu, oturumda bulunan en sessiz sürüklenmeyi kapatır.
+    //
+    // `VALIDATION.md` §4.3–4.5 ve `PROGRESS.md` deney tablosu, dokuzuncu genom
+    // parametresi eklenmeden (`766e0b9`) ÖNCEki koşuların sayılarını taşıyordu.
+    // Hiçbir denetim bakmıyordu; yalnız bir sayı güncellendiğinde hepsi
+    // sessizce eski kalıyordu.
+    //
+    // Değerler RAPORUN KENDİSİNDEN türetilir — sabit liste yazılmaz (o da aynı
+    // hastalık). Rapor yeniden üretildiğinde belgelerin de değişmesi zorunlu
+    // hâle gelir.
+    const report = read('docs/EXPERIMENTS.md');
+    // Belgeler tipografik eksi (U+2212) ve `+` kullanıyor; ölçtüğümüz şey
+    // sayının değeri, işaret tipografisi değil.
+    const norm = (s: string): string => s.replace(/−/g, '-').replace(/\s+/g, ' ');
+    const grab = (re: RegExp): string[] => [...report.matchAll(re)].map((m) => m[1] as string);
+
+    const kontrol = grab(/kontrol : (\d+\.\d{3})/g);
+    const tedavi = grab(/tedavi  : (\d+\.\d{3})/g);
+    const fark = grab(/fark    : (-?\d+\.\d{3})/g);
+
+    // Türetme boş dönerse aşağıdaki döngüler hiçbir şeyi denetlemez.
+    expect(kontrol.length, 'rapordan kontrol değeri türetilemedi').toBe(3);
+    expect(tedavi.length, 'rapordan tedavi değeri türetilemedi').toBe(3);
+    expect(fark.length, 'rapordan fark değeri türetilemedi').toBe(3);
+
+    const validation = norm(read('docs/VALIDATION.md'));
+    const progress = norm(read('docs/PROGRESS.md'));
+
+    // ⚠️ Değerler belge GENELİNDE aranmıyor, **kendi bölümünde** aranıyor.
+    // Sınama: §4.3 tablosundaki 2.083'i 2.33 yaptığımda genel arama yine yeşil
+    // kaldı — çünkü "2.083" belgenin başka bir yerinde de geçiyordu. Yani genel
+    // alt dizge denetimi "doğru sayı yanlış yerde" hatasını **kaçırır**.
+    const vMarks = ['### 4.3 ', '### 4.4 ', '### 4.5 ', '### 4.6 '];
+    const pMarks = ['| **1 · ', '| **2 · ', '| **3 · ', '| **Zorluk'];
+    const section = (text: string, marks: string[], i: number): string => {
+      const start = text.indexOf(marks[i] as string);
+      expect(start, `bölüm bulunamadı: ${marks[i]}`).toBeGreaterThan(-1);
+      const end = text.indexOf(marks[i + 1] as string);
+      return text.slice(start, end === -1 ? text.length : end);
+    };
+
+    for (let i = 0; i < 3; i++) {
+      const vSec = section(validation, vMarks, i);
+      const pSec = section(progress, pMarks, i);
+      for (const v of [kontrol[i], tedavi[i], fark[i]] as string[]) {
+        expect(vSec, `VALIDATION bölüm ${i + 1} "${v}" değerini taşımıyor`).toContain(v);
+        expect(pSec, `PROGRESS satırı ${i + 1} "${v}" değerini taşımıyor`).toContain(v);
+      }
+    }
+  });
+
+  it('anlatı belgeleri bayat test sayısı taşımıyor', () => {
+    // PROGRESS.md "145 test, 4 dosya" diyordu; gerçek sayı kaynaktan gelir.
+    const progress = read('docs/PROGRESS.md');
+    expect(progress).not.toMatch(/\b145 test\b/);
+    const readme = read('README.md');
+    const declared = readme.match(/Vitest — (\d+) test/)?.[1];
+    expect(declared, 'README test sayısı bulunamadı').toBeTruthy();
+    expect(progress, 'PROGRESS.md test sayısını README ile aynı yapmalı').toContain(
+      `${declared} test`,
+    );
+  });
+
+  it('derin rapor, genomun tanımından eski değil', () => {
+    // ⚠️ Asimetri **bilinçlidir**, gözden kaçmışlık değil.
+    //
+    // `EXPERIMENTS.md` (12.000 tick, ~13 dk) sık yeniden üretilir; yukarıdaki
+    // kesin denetim ona uygulanır. `EXPERIMENTS-DEEP.md` 40.000 tick'tir ve
+    // ~40 dk sürer; HER kod değişikliğinde yeniden üretmek uygulanamaz ve
+    // denetimi işe yaramaz hâle getirirdi (insanlar atlama eğilimi).
+    //
+    // Asgari gereken koşul: genomun **şekli** değiştiyse (parametre eklendi/
+    // çıkarıldı, sınır değişti) DEEP bayat sayılır. Aksi hâlde bir belge
+    // **var olmayan bir genomu** raporlar.
+    //
+    // ÖLÇÜLEN: DEEP en son 1791719188'de üretilmişti; dokuz parametreli genom
+    // ise 1791967248'de geldi — 2,9 gün sonra. DEEP'te "cooperation" ya da
+    // "işbirliği" geçişi **0** kez. Yani gerçekten eski bir dünyayı anlatıyordu
+    // ve hiçbir denetim buna bakmıyordu.
+    const genomeShapeTime = Math.max(
+      effectiveCodeTime('src/sim/types.ts'),
+      effectiveCodeTime('src/sim/genome.ts'),
+    );
+    const deepTime = effectiveCodeTime('docs/EXPERIMENTS-DEEP.md');
+    expect(
+      deepTime,
+      'EXPERIMENTS-DEEP.md genom tanımından eski — `npm run experiments -- --deep` ile yeniden üret',
+    ).toBeGreaterThanOrEqual(genomeShapeTime);
+  });
+
   it('raporun bağımlılık kümesi boş değil (koruma türetmeyi başardı mı)', () => {
     // Yukarıdaki denetimin kendisi sessizce boş dönseydi `Math.max()` → `-Infinity`
     // olur ve **her şey geçerdi**. Türetilen küme gerçekten kapsayıcı mı?

@@ -188,40 +188,49 @@ headroom azaldıkça ölçüm tavana yapışır ve hiçbir iyileşme görünemez
 
 | Habitat kaynağı | Kontrol skoru (rastgele politika) | Headroom (1 − skor) | Hayatta kalma |
 |---|---|---|---|
-| 4 | 0.538 | 0.462 | %100 |
-| 8 | 0.677 | 0.323 | %100 |
-| **14** | **0.794** | **0.206** | %100 |
-| 22 | 0.873 | 0.127 | %100 |
-| **34 (oyun varsayılanı)** | **0.928** | **0.072** | %100 |
+| 4 | 0.501 | 0.499 | %100 |
+| 8 | 0.657 | 0.343 | %100 |
+| **14** | **0.753** | **0.247** | %100 |
+| 22 | 0.855 | 0.145 | %100 |
+| **34 (oyun varsayılanı)** | **0.922** | **0.078** | %100 |
+
+> **Kaynak:** `docs/EXPERIMENTS.md` "Arena zorluk kalibrasyonu (headroom)".
+> Tablo `766e0b9` öncesinden kalıyordu (0.538 / 0.794 / 0.928) ve tazelendi.
 
 **Bulgu (ürün için de geçerli):** Oyunun varsayılan habitatı **çok kolay.**
-Rastgele bir politika bile 0.928 ortalama enerjiyle neredeyse tavan yapıyor ve
+Rastgele bir politika bile 0.922 ortalama enerjiyle neredeyse tavan yapıyor ve
 hiç ölmiyor. Bu, "her şey iyi gidiyor" değil, **"burası ölçüm yapılamayacak kadar
 kolay"** demektir. `docs/ROADMAP.md` Faz B1'in kaynak tükenmesi teşhisiyle
 birlikte okunmalıdır: sorun yalnız kaynak miktarı değil, kaynak erişilebilirliği.
 
-Öğrenme deneyi bu yüzden **14 kaynaklık** habitatta koşuldu (headroom 0.206).
+Öğrenme deneyi bu yüzden **14 kaynaklık** habitatta koşuldu (güncel taramada
+headroom **0.167**; eski metindeki 0.206 bayattı).
 
 ### 4.3 Deney 1 — Bağ gücü kolonileri büyütüyor mu?
 
 **Protokol:** Eşleştirilmiş. 12 tohum. Aynı seed iki kolda; tek fark kurucu
 genomlarının `bondAffinity` değeri (0.05 ↔ 0.90). Mutasyon kapalı → değer soy
 boyunca birebir korunur, etki diğer değişkenlerden arındırılamaz.
-**Birincil ölçüm:** pencerede görülen en büyük bağlı küme.
+**Birincil ölçüm:** pencerede görülen en büyük bağlı küme. **Pencere 4.000 tick.**
 
 | | Değer |
 |---|---|
-| Kontrol (bondAffinity 0.05) | 2.33 [2.08, 2.58] |
-| Tedavi (bondAffinity 0.90) | **21.25** [18.67, 23.42] |
-| **Fark** | **+18.92** [16.42, 21.00] |
-| Bootstrap p | **< 0.0001** |
+| Kontrol (bondAffinity 0.05) | 2.083 [2.000, 2.250] |
+| Tedavi (bondAffinity 0.90) | **19.167** [16.833, 21.333] |
+| **Fark** | **+17.083** [14.833, 19.167] |
+| Bootstrap p | **0.0001** |
 | İyileşme olasılığı | %100 |
 
 | İkincil | Kontrol | Tedavi |
 |---|---|---|
-| Zirve 4+ hücreli yapı sayısı | 0.0 | 31.3 |
-| Pencere sonu bağ sayısı | 1.3 | 91.6 |
-| Pencere sonu popülasyon | 232.8 | 267.1 |
+| Zirve 4+ hücreli yapı sayısı | 0.000 | 28.917 |
+| Pencere sonu bağ sayısı | 0.583 | 83.917 |
+| Pencere sonu popülasyon | 206.750 | 241.917 |
+
+> **Kaynak:** `docs/EXPERIMENTS.md` "Bağ gücü koloni büyüklüğünü artırıyor mu?"
+> (4.000 tick, 12 eşleştirilmiş tohum). Bu tablodaki sayılar **dokuz
+> parametreli** güncel genomdan gelir; `766e0b9`'dan önceki koşunun sayıları
+> (2,33 → 21,25) burada **yanlış** olarak duruyordu ve düzeltildi.
 
 **Okuma — güçlü pozitif, ama nüanslı.** Çok hücrelilik tek bir kalıtsal
 parametreyle üst üste büyük bir etkiyle kontrol ediliyor. Ancak `bondAffinity`
@@ -233,32 +242,44 @@ bir yerde duruyor ve §2'deki "en büyük küme 9" değeriyle tutarlı.
 ### 4.4 Deney 2 — Mutasyon + seçilim popülasyonu iyileştiriyor mu?
 
 **Protokol:** Eşleştirilmiş. 12 tohum. Aynı seed iki kolda; tek fark
-`mutationEnabled`. 4.000 tick.
+`mutationEnabled`. **Pencere 4.000 tick.**
 **Birincil ölçüm:** pencere sonu ortalama normalize enerji.
 
 | | Değer |
 |---|---|
-| Kontrol (donmuş) | 0.342 [0.307, 0.377] |
-| Tedavi (evrilen) | 0.353 [0.325, 0.382] |
-| **Fark** | +0.011 [−0.001, +0.025] |
-| Bootstrap p | **0.097** |
-| İyileşme olasılığı | %96 |
+| Kontrol (donmuş) | 0.358 [0.328, 0.387] |
+| Tedavi (evrilen) | 0.350 [0.319, 0.379] |
+| **Fark** | **−0.008** [−0.024, +0.008] |
+| Bootstrap p | **0.3035** |
+| İyileşme olasılığı | %15.4 |
 
 | İkincil | Kontrol | Tedavi |
 |---|---|---|
-| Genom kayması (`genomeShift`) | 0.007 | 0.006 |
-| Ulaşılan en yüksek nesil | 2.92 | 2.92 |
-| Zirve en büyük küme | 12.67 | 12.25 |
-| Pencere sonu 4+ hücreli yapı | 3.08 | 2.25 |
+| Genom kayması (`genomeShift`) | 0.005 | 0.005 |
+| Ulaşılan en yüksek nesil | 2.75 | 2.75 |
+| Zirve en büyük küme | 9.33 | 11.92 |
+| Pencere sonu 4+ hücreli yapı | 1.50 | 2.92 |
 
-**Okuma — belirsiz, ve nedeni ölçülmüş.** Farkın yönü olumlu ama güven aralığı
-sıfırı içeriyor; p = 0.097 ile bu deney **sonuçsuzdur**. İkincil ölçüm daha
-önemli: mutasyon açıkken genom kayması donmuş koldan **daha büyük değil**
-(0.006 ↔ 0.007) ve iki kol **aynı nesle** ulaşıyor (2.92).
+> **Kaynak:** `docs/EXPERIMENTS.md` "Mutasyon + seçilim popülasyonu iyileştiriyor
+> mu?" (4.000 tick, 12 eşleştirilmiş tohum).
+>
+> ⚠️ **Bu tablo düzeltildi ve yön değişti.** Önceden burada `+0.011`,
+> p = 0.097, iyileşme %96, genom kayması 0.007/0.006 ve zirve küme 12,67/12,25
+> yazıyordu; bunlar **`766e0b9`'dan önceki** koşudan geliyordu.
+>
+> **Pencere notu:** bu deney 4.000 tick koşar (`scale.colonyTicks`) ve `--deep`
+> ile değişmez; 40.000 tick yalnız `longTicks` kullanan ekoloji bölümlerine
+> uygulanır. Bu yüzden sığ ve derin rapor bu deneyde **aynı** sayıları verir.
+
+**Okuma — sonuçsuz; artık farkın yönü de negatif.** p = 0.3035 ile güven aralığı
+sıfırı içeriyor, iyileşme olasılığı %15,4 — yani belirgin bir etki **yok** ve
+nokta tahmini hafifçe aşağı yönde. İkincil ölçüm daha önce bağlayıcıydı ve
+öyledir kalıyor: mutasyon açıkken genom kayması donmuş koldan **daha büyük
+değil** (0.005 ↔ 0.005) ve iki kol **aynı nesle** ulaşıyor (2.75).
 
 Bu, evrimin işe yaramadığı anlamına **gelmez**. Pencerede yalnızca ~3 nesil
-geçiyor; 3 nesilde genetik ayrışma oluşması beklenmez. Bu bir **tasarım
-sınırlaması** bulgusudur ve şu anlama gelir: evrimsel iddialar için ya pencer
+geçiyor; 3 nesilde genetik ayrışma oluşması beklemez. Bu bir **tasarım
+sınırlaması** bulgusudur ve şu anlama gelir: evrimsel iddialar için ya pencere
 uzatılmalı ya da nesil sayısı deneyin birincil ekseni yapılmalıdır.
 
 ### 4.5 Deney 3 — Yaşam içi öğrenme politikayı iyileştiriyor mu?
@@ -273,31 +294,46 @@ uzatılmalı ya da nesil sayısı deneyin birincil ekseni yapılmalıdır.
 
 | | Değer |
 |---|---|
-| Kontrol (rastgele ağ) | 0.826 [0.778, 0.869] |
-| Tedavi (eğitilmiş politika) | 0.847 [0.805, 0.884] |
-| **Fark** | +0.020 [−0.022, +0.061] |
-| Bootstrap p | **0.333** |
-| İyileşme olasılığı | %83.3 |
+| Kontrol (rastgele ağ) | 0.840 [0.797, 0.878] |
+| Tedavi (eğitilmiş politika) | 0.841 [0.792, 0.885] |
+| **Fark** | **+0.001** [−0.037, +0.037] |
+| Bootstrap p | **0.9764** |
+| İyileşme olasılığı | %51.8 |
 
 | İkincil | Değer |
 |---|---|
-| Kontrol kolunun headroom'u | 0.174 |
-| **EZBER KONTROLÜ — eğitim dünyasındaki fark** | **−0.000** |
-| Ezber farkı − genelleşme farkı | −0.021 |
+| Kontrol kolunun headroom'u | 0.160 |
+| **EZBER KONTROLÜ — eğitim dünyasındaki fark** | **−0.003** (kontrol 0.833 · tedavi 0.830) |
+| Ezber farkı − genelleşme farkı | −0.004 |
 | Değerlendirmede hayatta kalma (iki kol) | %100 / %100 |
 | **Eğitimde politika güncellemesi sayısı** | **9.0** |
 | **Eğitimde ağırlıkların kaydığı (‖Δθ‖)** | **0.003** |
-| Eğitim koşularında hayatta kalma | %0 |
+| Eğitim koşularında hayatta kalma | %100 |
 
-**Okuma — negatif sonuç, teşhisi ölçülmüş olarak verildi.**
+> **Kaynak:** `docs/EXPERIMENTS.md` "Yaşam içi öğrenme politikayı iyileştiriyor
+> mu?" (20 eşleştirilmiş tohum) ve "Arena zorluk kalibrasyonu" habitat taraması.
+>
+> ⚠️ **Bu tablo düzeltildi.** Önceden `+0.020`, p = 0.333, iyileşme %83,3,
+> headroom 0.174 ve ezber farkı −0.000 yazıyordu; bunlar dokuz parametre öncesi
+> koşulardan geliyordu. Habitat başlığının "headroom 0.206" iddiası da eskiydi:
+> güncel taramada 14 kaynaklık habitat headroom'u **0.167** (deney satırında
+> 1 − 0.840 = 0.160).
 
-Yön olumlu, iyileşme olasılığı %83, ama güven aralığı sıfırı içeriyor. **Bu
-koşullarda ölçülebilir bir öğrenme etkisi yoktur.** `docs/PROGRESS.md` §2.1'deki
-eski kabul hedefi ("20 tohumun en az 15'i") bu raporla **geçersiz kılındı:**
-eşik testi başarı ile şansı ayıramaz ve artık kullanılmıyor.
+**Okuma — etki yok; daha önce yazılan "negatif" etiketi de yanlıştı.**
 
-**Ezber kontrolü belirleyicidir.** Eğitilmiş politika, **eğitildiği dünyada**
-kontrolü geçmiyor (fark −0.000). Yani sonuç "ezber" değil: ne ezber ne de
+Fark **+0.001**, güven aralığı sıfırı içeriyor, iyileşme olasılığı **%51,8**
+(para mı üst mü). p = 0.9764 ile **ölçülebilir bir öğrenme etkisi yoktur** —
+"negatif" değil, **hiç etki yok**. `docs/PROGRESS.md` bu deneyi "❌ negatif"
+diye etiketliyordu; bu etiket hem taze ölçümle hem de **kendi alıntıladığı**
+sayılarla çelişiyordu (alıntıladığı fark +0.020, iyileşme %83 — ikisi de
+pozitif yöndeydi). Düzeltildi.
+
+`docs/PROGRESS.md` §2.1'deki eski kabul hedefi ("20 tohumun en az 15'i") bu
+raporla **geçersiz kılındı**: eşik testi başarı ile şansı ayıramaz ve artık
+kullanılmıyor.
+
+**Ezber kontrolü yine belirleyici.** Eğitilmiş politika, **eğitildiği dünyada**
+kontrolü geçmiyor (fark −0.003). Yani sonuç "ezber" değil: ne ezber ne de
 kısmi öğrenme. Dokuz adımlık öğrenme hiçbir ortamda davranışı değiştirmiyor.
 
 Üç ölçülmüş neden, hepsi aynı yere işaret ediyor:
@@ -312,7 +348,7 @@ kısmi öğrenme. Dokuz adımlık öğrenme hiçbir ortamda davranışı değiş
    parametre başına ortalama 2.5e-4 kayma demek — karar sınırlarını geçmeye
    yetmez.
 3. **Görev ölçüm için kolay.** İki kol da %100 hayatta kaldı; fark yalnız
-   beslenme kalitesinde aranıyor (headroom 0.174).
+   beslenme kalitesinde aranıyor (headroom 0.160).
 
 **Bu bulgular, projenin "yaşam öğrenir" iddiasının şu anda kanıtlanmadığı
 anlamına gelir.** Uygulama öğrenmeyi gerçekten uygular (ağırlıklar değişir,
@@ -321,7 +357,7 @@ yansıyacak kadar hareket üretmediği **ölçülmüştür.**
 
 ### 4.6 Öğrenme · zorluk taraması (önceden kaydedilmiş eksen)
 
-Varsayılan habitatta ölçüm mümkün değildi: headroom 0.072. Bu tarama soruyu
+Varsayılan habitatta ölçüm mümkün değildi: headroom 0.078. Bu tarama soruyu
 **ölçerek** yanıtlar: *headroom açıldığında öğrenme etkisi beliriyor mu?*
 Her noktada tam protokol koşar (12 eşleştirilmiş tohum, ayrık eğitim/değerlendirme
 tohumları, bootstrap aralığı). **Tüm eğri raporlanır**, yalnız elverişli nokta
@@ -426,7 +462,7 @@ Bu, §4.7'deki bulguyu tamamlar ve sonucu kesinleştirir:
 
 | Aday açıklama | Durum | Kanıt |
 |---|---|---|
-| Görev ölçüm için çok kolay | **Kısmen doğru** — varsayılan habitatta evet | §4.2 (headroom 0.072) |
+| Görev ölçüm için çok kolay | **Kısmen doğru** — varsayılan habitatta evet | §4.2 (headroom 0.078) |
 | Habitat zorluğu çözüm | **Elendi** — zorluk artınca etki belirmiyor | §4.6 (4 kaynakta iyileşme %7) |
 | Adım boyutu çok küçük | **Elendi** — 570× büyütünce politika kötüleşiyor | §4.7 (p = 0.0001, iyileşme %0.0) |
 | Politika sınıfı tıkanmış | **Elendi** — 0.118'lik açıklık var | §4.8 |
@@ -2877,6 +2913,8 @@ Bunlar testlerin bulduğu, düzeltildiği ve **yeniden test edildiği** hatalard
 | 23 | Worker protokolünde **dört genom alanı** `Record<string, number>` idi | Gevşek tip, worker sınırında eksik bir genom parametresinin sessizce taşınmasına izin veriyordu; soy paneli `labels[k] ?? k` yüzünden eksik satırı ham anahtarla gösterirdi. **Bu bir canlı hata değildi** — üretici (`genomeSummary`) eksiksiz çalışıyordu — tip güvenlik açığıydı | Alanlar `Genome` tipine bağlandı; eksik parametre artık derleme hatası |
 | 24 | `sim/genome.ts` başlığı **"Sekiz kalıtsal parametredir"** diyordu | Genom dokuz parametreye çıktığında güncellenmemişti; modül kanonik tanımın evi olduğu için buradaki yanlış sayı özellikle yanıltıcıydı | "Dokuz" olarak düzeltildi; kaynak dokümanındaki parametre sayısı artık testle korunuyor |
 | 25 | Rapor tazelik denetimi **commit edilmemiş** değişiklikleri görmüyordu | `colony.ts` değiştirilip rapor üretilmeden koşan `npm run check` **yeşil** geçti; aynı commit CI'da **kırmızı** oldu. Yerel kapı, tam da uyarması gerektiği yerde sessizdi — çünkü tarihi `git log`'dan okuyor | Denetim artık **değiştirilmiş** dosyada dosya mtime'ını esas alıyor. Yalnız *değiştirilmiş* dosyada: `actions/checkout` her dosyaya taze mtime verdiği için, mtime her zaman esas alınsa temiz bir CI klonunda denetim **daima** kırmızı olurdu |
+| 26 | **Anlatı belgeleri dokuz parametre öncesinden** sayılar taşıyordu | `766e0b9` tüm ölçümleri geçersiz kıldı ve kabul edilen riskti; ama `VALIDATION.md` §4.2–4.5 ve `PROGRESS.md` deney tablosu eski koşuların sayılarını taşımaya devam ediyordu, **hiçbir denetim bakmıyordu**. En ciddisi: `PROGRESS.md` öğrenmeyi "❌ **negatif**" diye etiketliyordu ama kendi alıntıladığı `+0.020` fark ve `%83` iyileşme **pozitif** yöndeydi — etiket kendi kanıtıyla çelişiyordu. Taze ölçüm: fark **+0.001**, p **0,9764**, iyileşme **%51,8** = etki yok | Üç deneyin tablosu ve §4.2 habitat tablosu `EXPERIMENTS.md`'den yeniden yazıldı; kaynak ve pencere notları eklendi. Değerler artık **rapordan türetilen**, bölüm kapsamlı bir denetimle korunuyor |
+| 27 | `EXPERIMENTS-DEEP.md` **2,9 gün** bayattı | Son üretim `1791719188`, dokuz parametreli genom ise `1791967248`'de geldi. Raporda "cooperation"/"işbirliği" geçişi **0** kez — yani **var olmayan bir genomu** raporluyordu. Tazelik denetimi yalnız `EXPERIMENTS.md`'yi izliyordu | Derin paket yeniden üretildi (2.072 koşu, 912 sn). Denetim, **genom tanımı** (`types.ts` + `genome.ts`) değiştiyse DEEP'i bayat sayacak biçimde eklendi — 40 dk'lık üretimin her kod değişikliğinde istenmesi denetimi işe yaramaz hâle getirirdi |
 
 ### 10.1 `genomeDistance` — aynı ad, üç tanım
 

@@ -1,7 +1,7 @@
 # Cell to Mind — Deney Sonuçları
 
-**Körüldü:** 2026-10-11T11:43:49.062Z
-**Toplam koşu:** 244159 · **duvar süresi:** 717.3 s
+**Körüldü:** 2026-10-14T15:49:46.443Z
+**Toplam koşu:** 2072 · **duvar süresi:** 912.3 s
 **Mod:** TAM (derin pencere)
 **Pencere:** 40.000 tick (40.000 tick'lik ekolojik çöküşü kapsamak için `--deep` kullanın)
 
@@ -24,11 +24,11 @@
 Kaynak sayısı arttıkça kontrol kolusunun skoru tırmanır ve ölçüm tavana yapışır.
 
 ```
-  kaynak= 4 → kontrol 0.538 · headroom 0.462 · hayatta kalma 100%
-  kaynak= 8 → kontrol 0.677 · headroom 0.323 · hayatta kalma 100%
-  kaynak=14 → kontrol 0.794 · headroom 0.206 · hayatta kalma 100%
-  kaynak=22 → kontrol 0.873 · headroom 0.127 · hayatta kalma 100%
-  kaynak=34 → kontrol 0.928 · headroom 0.072 · hayatta kalma 100%
+  kaynak= 4 → kontrol 0.501 · headroom 0.499 · hayatta kalma 100%
+  kaynak= 8 → kontrol 0.657 · headroom 0.343 · hayatta kalma 100%
+  kaynak=14 → kontrol 0.753 · headroom 0.247 · hayatta kalma 100%
+  kaynak=22 → kontrol 0.855 · headroom 0.145 · hayatta kalma 100%
+  kaynak=34 → kontrol 0.922 · headroom 0.078 · hayatta kalma 100%
 ```
 
 ## Öğrenme · zorluk taraması
@@ -41,11 +41,11 @@ yalnız elverişli nokta seçilmez.
 
 ```
   kaynak  headroom   kontrol    tedavi     fark [95% CI]        p      iyileşme  günc.  ‖Δθ‖_eğt  ezber
-      4  0.429362  0.57063801  0.55146240  [-0.050, 0.005]    0.171483  7.040000%  9.0000  0.00251950  -0.013523
-      8  0.356925  0.64307489  0.68219633  [-0.006, 0.091]    0.108489  95.440000%  9.0000  0.00279844  -0.000436
-     14  0.180968  0.81903220  0.82093471  [-0.059, 0.060]    0.951805  52.710000%  9.0000  0.00277983  0.000006
-     22  0.115606  0.88439418  0.89119154  [-0.030, 0.038]    0.697630  66.650000%  9.0000  0.00271105  -0.000401
-     34  0.067718  0.93228151  0.93676617  [-0.005, 0.015]    0.386261  80.370000%  9.0000  0.00260241  0.000785
+      4  0.478637  0.52136288  0.53351724  [-0.010, 0.033]    0.272173  85.570000%  9.0000  0.00241388  -0.006991
+      8  0.384294  0.61570595  0.61269213  [-0.054, 0.049]    0.909309  45.560000%  9.0000  0.00268457  0.000865
+     14  0.166646  0.83335435  0.83484623  [-0.038, 0.035]    0.934707  55.080000%  9.0000  0.00291532  -0.004180
+     22  0.104073  0.89592714  0.86811152  [-0.083, 0.018]    0.280772  13.870000%  9.0000  0.00260672  0.002569
+     34  0.076195  0.92380471  0.93168140  [-0.006, 0.023]    0.289071  86.760000%  9.0000  0.00243965  0.000280
 ```
 
 ## Öğrenme sinyali duyarlılığı
@@ -57,15 +57,15 @@ Oyun her zaman varsayılan sabitlerle çalışır.
 
 ```
   ufuk  lr      günc.     ‖Δθ‖      fark [95% CI]           p       iyileşme  ezber
-    64  0.020000  9.000000  0.00274625  [-0.077, 0.088]       0.868613  57.440000%  -0.00279
-    64  0.100000  9.000000  0.01397606  [-0.076, 0.087]       0.826117  60.660000%  0.01714
-    64  0.500000  9.000000  0.06842854  [-0.117, 0.075]       0.826717  43.590000%  -0.00426
-    16  0.020000  37.000000  0.02707835  [-0.136, 0.053]       0.482352  24.600000%  -0.01662
-    16  0.100000  37.000000  0.14130672  [-0.139, 0.057]       0.614239  33.080000%  -0.02895
-    16  0.500000  37.000000  0.55639990  [-0.222, 0.008]       0.080492  3.980000%  -0.09311
-     8  0.020000  75.000000  0.09192121  [-0.143, 0.042]       0.346265  17.220000%  -0.00784
-     8  0.100000  75.000000  0.45674084  [-0.234, -0.028]      0.009699  0.360000%  -0.05449
-     8  0.500000  75.000000  1.57064459  [-0.401, -0.209]      0.000100  0.000000%  -0.27454
+    64  0.020000  9.000000  0.00313966  [-0.054, 0.052]       0.933607  55.040000%  0.01991
+    64  0.100000  9.000000  0.01516789  [-0.031, 0.080]       0.317268  84.770000%  -0.00000
+    64  0.500000  9.000000  0.07374231  [-0.099, 0.040]       0.648335  36.920000%  0.00291
+    16  0.020000  37.000000  0.03107201  [-0.092, 0.073]       0.924708  57.650000%  0.00045
+    16  0.100000  37.000000  0.13210226  [-0.037, 0.081]       0.332667  83.010000%  0.01400
+    16  0.500000  37.000000  0.63823846  [-0.291, -0.062]      0.001100  0.090000%  -0.13144
+     8  0.020000  75.000000  0.09443658  [-0.099, 0.053]       0.782822  42.500000%  -0.01667
+     8  0.100000  75.000000  0.41392989  [-0.196, -0.001]      0.045595  2.240000%  -0.06383
+     8  0.500000  75.000000  1.74281483  [-0.423, -0.302]      0.000100  0.000000%  -0.34453
 ```
 
 ## Politika uzayı araştırması (öğrenmenin üst sınırı)
@@ -76,8 +76,8 @@ dağılımı ikisini ayırır: yayılım varsa öğrenilecek bir davranış vard
 
 ```
   kaynak=14 · n=160 rastgele politika
-    min 0.520 · q25 0.775 · medyan 0.854 · q75 0.901 · maks 0.963 · ortalama 0.826
-    en iyi %10 ortalaması − genel ortalama = öğrenilebilir açıklık: 0.118
+    min 0.461 · q25 0.724 · medyan 0.823 · q75 0.889 · maks 0.960 · ortalama 0.803
+    en iyi %10 ortalaması − genel ortalama = öğrenilebilir açıklık: 0.134
 ```
 
 ## Evrimsel politika araması — RL ile aynı ölçüm
@@ -88,12 +88,12 @@ Aynı arena, aynı ölçüm, aynı tohum ayrımı — tek fark arama yöntemi.
 
 ```
    nesil   en iyi   ortalama
-       0  0.9272408  0.807978613
-       1  0.9272408  0.905444167
-       4  0.9306804  0.918236142
-       9  0.9306804  0.916097459
-  eğitim en iyi 0.931 · rastgele taban 0.735
-  DEĞERLENDİRME (görülmemiş tohumlar): bulunan 0.916 · rastgele taban 0.755 · kazanç 0.161
+       0  0.9304197  0.811236437
+       1  0.9304197  0.907753020
+       4  0.9348259  0.927527870
+       9  0.9369076  0.929581605
+  eğitim en iyi 0.937 · rastgele taban 0.733
+  DEĞERLENDİRME (görülmemiş tohumlar): bulunan 0.926 · rastgele taban 0.712 · kazanç 0.215
 ```
 
 ## S-1 · Varyans azaltma (varsayılan adım ayarlarında)
@@ -109,10 +109,10 @@ aralığı sıfırdan ayrışmalı (p < 0.05) ve iyileşme olasılığı > %80 o
 
 ```
   varyant                  günc.     ‖Δθ‖      fark [95% CI]           p      iyileşme  ezber
-  temel (dönüşüm yok)     9.00000  0.00272571  [-0.022, 0.062]       0.325267  83.530000%  0.01657
-  z-skor avantaj          9.00000  0.00348026  [-0.021, 0.067]       0.320468  84.830000%  0.01395
-  işaret avantajı         9.00000  0.00252176  [-0.020, 0.064]       0.277972  85.920000%  0.01656
-  işaret + z-skor         9.00000  0.00307264  [-0.014, 0.067]       0.167283  91.060000%  0.01633
+  temel (dönüşüm yok)     9.00000  0.00287061  [-0.037, 0.038]       0.977202  51.340000%  -0.01077
+  z-skor avantaj          9.00000  0.00369428  [-0.043, 0.040]       0.994901  51.350000%  -0.01125
+  işaret avantajı         9.00000  0.00266010  [-0.037, 0.038]       0.951205  53.200000%  -0.01138
+  işaret + z-skor         9.00000  0.00307946  [-0.037, 0.038]       0.956504  52.120000%  -0.01008
 ```
 
 ## S-1b · İşaret avantajı + ölçülü adım artışı
@@ -127,10 +127,10 @@ iyileşme olasılığı > %80.
 
 ```
   ufuk  lr      günc.     ‖Δθ‖      fark [95% CI]           p      iyileşme  ezber
-    64  0.020000  9.000000  0.00252176  [-0.019, 0.064]       0.275972  86.040000%  0.01656
-    64  0.100000  9.000000  0.01222294  [-0.029, 0.050]       0.551545  73.290000%  0.01085
-    64  0.500000  9.000000  0.06256061  [-0.037, 0.059]       0.547645  73.580000%  -0.00361
-    64  2.000000  9.000000  0.26703045  [-0.060, 0.041]       0.784722  40.310000%  -0.02973
+    64  0.020000  9.000000  0.00266010  [-0.036, 0.039]       0.954205  53.600000%  -0.01138
+    64  0.100000  9.000000  0.01330510  [-0.023, 0.048]       0.463754  76.350000%  -0.01069
+    64  0.500000  9.000000  0.06812558  [-0.048, 0.041]       0.949805  48.880000%  -0.01182
+    64  2.000000  9.000000  0.26731245  [-0.090, 0.001]       0.063594  3.430000%  -0.03563
 ```
 
 ## S-2 teşhisi · Ödül sinyali
@@ -144,8 +144,8 @@ optimizer çalışamaz; %5–%20 → zayıf; ≥ %20 → sinyal var, sorun optim
 
 ```
   kaynak=14 · 48 politika × 2 dünya
-    ödül (karar başına): min 1.19747 · medyan 2.04311 · maks 3.28979
-    ödül ↔ performans: Pearson 0.696 · Spearman 0.733
+    ödül (karar başına): min 1.23569 · medyan 2.09566 · maks 2.93536
+    ödül ↔ performans: Pearson 0.677 · Spearman 0.675
     politikaya bağlı ödül varyansı payı: 97.92%
     → Ödülün %97.9'i politika farklarından geliyor → **sinyal var**. Sorun optimizer tarafındadır.
 ```
@@ -157,59 +157,59 @@ parametre değiştirilmez. Beş rakip açıklama beş ölçümle ayrıldı.
 
 ```
   tohum 11 · 40000 tick
-  zirve: tick 3200 · en büyük küme 8 · bağ 77 · bütünlük 0.561 · uzama 0.018
-  sönümlenme: tick 8400 · küme 1 · bağ 0 · bütünlük 0.000 · uzama 0.000
-  rezerv (sönümlenmede): %54.7
-  ölüm payları: açlık %55 · avcı %45
+  zirve: tick 2400 · en büyük küme 7 · bağ 61 · bütünlük 0.640 · uzama 0.019
+  sönümlenme: tick 13400 · küme 1 · bağ 0 · bütünlük 0.000 · uzama 0.000
+  rezerv (sönümlenmede): %48.3
+  ölüm payları: açlık %52 · avcı %48
   yorgunluk tek başına açıklayabileceği kayıp: 0.80
-  kopma anındaki uzama: medyan 0.079 · kopan 90 bağ · tükenerek %100 · uzayarak %0
+  kopma anındaki uzama: medyan 0.076 · kopan 93 bağ · tükenerek %100 · uzayarak %0
   koptukları andaki medyan dayanım: 0.450
-  → Baskın açıklama: **koloni geometrisi / bağ uzaması**. Kaynak bitmemiş (rezerv doluluğu %54.7), ortalama bağ uzaması 0.000 (dinlenme uzunluğunun 1.00 katı). Yorgunluk tek başına en fazla 0.80 bütünlük yiyebilirdi. Kopan 90 bağdan 90 tanesi bütünlüğü tükenerek (%100), 0 tanesi uzama sınırını aşarak koptu (%0); koptukları andaki medyan uzama 0.079 — hayatta kalanların 0.000 ortalamasının 79350 katı.
+  → Baskın açıklama: **koloni geometrisi / bağ uzaması**. Kaynak bitmemiş (rezerv doluluğu %48.3), ortalama bağ uzaması 0.000 (dinlenme uzunluğunun 1.00 katı). Yorgunluk tek başına en fazla 0.80 bütünlük yiyebilirdi. Kopan 93 bağdan 93 tanesi bütünlüğü tükenerek (%100), 0 tanesi uzama sınırını aşarak koptu (%0); koptukları andaki medyan uzama 0.076 — hayatta kalanların 0.000 ortalamasının 76400 katı.
 ```
 
 ```
    tick   pop   org   küme   4+   bağ  bütünlük   uzama   rezerv%   enerji   açlık   avcı
       0    48    48      0    0     0  0.000   0.000     100.0  108763      0      0
-   1000   100    72      3    0    28  0.782   0.026      96.7  107527      0      0
-   2000   157   107      4    1    50  0.642   0.012      91.4  104973      0      0
-   3000   225   150      7    9    75  0.573   0.010      83.6   99041      0      0
-   4000   254   198      8    6    56  0.530   0.017      74.9   90161      3      2
-   5000   247   219      5    2    28  0.414   0.011      67.9   80447     12      2
-   6000   217   207      3    0    10  0.208   0.029      62.8   72908     37      3
-   7000   175   174      2    0     1  0.820   0.000      59.0   67950     73     10
-   8000   163   162      2    0     1  0.265   0.174      55.6   64176     78     19
-   9000   153   152      2    0     1  0.933   0.000      52.9   60880     82     26
-  10000   142   141      2    0     1  0.647   0.003      50.5   58145     87     33
-  11000   139   137      2    0     2  0.278   0.089      48.1   55622     90     35
-  12000   130   129      2    0     1  0.484   0.010      46.5   53355     95     40
-  13000   124   122      2    0     2  0.400   0.010      44.6   51266    101     42
-  14000   116   115      2    0     1  0.213   0.000      42.8   49412    103     48
-  15000   113   112      2    0     1  0.987   0.000      41.1   47727    104     51
-  16000   103   102      2    0     1  0.348   0.000      40.4   46136    109     57
-  17000   100    99      2    0     1  0.949   0.003      39.0   44789    111     59
-  18000    97    96      2    0     1  0.584   0.000      37.8   43502    112     62
-  19000    94    92      2    0     2  0.259   0.022      36.7   42260    113     65
-  20000    89    88      2    0     1  0.119   0.000      35.7   41100    114     69
-  21000    86    85      2    0     1  0.932   0.008      34.9   39964    114     73
-  22000    80    79      2    0     1  0.744   0.093      34.2   38896    117     76
-  23000    77    76      2    0     1  0.453   0.033      33.4   37980    118     78
-  24000    74    74      1    0     0  0.000   0.000      32.8   37137    119     80
-  25000    70    70      1    0     0  0.000   0.000      32.2   36336    121     82
-  26000    68    68      1    0     0  0.000   0.000      31.5   35586    121     84
-  27000    63    63      1    0     0  0.000   0.000      31.0   34858    122     88
-  28000    56    56      1    0     0  0.000   0.000      30.5   34162    124     93
-  29000    54    54      1    0     0  0.000   0.000      30.1   33556    125     94
-  30000    51    51      1    0     0  0.000   0.000      29.5   32995    125     97
-  31000    47    47      1    0     0  0.000   0.000      29.2   32488    125    101
-  32000    44    44      1    0     0  0.000   0.000      29.0   32024    127    102
-  33000    40    40      1    0     0  0.000   0.000      28.6   31599    128    105
-  34000    39    39      1    0     0  0.000   0.000      28.3   31219    129    105
-  35000    36    36      1    0     0  0.000   0.000      28.0   30866    130    107
-  36000    37    36      2    0     1  0.673   0.000      27.7   30529    130    107
-  37000    37    36      2    0     1  0.238   0.020      27.4   30222    130    107
-  38000    37    37      1    0     0  0.000   0.000      27.2   29922    130    107
-  39000    36    36      1    0     0  0.000   0.000      27.0   29624    131    107
-  40000    36    36      1    0     0  0.000   0.000      26.7   29333    131    107
+   1000    95    72      3    0    23  0.849   0.012      96.8  107457      0      0
+   2000   147   105      5    1    42  0.639   0.009      91.4  104549      0      0
+   3000   200   137      5    7    63  0.591   0.020      84.6   98748      0      0
+   4000   213   169      4    1    44  0.465   0.013      77.8   91357      5      2
+   5000   212   187      3    0    25  0.321   0.028      72.0   83850      8      4
+   6000   192   186      2    0     6  0.311   0.041      67.0   77133     23     11
+   7000   167   162      2    0     5  0.647   0.009      63.2   72180     45     17
+   8000   153   147      2    0     6  0.596   0.031      59.8   68183     53     27
+   9000   135   131      2    0     4  0.266   0.022      57.3   64935     64     34
+  10000   126   123      2    0     3  0.584   0.028      54.9   62365     73     38
+  11000   123   122      2    0     1  0.404   0.000      52.6   59975     74     41
+  12000   115   112      2    0     3  0.661   0.005      50.7   57715     78     48
+  13000   108   106      2    0     2  0.121   0.003      49.0   55739     83     50
+  14000   105   104      2    0     1  0.924   0.000      47.2   53948     85     56
+  15000   104   103      2    0     1  0.756   0.058      45.4   52165     85     59
+  16000    93    92      2    0     1  0.182   0.000      44.7   50494     91     64
+  17000    92    91      2    0     1  0.668   0.000      43.3   49083     92     65
+  18000    89    88      2    0     1  0.190   0.000      41.9   47724     92     68
+  19000    86    85      2    0     1  0.509   0.019      40.8   46411     92     72
+  20000    82    81      2    0     1  0.100   0.000      39.8   45171     92     76
+  21000    77    77      1    0     0  0.000   0.000      38.9   43963     92     81
+  22000    74    74      1    0     0  0.000   0.000      38.3   42867     94     82
+  23000    70    70      1    0     0  0.000   0.000      37.6   41954     98     82
+  24000    64    64      1    0     0  0.000   0.000      36.9   41113    101     85
+  25000    61    59      2    0     2  0.880   0.029      36.2   40312    105     86
+  26000    59    57      2    0     2  0.419   0.028      35.4   39604    106     87
+  27000    55    54      2    0     1  0.056   0.000      34.9   38924    106     91
+  28000    50    49      2    0     1  0.941   0.000      34.4   38217    107     96
+  29000    45    44      2    0     1  0.847   0.001      34.0   37520    109    100
+  30000    43    42      2    0     1  0.625   0.001      33.4   36943    111    100
+  31000    40    38      2    0     2  0.655   0.000      33.0   36412    111    103
+  32000    39    37      2    0     2  0.672   0.047      32.8   35913    112    104
+  33000    37    36      2    0     1  0.302   0.000      32.4   35486    112    105
+  34000    36    36      1    0     0  0.000   0.000      32.0   35100    113    105
+  35000    36    36      1    0     0  0.000   0.000      31.7   34749    113    105
+  36000    36    36      1    0     0  0.000   0.000      31.4   34399    113    105
+  37000    36    36      1    0     0  0.000   0.000      31.0   34049    113    105
+  38000    36    36      1    0     0  0.000   0.000      30.8   33698    113    105
+  39000    35    35      1    0     0  0.000   0.000      30.5   33354    114    105
+  40000    33    33      1    0     0  0.000   0.000      30.2   33031    116    105
 ```
 
 ## Faz B1b · Bağ ömrü duyarlılığı
@@ -222,10 +222,10 @@ düşürüldüğünde pencerenin sonunda **4+ hücreli yapıların sıfırdan ç
 
 ```
   strainK   yorgunluk   bağ ömrü   zirve küme   son çeyrek   son 4+   son pop   son rezerv   sönüml.   kalıcı
-  0.0200000   0.00002000      2083         17            1   0.000000   34.7500000   17.48491811%      4200   HAYIR
-  0.0100000   0.00001000      4167         24            2   0.000000   33.2500000   16.84854358%      9800   HAYIR
-  0.0050000   0.00000500      8333         24            1   0.000000   29.7500000   16.69106916%     19000   HAYIR
-  0.0020000   0.00000100     21277         24            1   0.000000   31.5000000   17.58536249%     19600   HAYIR
+  0.0200000   0.00002000      2083         12            1   0.000000   30.7500000   19.36167738%      4000   HAYIR
+  0.0100000   0.00001000      4167         22            1   0.000000   26.7500000   19.93447946%      8200   HAYIR
+  0.0050000   0.00000500      8333         12            2   0.000000   28.2500000   19.94304330%      9800   HAYIR
+  0.0020000   0.00000100     21277         12            2   0.000000   29.7500000   20.43872117%     10800   HAYIR
 ```
 
 ## Y-2 · Bağ ömrünün kalıtılabilirliği
@@ -241,12 +241,12 @@ sıfırdan ayrışmalı ve kontrol kolundan büyük olmalı.
 
 ```
   6 eşleştirilmiş tohum · 40000 tick · strainK 0.005 (iki kolda da koloniler ayakta)
-  kontrol  (yorgunluk genoma bağlı DEĞİL): kurucu 0.4489 → hayatta kalan 0.4378 · kayma -0.0112
-  tedavi   (yorgunluk genoma BAĞLI):    kurucu 0.4489 → hayatta kalan 0.4434 · kayma -0.0056
-  tedavi kayması [-0.0056, -0.0140, 0.0021] · iki kol farkı 0.0056 [-0.0044, 0.0180] · p = 0.3426
-  üreme çevrimi (kurucu başına): kontrol 5.89 · tedavi 5.85
-  enerji rezidüelü: 0.000000000 e
-  → Seçilim kayması sıfırdan **ayrışmadı**: -0.0056 [-0.0140, 0.0021]. Kurucu başına 5.85 üreme çevrimi gerçekleşti (kümülatif 281 doğum).
+  kontrol  (yorgunluk genoma bağlı DEĞİL): kurucu 0.4476 → hayatta kalan 0.4514 · kayma 0.0037
+  tedavi   (yorgunluk genoma BAĞLI):    kurucu 0.4476 → hayatta kalan 0.4559 · kayma 0.0083
+  tedavi kayması [0.0083, 0.0026, 0.0145] · iki kol farkı 0.0046 [-0.0056, 0.0131] · p = 0.3302
+  üreme çevrimi (kurucu başına): kontrol 5.32 · tedavi 5.37
+  enerji rezidüelü: -0.000000000 e
+  → Seçilim dayanıklılığı **değiştirdi**: tedavi kolunda ortalama bondStrength kayması 0.0083 [0.0026, 0.0145], sıfırdan ayrışıyor. Bağ ömrü seçilime açıldığında koloniler daha uzun yaşayabiliyor.
 ```
 
 ## Üreme tıkanması teşhisi
@@ -257,14 +257,14 @@ gösteriyordu — kümülatif sayı artmayı bırakınca çoğalm da bitmiştir.
 
 ```
   tohum 11 · 40000 tick
-  tomurcuklama 110 · parçalanma 74 · kurucu soyun canlı hücrelerdeki payı 100.0%
-  → Doğum hızı **çöktü**: ilk çeyrekte 144, son çeyrekte 1 doğum. Üreme döngüsü tıkanmış.
+  tomurcuklama 98 · parçalanma 71 · kurucu soyun canlı hücrelerdeki payı 100.0%
+  → Doğum hızı **çöktü**: ilk çeyrekte 120, son çeyrekte 1 doğum. Üreme döngüsü tıkanmış.
 
    tick   pop   org   küm.dğ   bud   frag   kurucu soy   kurucu hücre   soy hücre   kol.nesil   küme
        0    48    48      48     0      0          48           48          0           0      0
-   16000   106   103     240   108      9         103          106          0          57      2
-   32000    56    56     246   110      1          56           56          0          27      1
-   40000    41    41     246   110      0          41           41          0          18      1
+   16000    98    95     228    96      7          95           98          0          60      2
+   32000    32    32     235    98      1          32           32          0          27      1
+   40000    29    28     235    98      0          28           29          0          25      2
 ```
 
 ## Uzun vadeli dayanıklılık — §5.4 genelleniyor mu?
@@ -277,9 +277,9 @@ uzun vadeli çöküşü gerçekten önlüyor mu?
 
 ```
   strainK   bağ ömrü   son pop   çöküş oranı   son çeyrek küme   son 4+   son bağ   son rezerv   geç açlık%   geç avcı%
-  0.0200000     2083        36   7.13888889    1.1960784314        0        0   26.74465043%   37.50000000   62.50000000
-  0.0050000     8333        35   7.40000000    1.0000000000        0        0   26.59328683%   45.45454545   54.54545455
-  0.0020000    21277        52   4.98076923    4.0784313725        0       13   22.88021607%   100.00000000   0.00000000
+  0.0200000     2083        33   6.45454545    1.3921568627        0        0   30.22777465%   50.00000000   50.00000000
+  0.0050000     8333        25   9.12000000    2.0980392157        0        1   25.56194431%   75.00000000   25.00000000
+  0.0020000    21277        26   8.76923077    1.0000000000        0        0   26.39754278%   64.70588235   35.29411765
 ```
 
 ## 40.000 tick sınırı — erişilebilirlik mi, avcı mı?
@@ -287,19 +287,19 @@ uzun vadeli çöküşü gerçekten önlüyor mu?
 ```
   tohum 11 · 40000 tick · strainK 0.002
    tick   pop   ort. enerji   açlık%   medyan uzaklık   yakın%   rezerv%   avcı en.   açlık öl.   avcı öl.
-       0    48  55.000000000  0.00000   1.73158898493   39.583333   100.000000%   4.36363636          0        0
-    4000   248  39.985221408  1.20968   1.16662841415   71.370968   76.225215%   21.92376704          0        0
-    8000   165  32.461949180  7.87879   1.29943490497   58.181818   55.000405%   25.56847946         73        6
-   12000   137  31.105018252  11.67883   1.26722285089   58.394161   45.300708%   10.02696501         95       10
-   16000   103  29.612837072  12.62136   1.56869609915   46.601942   38.919162%   16.33724995        117       18
-   20000    89  32.957763912  7.86517   1.48325217664   50.561798   34.396925%   10.42344113        125       22
-   24000    81  30.652255195  13.58025   1.44555161019   50.617284   31.315447%   0.00000000        133       25
-   28000    72  30.690605377  12.50000   1.43317671587   54.166667   28.580130%   0.00000000        144       25
-   32000    67  27.322808525  19.40299   1.31028174673   58.208955   26.378281%   0.00000000        150       25
-   36000    55  30.255968807  10.90909   2.90968547045   38.181818   24.407869%   0.00000000        163       25
-   40000    52  26.670738419  13.46154   1.78146067202   40.384615   22.880216%   0.00000000        169       25
+       0    48  55.000000000  0.00000   1.89538132548   31.250000   100.000000%   4.36363636          0        0
+    4000   226  39.749109552  3.98230   1.21975713443   67.256637   76.111617%   16.29319064          7        1
+    8000   156  35.112055023  5.76923   1.33614668047   55.128205   56.144243%   32.37214710         70        6
+   12000   126  31.038112930  8.73016   1.19145861602   69.841270   46.458368%   15.73678523         94       12
+   16000   101  27.302899215  16.83168   1.75530886329   43.564356   40.030189%   11.01762256        108       20
+   20000    83  28.004339172  13.25301   1.29660673121   65.060241   35.326133%   11.51070401        121       20
+   24000    66  25.878402267  15.15152   1.95164997768   40.909091   32.160744%   9.40837688        132       24
+   28000    51  25.300410764  25.49020   1.24126350358   68.627451   29.694272%   11.61804180        140       28
+   32000    32  25.034289218  18.75000   1.11953981333   68.750000   28.384164%   4.38694755        151       37
+   36000    29  29.532964717  10.34483   3.80650550057   31.034483   27.227223%   0.00000000        154       37
+   40000    26  26.901761660  15.38462   1.56597836285   42.307692   26.397543%   0.00000000        157       37
 
-  → Sınırlayıcı: **kaynak erişilebilirliği.** En yakın kaynağa uzaklık 1.40 → 2.00 mb arasında 1.43× büyüdü, rezerv doluluğu %22.9'de kaldı. Hücreler kaynağa ulaşamıyor.
+  → Sınırlayıcı: **kaynak erişilebilirliği.** En yakın kaynağa uzaklık 1.48 → 2.16 mb arasında 1.46× büyüdü, rezerv doluluğu %26.4'de kaldı. Hücreler kaynağa ulaşamıyor.
 ```
 
 ## Kaynak rejenerasyonu A/B
@@ -313,9 +313,206 @@ popülasyon kalıcı hâle geliyor mu?
 
 ```
   regen   zirve pop   son pop   son çeyrek pop   son rezerv   ort. enerji   açlık%   açlık öl.   avcı öl.   avcı öldü   rezidüel
-  0.000000        248        52   58.00000000000   22.8802160736%   26.670738419   13.46154        169       25       23406   0.000000122
-  0.002000        252        35   37.33333333333   27.9536015810%   19.301009174   20.00000        134       54       33970   0.000000194
-  0.010000        245        42   46.33333333333   34.0819594511%   35.836273081   2.38095        123       54       38931   0.000000337
+  0.000000        226        26   29.00000000000   26.3975427799%   26.901761660   15.38462        157       37       33424   0.000000158
+  0.002000        207        38   35.66666666667   32.0197175517%   36.900330092   2.63158        110       56       33893   0.000000052
+  0.010000        215        55   52.33333333333   35.4350393949%   32.820906040   9.09091         98       50       33254   0.000000312
+```
+
+## Popülasyon-ES — seçilen öğrenme yönünün testi
+
+REINFORCE her iki kolda da **kapalıdır**; ölçülen fark yalnız
+popülasyon-ES katkısıdır. Birincil ölçüm **ödül hızıdır**
+(`lifetimeReward / yaş`) — kümülatif ödül yaşamayı ödüllendirir ve
+ölçüm yanlılığı yaratır.
+
+```
+  20000 tick · 8 eşleştirilmiş tohum · REINFORCE her iki kolda da KAPALI
+  kontrol (popülasyon-ES yok): ödül hızı 0.33940 e/tick · enerji 0.301 · pop 82.125 · küme 2
+  tedavi  (popülasyon-ES var): ödül hızı 0.33696 e/tick · enerji 0.284 · pop 79.75 · küme 2
+  uygulanan güncelleme: 40 · enerji rezidülü: 0.000000075 e
+  eşleştirilmiş fark -0.00244 [-0.00563, 0.00066] · p = 0.1288 · iyileşme olasılığı 6.4%
+  → Popülasyon-ES **ölçülebilir etki üretmedi**: fark -0.00244 [-0.00563, 0.00066], p = 0.1288.
+```
+
+## Ödül hızı yayılımı — paylaşılan dünya sinyali siler mi?
+
+Popülasyon-ES başarısızlığının iki açıklamasını ayıran ölçüm.
+
+```
+  15000 tick
+  paylaşılan dünyada bireyler arası CV: %14.0
+  bağımsız dünyalar arası ortalama CV: %7.2
+  oran: 1.96×
+  → Paylaşılan dünya sinyali **silmüyor**: bireyler arası CV %14.0, bağımsız dünyalar arası %7.2 (1.96×). Yani popülasyon içi ayrışma **vardır**; ortalama-alma güncellemesinin başarısızlığı arama eksikliğidir, sinyal yokluğu değil.
+```
+
+## Faz C1 · MODES açık uçluluk metrikleri
+
+Dolson vd. (2019) çerçevesi: değişim, yenilik, çeşitlilik, karmaşıklık,
+aktivite. Tümü mevcut dünya verisinden türetilir.
+
+```
+  tohum 11 · 12000 tick · 7 örnek
+   tick   pop   değişim   yenilik%   çeşitlilik   karmaşıklık   aktivite   tür
+      0    48  0.00000000   100.0000000   0.4154129739   0.000000000000          0    12
+   2000   149  0.00444596   39.8058252   0.5057391876   0.369941792889   2334.7200000000003    12
+   4000   226  0.00200458   17.6470588   0.4879243694   0.476297508974   7121.389999999995    12
+   6000   192  0.00025039   3.2786885   0.4592493776   0.465370099575   8811.749999999996    12
+   8000   151  0.00012446   1.8867925   0.3332961441   0.403681020928   8889.470000000001    12
+  10000   129  0.00023895   2.7777778   0.3084954508   0.262624835539   8352.210000000001    12
+  12000   123  0.00044666   4.5871560   0.3270941124   0.193500919630   9183.590000000006    12
+  → Pencere sonu: değişim 0.0004 · yenilik %4.6 · çeşitlilik 0.327 · karmaşıklık 0.194 · tür 12. Eğilim: **falling**. Pencere boyunca 127 benzersiz genom imzası görüldü. **Yakınsama, açık uçluluk değil:** yenilik %40 → %4.6, değişim ~0'a düştü, karmaşıklık 0.37 → 0.19. Popülasyon kısa bir keşiften sonra daralmaya geçiyor — Literatürdeki "açık uçluluk geçicidir, baskın desenlere çöker" bulgusunun bu modeldeki karşılığı (Faldor vd. 2023).
+```
+
+## Faz D · Niş kapsama (yaşam haritası çekirdeği)
+
+Picbreeder / MAP-Elites kalıbının ölçüm tarafı: üç **ölçülebilir**
+betimleyici (hız, boyut, duyu menzili) üzerinden ızgara kurulur ve hangi
+kutuların işgal edildiği sayılır. Betimleyicilerin hiçbiri genomla
+tahmin edilmiyor — hepsi doğrudan ölçülüyor.
+
+Bu ölçüm, Faz C1'deki yakınsamanın **yerini** gösteriyor: sorun
+değişimin değil organizmaların aynı davranış kutusuna birikmesi.
+
+```
+  tohum 11 · 12000 tick · ızgara 3×3×3 = 27 kutu
+  hız/boyut/menzil  adet   en iyi enerji   soy
+   0/0/1         6   0.66087031696     8
+   1/0/0         1   0.11761536482     4
+   1/0/1       540   0.68617318521     8
+   1/1/1        67   0.67848717482     8
+   1/2/1         1   0.46525401338     8
+   2/0/0         2   0.65640950403     4
+   2/0/1       672   0.70030299469     8
+   2/1/1        49   0.65099793132     7
+  dolu kutu zaman serisi: [4, 5, 7, 4, 4, 5, 4, 4, 4, 4, 3, 3]
+  eksen sağlığı (ölçüm aletinin kendi denetimi):
+  hız     üst sınır   0.120 · gözlem   1338 · tavana kırpılan      2 (%0.1) · dolu kutu 3/3 · en küçük 0.022
+  boyut   üst sınır   4.585 · gözlem   1338 · tavana kırpılan      0 (%0.0) · dolu kutu 3/3 · en küçük 0.000
+  menzil  üst sınır   5.000 · gözlem   1338 · tavana kırpılan      0 (%0.0) · dolu kutu 2/3 · en küçük 1.637
+  → 8/27 kutu dolu (%30 doluluk). En yoğun kutuda %50 organizma birikmiş (kutu 2/0/1). Dolu kutu sayısı: ilk üçte 5.0 → son üçte 3.5 ortalama. **Belirgin yakınsama:** organizmaların çoğu tek bir davranış kutusunda. Bu, yaşam haritasının (Faz D) çözeceği problem: arşiv olmadan popülasyon tek çukura düşüyor.
+```
+
+Faz D · Niş kapsama ölçümünün yorumu
+
+Bu ölçüm, bir arşivin **gerçekten işe yarayıp yaramadığını** test eder.
+MAP-Elites kuralı: boş nişlere o nişte arşivlenen en iyi bireyin yavrusunu
+enjekte et. Bu, arşivin seçilime katılmasıdır (ε > 0).
+
+```
+  eşleştirilmiş fark (dolu kutu, tohum başına): [-2, 2, 2, 0]
+  dolu kutu (/27)          11.00 → 11.50
+  yoğunlaşma              %53 → %54
+  canlı popülasyon        109 → 159
+  hücre enerjisi (e)      3131 → 4362
+  enjeksiyon (adet)       0 → 232.3
+  enerji rezidülü |e|     4.1e-8 → 5.2e-8
+  eşleştirilmiş fark 0.50 [-1.00, 2.00] · p = 0.7850
+  → Dolu kutu: kontrol 11.00 → tedavi 11.50 (+/27). Yoğunlaşma: %53 → %54. Enjeksiyon: kolo başına 232.3 organizma. Enerji rezidülü: kontrol |4.1e-8| · tedavi |5.2e-8| e. **Arşiv seçilime katılınca doluluk arttı:** MAP-Elites kuralı bu modelde çukuru doldurdu.
+```
+
+## Paylaşma mekaniğinin ölçülebilir etkisi
+
+Kontrol kolu boşta eşiği **1,50**'ye çekilir: hiçbir hücre kapasitesinin
+üstünde olamayacağı için paylaşma **matematiksel olarak imkânsız** olur.
+İki kol aynı tohumlarda koşar; fark, paylaşmanın koloni yapısına katkısını
+doğrudan ölçer.
+
+```
+  eşik 0,82 (varsayılan)  ↔  1,50 (paylaşma matematiksel olarak imkânsız)
+  tohum  3001   aktarım      0   tepe   8 /   8   fark    0   pop  159 /  159
+  tohum  3002   aktarım     56   tepe  24 /  24   fark    0   pop  144 /  147
+  tohum  3003   aktarım      0   tepe   7 /   7   fark    0   pop  145 /  145
+  tohum  3004   aktarım   2084   tepe  24 /  24   fark    0   pop  145 /  146
+  tohum  3005   aktarım      0   tepe  10 /  10   fark    0   pop  139 /  139
+  tohum     7   aktarım   8204   tepe  24 /  24   fark    0   pop  153 /  153
+  tohum    42   aktarım      0   tepe  10 /  10   fark    0   pop  168 /  168
+  tohum    91   aktarım   1928   tepe  24 /  24   fark    0   pop  154 /  152
+  tohum   123   aktarım      0   tepe  11 /  11   fark    0   pop  162 /  162
+  tohum  2026   aktarım      0   tepe   9 /   9   fark    0   pop  149 /  149
+  tohum    11   aktarım      0   tepe  15 /  15   fark    0   pop  151 /  151
+  tohum    12   aktarım      0   tepe   9 /   9   fark    0   pop  154 /  154
+  tepe farkı aralığı: [0, 0]   ort. 14.58 / 14.58   tetiklenen 4/12
+  → Varsayılan 0,82'de paylaşma tetiklenen tohum: 4/12 (ort. aktarım 1023). Ort. tepe küme — paylaşma AÇIK: 14.58, paylaşma İMKÂNSIZ: 14.58. Eşleştirilmiş farklar: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]. **Varsayılan ayarda paylaşmanın tepe koloni büyüklüğüne ölçülebilir etkisi yok** — hiçbir tohumda fark pozitif değil, ortalama da aynı. Mekanizma çalışıyor ama sonucu değiştirmiyor.
+```
+
+## Faz D · İşbirliği aktı
+
+Bağ bütünlüğü eşiğin altına düşünce bağın **iki ucundaki hücreler birlikte**
+enerji harcayarak bağı yeniler. Paylaşmadan farkı: bedel **ortak** olduğu
+için ödemeyen hücre de yararlanır — yani bir *hileci* tanımlanabilir.
+
+```
+  k = 0 (kapalı)  ↔  k = 0,002 (işbirliği aktı açık)
+  tohum  3001   bağ  48 →  61   tepe   8 →   8   tepeBağ  109 →  109   yenileme  92758
+  tohum  3002   bağ  35 →  42   tepe  24 →  24   tepeBağ  113 →  113   yenileme  46968
+  tohum  3003   bağ   6 →  25   tepe   7 →   7   tepeBağ   73 →   73   yenileme  67266
+  tohum  3004   bağ  17 →  29   tepe  24 →  24   tepeBağ  114 →  114   yenileme  64058
+  tohum  3005   bağ  27 →  46   tepe  10 →  10   tepeBağ  110 →  110   yenileme  66944
+  tohum     7   bağ  53 →  52   tepe  24 →  24   tepeBağ  103 →  106   yenileme  28924
+  tohum    42   bağ  34 →  33   tepe  10 →  10   tepeBağ   88 →   86   yenileme  60098
+  tohum    91   bağ  14 →  38   tepe  24 →  24   tepeBağ   93 →   93   yenileme  54265
+  tohum   123   bağ  30 →  49   tepe  11 →  11   tepeBağ  100 →  100   yenileme  66623
+  tohum  2026   bağ  18 →  23   tepe   9 →   9   tepeBağ   73 →   73   yenileme  45577
+  tohum    11   bağ  45 →  47   tepe  15 →  15   tepeBağ   90 →   90   yenileme  28770
+  tohum    12   bağ  42 →  55   tepe   9 →   9   tepeBağ  104 →  104   yenileme  58144
+  bağ farkı (SON) ort 10.9 10.9 [6.3, 15.5] · p = 0.0001
+  tepeBağ farkı ort 0.1  ← bağlar zirvede zaten bol; kazancın olması gereken yer burasıydı
+  tepe farkı ort 0.00 0.00 [0.00, 0.00] · p = 1.0000
+  → Bağ sayısı farkı 10.9 10.9 [6.3, 15.5] · p = 0.0001 → **mekanizma çalışıyor**, bağlar yenilenmeden kopmuyor. Tepe küme farkı 0.00 0.00 [0.00, 0.00] · p = 1.0000 → koloni kazancı yok (artış 0, düşüş 0 tohum). Tepe bağ farkı 0.1 — **bağlar zirvede zaten bol; akt onları sonraki evre kurtarıyor, kazanç orada değil.** Ortalama yenileme: 56700.
+```
+
+## Faz D · İşbirliği eğilimine seçilim
+
+`genome.cooperation` artık **seçilebilir** bir parametre ve metabolik
+maliyeti var (bazalin ~%26'sı). Düşük işbirliği hem ucuz hem zayıf bağ
+demek — gerçek bir takas. Soru: seçilim yön veriyor mu?
+
+```
+  ak AÇIK : ort 0.4935 → 0.4872   kayma -0.0063
+  ak KAPALI: ort 0.4935 → 0.4862   kayma -0.0072
+  tohum  3001   işbirliği 0.4974 → 0.4882   kayma -0.0092
+  tohum  3002   işbirliği 0.4985 → 0.4910   kayma -0.0075
+  tohum  3003   işbirliği 0.4846 → 0.4824   kayma -0.0021
+  ak etkisi 0.0009 [-0.0033, 0.0046] · p = 0.7391
+  → Ort. işbirliği kayması: ak AÇIK -0.0063 · ak KAPALI -0.0072. Akın etkisi (açık − kapalı) ort 0.0009 0.0009 [-0.0033, 0.0046] · p = 0.7391 → **seçilim üzerinde ölçülebilir etkisi yok**. Not: her iki kolda da kayma ~aşağı yönde ve çok küçük; bu pencerede yönsel seçilim yok (evrim 3 nesle yetmiyor, p = 0,097).
+```
+
+## Dal (branch) doğruluğu ve maliyeti
+
+`VALIDATION.md` §9 madde 7 bu yolu "test edilmemiş" diye listeliyordu.
+Ölçüldü: iki dal bit düzeyinde aynı ilerliyor, müdahale diğerine sızmıyor,
+ve **çatallama ucuz** — yaşam içi arama bütçelenebilir.
+
+Bu ölçüm sırasında `World.fromState` içinde **gerçek bir ürün hatası** bulundu:
+`Object.create(World.prototype)` çağrısı constructor atladığı için sınıf alan
+başlatıcıları hiç çalışmıyor, `ledger` `undefined` kalıyor ve ilk erişimde
+TypeError atılıyordu — **snapshot tan dünya kurma (dolayısıyla `branch`) tamamen
+bozuktu**. Düzeltildi; regresyon testi eklendi.
+
+```
+  çatal noktası: tick 3000 · 1500 adım sonra karşılaştırma
+  snapshot boyutu: 2.371.910 bayt
+  çatallama süresi: 48.17 ms · iki dalın koşusu: 2477.8 ms · oran 1.9%
+  dallar bit düzeyinde aynı: evet · müdahale sızıntısı: yok · müdahale etkili: evet
+  → Çatallama **doğru**: iki dal bit düzeyinde aynı ilerliyor ve müdahale diğerine sızmıyor. Snapshot 2.37 MB; bir dal açmak 24.1 ms, bir simülasyon adımı 0.826 ms → **bir çatal ≈ 29 tick** maliyetinde. Yani 500 tick'te bir, 16 pertürbasyonlu güncelleme ≈ 93% ek yük demek: üstel strateji yaşam içinde pratikte **bütçelenebilir**. Müdahale testi: müdahalesiz dal referansla AYNI, müdahale görmüş dal AYRILDI. **DİKKAT:** bu maliyet 3000. tick'te ölçüldü ve snapshot boyutuyla ölçeklenir; geç pencerelerde farklı olabilir ve **ölçülmedi**.
+```
+
+## S-4 · Çatallanmış ortamda yaşam içi üstel arama
+
+REINFORCE ve popülasyon-ES kredi ataması yapamadığı için başarısız oldu.
+Gerçek ES kredi ataması yapmaz: dünya bir kez snapshotlanır, N dal açılır,
+her dalda θ+σξ değerlendirilir ve θ getiriye ağırlıklı pertürbasyon
+ortalaması boyunca kaydırılır. Seyrek dünyada koşulur (pop 6, kaynak 6).
+
+```
+  kontrol (arama kapalı): medyan enerji 47.56 e · pop 15 · arama 0
+  tedavi  (arama açık) : medyan enerji 47.56 e · pop 15 · arama 24 (4 pertürbasyon × 120 tick)
+  ağırlık hareketi: kontrol 0.00000 · tedavi 0.00066
+  maliyet: 4000 tick'in koşusu 55 ms · arama 197 ms → ek yük ≈ 2219 tick
+  enerji rezidülü: 0.000000000 e
+  eşleştirilmiş fark 0.000 [0.000, 0.000] · p = 1.0000
+  → Çatallanmış arama **ölçülebilir performans artışı üretmedi**: fark 0.000 [0.000, 0.000], p = 1.0000. Ağırlık hareketi: medyan ‖Δθ‖ = 0.0007 (kontrol 0.0000) — yani arama θ'yı hareket ettirdi ama davranış kazanmadı. Ek yük ≈ 2219 tick'lik eşdeğer.
 ```
 
 ## Bağ gücü koloni büyüklüğünü artırıyor mu?
@@ -329,16 +526,16 @@ popülasyon kalıcı hâle geliyor mu?
    soru    : Aynı dünyada, aynı tohumda, yalnız kurucuların bondAffinity değeri değiştiğinde bağlı küme daha büyük mü oluyor?
    n       : 12 eşleştirilmiş tohum
    ölçüm   : penceredeki en büyük bağlı küme (hücre)
-   kontrol : 2.333 [2.083, 2.583]
-   tedavi  : 21.250 [18.667, 23.417]
-   fark    : 18.917 [16.417, 21.000]   p = 0.0001
+   kontrol : 2.083 [2.000, 2.250]
+   tedavi  : 19.167 [16.833, 21.333]
+   fark    : 17.083 [14.833, 19.167]   p = 0.0001
    iyileşme olasılığı (bootstrap): 100.0%
-   · zirve 4+ hücreli yapı sayısı: kontrol 0.000 · tedavi 31.333 · fark 31.333
-   · pencere sonu popülasyon: kontrol 232.750 · tedavi 267.083 · fark 34.333
-   · pencere sonu bağ sayısı: kontrol 1.250 · tedavi 91.583 · fark 90.333
-   enerji rezidüelü: 0.000000016 e
-   kontrol ham : [2.0000, 2.0000, 2.0000, 3.0000, 2.0000, 3.0000, 2.0000, 2.0000, 3.0000, 2.0000, 3.0000, 2.0000]
-   tedavi ham  : [17.0000, 24.0000, 22.0000, 24.0000, 24.0000, 24.0000, 24.0000, 15.0000, 24.0000, 11.0000, 24.0000, 22.0000]
+   · zirve 4+ hücreli yapı sayısı: kontrol 0.000 · tedavi 28.917 · fark 28.917
+   · pencere sonu popülasyon: kontrol 206.750 · tedavi 241.917 · fark 35.167
+   · pencere sonu bağ sayısı: kontrol 0.583 · tedavi 83.917 · fark 83.333
+   enerji rezidüelü: 0.000000014 e
+   kontrol ham : [2.0000, 2.0000, 2.0000, 2.0000, 2.0000, 2.0000, 2.0000, 2.0000, 3.0000, 2.0000, 2.0000, 2.0000]
+   tedavi ham  : [19.0000, 18.0000, 16.0000, 24.0000, 21.0000, 20.0000, 17.0000, 14.0000, 24.0000, 11.0000, 22.0000, 24.0000]
 ```
 
 **Notlar:**
@@ -358,17 +555,17 @@ popülasyon kalıcı hâle geliyor mu?
    soru    : Aynı başlangıçtan, mutasyon açık olan popülasyon donmuş popülasyondan daha iyi besleniyor mu?
    n       : 12 eşleştirilmiş tohum
    ölçüm   : pencere sonu ortalama normalize enerji (ölüm cezalı)
-   kontrol : 0.342 [0.307, 0.377]
-   tedavi  : 0.353 [0.325, 0.382]
-   fark    : 0.011 [-0.001, 0.025]   p = 0.0967
-   iyileşme olasılığı (bootstrap): 96.0%
-   · genom kayması (genomeShift): kontrol 0.007 · tedavi 0.006 · fark -0.000
-   · zirve en büyük küme: kontrol 12.667 · tedavi 12.250 · fark -0.417
-   · pencere sonu 4+ hücreli yapı: kontrol 3.083 · tedavi 2.250 · fark -0.833
-   · ulaşılan en yüksek nesil: kontrol 2.917 · tedavi 2.917 · fark 0.000
-   enerji rezidüelü: 0.000000017 e
-   kontrol ham : [0.3120, 0.4392, 0.2658, 0.4163, 0.3602, 0.2888, 0.4032, 0.2803, 0.4277, 0.3348, 0.2832, 0.2872]
-   tedavi ham  : [0.3281, 0.4241, 0.2778, 0.4260, 0.3465, 0.3471, 0.3794, 0.3326, 0.4301, 0.3533, 0.2926, 0.2969]
+   kontrol : 0.358 [0.328, 0.387]
+   tedavi  : 0.350 [0.319, 0.379]
+   fark    : -0.008 [-0.024, 0.008]   p = 0.3035
+   iyileşme olasılığı (bootstrap): 15.4%
+   · genom kayması (genomeShift): kontrol 0.005 · tedavi 0.005 · fark 0.001
+   · zirve en büyük küme: kontrol 9.333 · tedavi 11.917 · fark 2.583
+   · pencere sonu 4+ hücreli yapı: kontrol 1.500 · tedavi 2.917 · fark 1.417
+   · ulaşılan en yüksek nesil: kontrol 2.750 · tedavi 2.750 · fark 0.000
+   enerji rezidüelü: 0.000000015 e
+   kontrol ham : [0.3658, 0.4187, 0.2985, 0.4376, 0.3745, 0.3309, 0.3853, 0.3271, 0.4208, 0.3783, 0.2802, 0.2758]
+   tedavi ham  : [0.3081, 0.4437, 0.2853, 0.3973, 0.3751, 0.3239, 0.3812, 0.3383, 0.4210, 0.3413, 0.2610, 0.3203]
 ```
 
 **Notlar:**
@@ -388,20 +585,20 @@ popülasyon kalıcı hâle geliyor mu?
    soru    : Eğitim tohumlarında öğrenmiş politika, hiç görülmemiş değerlendirme dünyalarında rastgele başlangıç ağından daha mı iyi besleniyor?
    n       : 20 eşleştirilmiş tohum
    ölçüm   : değerlendirme penceresinde ortalama normalize enerji
-   kontrol : 0.826 [0.778, 0.869]
-   tedavi  : 0.847 [0.805, 0.884]
-   fark    : 0.020 [-0.022, 0.061]   p = 0.3327
-   iyileşme olasılığı (bootstrap): 83.3%
-   · kontrol kolunun headroom u (1 − kontrol skoru): kontrol 0.174 · tedavi 0.847 · fark 0.020
-   · EZBER KONTROLÜ — eğitim dünyasındaki fark: kontrol 0.843 · tedavi 0.843 · fark -0.000
-   · ezber farkı − genelleşme farkı (aralık daralması): kontrol -0.000 · tedavi 0.020 · fark -0.021
+   kontrol : 0.840 [0.797, 0.878]
+   tedavi  : 0.841 [0.792, 0.885]
+   fark    : 0.001 [-0.037, 0.037]   p = 0.9764
+   iyileşme olasılığı (bootstrap): 51.8%
+   · kontrol kolunun headroom u (1 − kontrol skoru): kontrol 0.160 · tedavi 0.841 · fark 0.001
+   · EZBER KONTROLÜ — eğitim dünyasındaki fark: kontrol 0.833 · tedavi 0.830 · fark -0.003
+   · ezber farkı − genelleşme farkı (aralık daralması): kontrol -0.003 · tedavi 0.001 · fark -0.004
    · ölçüm penceresi sonuna kadar yaşama oranı: kontrol 1.000 · tedavi 1.000 · fark 0.000
    · eğitimde ortalama politika güncellemesi: kontrol 0.000 · tedavi 9.000 · fark 9.000
    · eğitimde ağırlıkların ne kadar kaydığı (‖Δθ‖): kontrol 0.000 · tedavi 0.003 · fark 0.003
    · eğitim koşularında hayatta kalma oranı: kontrol 0.000 · tedavi 1.000 · fark 1.000
    enerji rezidüelü: 0.000000000 e
-   kontrol ham : [0.8192, 0.7427, 0.8975, 0.9123, 0.5692, 0.9534, 0.8950, 0.8586, 0.6682, 0.7925, 0.9156, 0.8041, 0.6205, 0.9425, 0.8726, 0.8922, 0.7821, 0.8759, 0.7992, 0.9077]
-   tedavi ham  : [0.7159, 0.8793, 0.6781, 0.8877, 0.7586, 0.9545, 0.9039, 0.9277, 0.6238, 0.7484, 0.8780, 0.8954, 0.8069, 0.9432, 0.8840, 0.9112, 0.8793, 0.8536, 0.9021, 0.8994]
+   kontrol ham : [0.8558, 0.8675, 0.7985, 0.7590, 0.6397, 0.9435, 0.9212, 0.8618, 0.6465, 0.9056, 0.9054, 0.8956, 0.8736, 0.9477, 0.7796, 0.8874, 0.8952, 0.8210, 0.6737, 0.9294]
+   tedavi ham  : [0.9500, 0.7858, 0.6470, 0.8153, 0.6396, 0.9543, 0.9380, 0.9348, 0.6394, 0.9053, 0.9320, 0.8764, 0.7065, 0.9470, 0.8712, 0.9059, 0.7571, 0.8491, 0.8680, 0.8949]
 ```
 
 **Notlar:**
