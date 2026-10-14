@@ -2747,7 +2747,16 @@ aralıkları sabit bootstrap tohumuyla tekrarlanabilir. `npm run experiments`
 bilinçlidir: §5.11'de öğrenildiği gibi tek pencereye bağlı sonuçlar genellenmez.
 
 
-> **Ders:** rapor ile bağımsız ölçüm birbirini doğrulamazsa **raporu şüpheliye
-> al**. Düzeltilen hata, "ölü alet" sınıfının beşinci hâli: **ölü denetim
-> döngüsü** — döngünün iki kez çalışması ölçümü sessizce bozdu, kimse fark
-> etmedi ve uydurma bir "teşhis" doğurdu.
+#### Kalıcı koruma: `tests/measurement.test.ts`
+
+Aynı alışkanlığın ikinci kez kurulmasını engellemek için üç denetim:
+1. Deney dosyalarında **ardışık iki ölçüm döngüsü** deseni yok.
+2. `experimentCooperation.run()` **tek** ölçüm döngüsü içerir.
+3. Üretim kodunda süşeli dengesi (bozuk sözdizimi göstergesi).
+
+Denetleyici **doğrulandı**: §6.57'deki hata geçici olarak geri kondu ve
+**iki test kırmızı** döndü; geri alınınca yeşile döndü.
+
+> İlk koruma denemesinde "step çağrısı = döngü × 2" gibi bir **tahmin**
+> yazdım ve yanlış çıktı (dosyada farklı desenler var). Doğru ölçüt
+> **fonksiyon bazlı**.
