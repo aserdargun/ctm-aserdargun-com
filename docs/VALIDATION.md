@@ -2575,13 +2575,49 @@ Genom değişikliği **tüm deney paketini geçersizleştirdi**; `npm run experi
 baştan koşuldu. Özellikle 12.000 tick'e dayalı bütün sonuçlar yeniden
 yorumlanmalı — sönümlenme artık o pencerenin dışında kalıyor.
 
-#### Doğrulama: hangi bulgular ayakta kaldı?
+#### #### İkinci ölü ölçüm kapsamı: `genomeSignature`
+
+`genomeDistance` düzeltilirken tarama yapıldı ve **ikinci** bir elle liste
+çıktı: `genomeSignature()`, yani **benzersiz genom / çeşitlilik** sayımı.
+
+Bu ölçümün etkisi doğrudan ölçüldü (12.000 tick, canlı organizmalar):
+
+| tohum | 8-parametreli imza | 9-parametreli imza (doğru) |
+|---|---|---|
+| 11 | 61 benzersiz | **62** |
+| 3001 | 50 | 50 |
+| 42 | 58 | **60** |
+
+Yani çeşitlilik **sistematik olarak küçük hesaplanıyordu** — `cooperation` farkı
+olan iki organizma "aynı genom" sayılıyordu. Aynı sınıf, aynı sessizlik:
+ölçüm çalışıyor, sayı üretiyor, p-değeri hesaplıyor, yalnız kapsamı eski.
+
+#### Koruma ve dedektörün kendi hatası
+
+`tests/measurement.test.ts` artık elle listeleri reddediyor. **Koruma yazarken
+üç kez yanlış pozitif ürettim** ve ölçütü her seferinde daralttım:
+
+1. "satırda ≥3 parametre" → `Pick<Genome,…>` (tip kısıtı) ve genom nesne
+   literalinin alanları. Meşru — **değer yazmak** zorundayız.
+2. "parametre iki kez geçiyor" → `const plasticity = K * genome.plasticity`.
+   Meşru — orada **tek** parametre var.
+3. Doğru ölçüt: aynı parametrenin **farklı alıcılarda** karşılaştırılması
+   (`a.plasticity` + `b.plasticity`) — yani bir çiftin tüm üyelerini tek tek
+   sayan elle liste.
+
+Denetleyici **doğrulandı**: elle liste geçici olarak geri konunca kırmızı döndü,
+geri alınınca yeşile döndü.
+
+> Bir denetleyicinin "tutarlı" olması yetmez; **kötü durumda neyi yakaladığını**
+> bilmelisin. Her yanlış pozitif, ölçütün yanlış olduğunun kanıtıdır.
 
 | bulgu | yeni genomle |
 |---|---|
 | Paylaşma varsayılan ayarda etkisiz | ✅ **ayakta** — 12 tohumun hepsinde fark 0 (ort. tepe 14,58 = 14,58) |
 | Koloni sönümlenmesi | ⚠️ **geçti** — 13.400 tick (12.000'de görünmüyor) |
 | Hız ekseni kalibrasyonu | ✅ geçerli — gözlenen maks 0,1117, tavan 0,120; 2 uç gözlem nadir |
+
+#### Doğrulama: hangi bulgular ayakta kaldı?
 
 Hilecin varlığı **kavramsal** olarak tanımlıdır: bedeli ödemeyen hücre de
 organizmanın yenilenmiş bağlarından yararlanır. Ancak **kalıtsal değil** —

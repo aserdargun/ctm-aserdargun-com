@@ -1,7 +1,7 @@
 # Cell to Mind — Deney Sonuçları
 
-**Körüldü:** 2026-10-14T08:35:03.084Z
-**Toplam koşu:** 1921 · **duvar süresi:** 825.2 s
+**Körüldü:** 2026-10-14T11:44:12.688Z
+**Toplam koşu:** 1921 · **duvar süresi:** 830.1 s
 **Mod:** standart
 **Pencere:** 12.000 tick (40.000 tick'lik ekolojik çöküşü kapsamak için `--deep` kullanın)
 
@@ -320,14 +320,14 @@ aktivite. Tümü mevcut dünya verisinden türetilir.
 ```
   tohum 11 · 12000 tick · 7 örnek
    tick   pop   değişim   yenilik%   çeşitlilik   karmaşıklık   aktivite   tür
-      0    48  0.00000000   97.9166667   0.7214636867   0.000000000000          0    12
-   2000   149  0.00707505   39.8058252   0.8482568880   0.369941792889   2334.7200000000003    12
-   4000   226  0.00200522   16.9117647   0.7517264119   0.476297508974   7121.389999999995    12
-   6000   192  0.00022232   3.2786885   0.6987952025   0.465370099575   8811.749999999996    12
-   8000   151  0.00049706   1.8867925   0.6327867133   0.403681020928   8889.470000000001    12
-  10000   129  0.00017608   2.7777778   0.5866308109   0.262624835539   8352.210000000001    12
-  12000   123  0.00057529   4.5871560   0.6263462334   0.193500919630   9183.590000000006    12
-  → Pencere sonu: değişim 0.0006 · yenilik %4.6 · çeşitlilik 0.626 · karmaşıklık 0.194 · tür 12. Eğilim: **falling**. Pencere boyunca 125 benzersiz genom imzası görüldü. **Yakınsama, açık uçluluk değil:** yenilik %40 → %4.6, değişim ~0'a düştü, karmaşıklık 0.37 → 0.19. Popülasyon kısa bir keşiften sonra daralmaya geçiyor — Literatürdeki "açık uçluluk geçicidir, baskın desenlere çöker" bulgusunun bu modeldeki karşılığı (Faldor vd. 2023).
+      0    48  0.00000000   100.0000000   0.4154129739   0.000000000000          0    12
+   2000   149  0.00444596   39.8058252   0.5057391876   0.369941792889   2334.7200000000003    12
+   4000   226  0.00200458   17.6470588   0.4879243694   0.476297508974   7121.389999999995    12
+   6000   192  0.00025039   3.2786885   0.4592493776   0.465370099575   8811.749999999996    12
+   8000   151  0.00012446   1.8867925   0.3332961441   0.403681020928   8889.470000000001    12
+  10000   129  0.00023895   2.7777778   0.3084954508   0.262624835539   8352.210000000001    12
+  12000   123  0.00044666   4.5871560   0.3270941124   0.193500919630   9183.590000000006    12
+  → Pencere sonu: değişim 0.0004 · yenilik %4.6 · çeşitlilik 0.327 · karmaşıklık 0.194 · tür 12. Eğilim: **falling**. Pencere boyunca 127 benzersiz genom imzası görüldü. **Yakınsama, açık uçluluk değil:** yenilik %40 → %4.6, değişim ~0'a düştü, karmaşıklık 0.37 → 0.19. Popülasyon kısa bir keşiften sonra daralmaya geçiyor — Literatürdeki "açık uçluluk geçicidir, baskın desenlere çöker" bulgusunun bu modeldeki karşılığı (Faldor vd. 2023).
 ```
 
 ## Faz D · Niş kapsama (yaşam haritası çekirdeği)
@@ -459,9 +459,9 @@ bozuktu**. Düzeltildi; regresyon testi eklendi.
 ```
   çatal noktası: tick 3000 · 1500 adım sonra karşılaştırma
   snapshot boyutu: 2.371.910 bayt
-  çatallama süresi: 43.45 ms · iki dalın koşusu: 2542.2 ms · oran 1.7%
+  çatallama süresi: 44.91 ms · iki dalın koşusu: 2529.9 ms · oran 1.8%
   dallar bit düzeyinde aynı: evet · müdahale sızıntısı: yok · müdahale etkili: evet
-  → Çatallama **doğru**: iki dal bit düzeyinde aynı ilerliyor ve müdahale diğerine sızmıyor. Snapshot 2.37 MB; bir dal açmak 21.7 ms, bir simülasyon adımı 0.847 ms → **bir çatal ≈ 26 tick** maliyetinde. Yani 500 tick'te bir, 16 pertürbasyonlu güncelleme ≈ 82% ek yük demek: üstel strateji yaşam içinde pratikte **bütçelenebilir**. Müdahale testi: müdahalesiz dal referansla AYNI, müdahale görmüş dal AYRILDI. **DİKKAT:** bu maliyet 3000. tick'te ölçüldü ve snapshot boyutuyla ölçeklenir; geç pencerelerde farklı olabilir ve **ölçülmedi**.
+  → Çatallama **doğru**: iki dal bit düzeyinde aynı ilerliyor ve müdahale diğerine sızmıyor. Snapshot 2.37 MB; bir dal açmak 22.5 ms, bir simülasyon adımı 0.843 ms → **bir çatal ≈ 27 tick** maliyetinde. Yani 500 tick'te bir, 16 pertürbasyonlu güncelleme ≈ 85% ek yük demek: üstel strateji yaşam içinde pratikte **bütçelenebilir**. Müdahale testi: müdahalesiz dal referansla AYNI, müdahale görmüş dal AYRILDI. **DİKKAT:** bu maliyet 3000. tick'te ölçüldü ve snapshot boyutuyla ölçeklenir; geç pencerelerde farklı olabilir ve **ölçülmedi**.
 ```
 
 ## S-4 · Çatallanmış ortamda yaşam içi üstel arama
@@ -475,10 +475,10 @@ ortalaması boyunca kaydırılır. Seyrek dünyada koşulur (pop 6, kaynak 6).
   kontrol (arama kapalı): medyan enerji 47.56 e · pop 15 · arama 0
   tedavi  (arama açık) : medyan enerji 47.56 e · pop 15 · arama 24 (4 pertürbasyon × 120 tick)
   ağırlık hareketi: kontrol 0.00000 · tedavi 0.00066
-  maliyet: 4000 tick'in koşusu 52 ms · arama 269 ms → ek yük ≈ 2131 tick
+  maliyet: 4000 tick'in koşusu 56 ms · arama 192 ms → ek yük ≈ 2258 tick
   enerji rezidülü: 0.000000000 e
   eşleştirilmiş fark 0.000 [0.000, 0.000] · p = 1.0000
-  → Çatallanmış arama **ölçülebilir performans artışı üretmedi**: fark 0.000 [0.000, 0.000], p = 1.0000. Ağırlık hareketi: medyan ‖Δθ‖ = 0.0007 (kontrol 0.0000) — yani arama θ'yı hareket ettirdi ama davranış kazanmadı. Ek yük ≈ 2131 tick'lik eşdeğer.
+  → Çatallanmış arama **ölçülebilir performans artışı üretmedi**: fark 0.000 [0.000, 0.000], p = 1.0000. Ağırlık hareketi: medyan ‖Δθ‖ = 0.0007 (kontrol 0.0000) — yani arama θ'yı hareket ettirdi ama davranış kazanmadı. Ek yük ≈ 2258 tick'lik eşdeğer.
 ```
 
 ## Bağ gücü koloni büyüklüğünü artırıyor mu?
@@ -525,7 +525,7 @@ ortalaması boyunca kaydırılır. Seyrek dünyada koşulur (pop 6, kaynak 6).
    tedavi  : 0.350 [0.319, 0.379]
    fark    : -0.008 [-0.024, 0.008]   p = 0.3035
    iyileşme olasılığı (bootstrap): 15.4%
-   · genom kayması (genomeShift): kontrol 0.007 · tedavi 0.007 · fark -0.000
+   · genom kayması (genomeShift): kontrol 0.005 · tedavi 0.005 · fark 0.001
    · zirve en büyük küme: kontrol 9.333 · tedavi 11.917 · fark 2.583
    · pencere sonu 4+ hücreli yapı: kontrol 1.500 · tedavi 2.917 · fark 1.417
    · ulaşılan en yüksek nesil: kontrol 2.750 · tedavi 2.750 · fark 0.000

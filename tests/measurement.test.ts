@@ -107,6 +107,74 @@ describe('ölçüm kodu · ölü denetim döngüsü koruması', () => {
   });
 });
 
+describe('ölçüm kodu · ölü ölçüm kapsamı koruması', () => {
+  // `genome.cooperation` eklenirken iki ölçüm **elle yazılmış 8 parametre
+  // listesi** taşımaya devam etti:
+  //   - `genomeDistance()` → uyarlanma kayması ölçümü
+  //   - `genomeSignature()` → benzersiz genom / çeşitlilik sayımı
+  // İkisi de çalışıyor, sayı üretiyor ve p-değeri hesaplıyor; yalnız yeni
+  // parametreyi **görmüyordu**. Çeşitlilik ölçüldü: 8-parametreli imza
+  // 12.000 tick'te 61/58 benzersiz genom bulurken tam imza 62/60 buluyor —
+  // yani çeşitlilik sistematik olarak küçük hesaplanıyordu.
+  //
+  // Bu, ölçülebilir bir hatanın **sessiz** hâli; bu yüzden elle listeler
+  // yasaklanır ve parametreler tek kaynaktan (`GENOME_KEYS`) okunur.
+  it('elle yazılmış genom parametre listesi yok', () => {
+    const offenders: string[] = [];
+    for (const file of filesUnder(join(ROOT, 'src'), (p) => p.endsWith('.ts'))) {
+      const src = readFileSync(file, 'utf8');
+      // Gerçek kusurun şekli: **iki farklı alıcı üzerinde** aynı parametrenin
+      // karşılaştırılması (`a.plasticity` ve `b.plasticity`) — yani bir
+      // genom çiftinin **tüm parametrelerini tek tek sayan** elle liste.
+      //
+      // ⚠️ İlk iki deneme yanlış pozitif üretti:
+      //   (a) "satırda ≥3 parametre" → `Pick<Genome,…>` (tip kısıtı) ve genom
+      //       nesne literalinin alanları yakalandı; ikisi de meşru.
+      //   (b) "parametre iki kez geçiyor" → `const plasticity = K *
+      //       genome.plasticity` yakalandı; orada **tek** parametre var.
+      // Doğru ölçüt: farklı alıcılarla karşılaştırma.
+      const KEY =
+        /\b(bondAffinity|bondStrength|motility|senseRadius|shareEfficiency|toleranceA|toleranceB|plasticity|cooperation)\b/g;
+      for (const [i, line] of src.split('\n').entries()) {
+        if (line.trim().startsWith('*') || line.trim().startsWith('//')) continue;
+        const pairs = [...line.matchAll(/([A-Za-z_$][\w$]*)\.([a-zA-Z]+)/g)].map((m) => ({
+          obj: m[1]!,
+          prop: m[2]!,
+        }));
+        const paramPairs = pairs.filter((p) => KEY.test(p.prop));
+        KEY.lastIndex = 0;
+        if (paramPairs.length < 2) continue;
+        // Aynı parametre, FARKLI alıcılarda → elle sayım şüphesi.
+        const byProp = new Map<string, Set<string>>();
+        for (const p of paramPairs) {
+          if (!byProp.has(p.prop)) byProp.set(p.prop, new Set());
+          byProp.get(p.prop)!.add(p.obj);
+        }
+        const enumerated = [...byProp.values()].some((objs) => objs.size >= 2);
+        if (enumerated) {
+          offenders.push(`${file.replace(ROOT + '/', '')}:${i + 1}  ${line.trim().slice(0, 70)}`);
+        }
+      }
+    }
+    expect(offenders, `elle genom parametre listesi sayan satırlar:\n${offenders.join('\n')}`).toEqual([]);
+  });
+
+  it('genom ölçümleri parametreleri tek kaynaktan okuyor', () => {
+    const ecology = readFileSync(join(ROOT, 'src/sim/experiments/ecology.ts'), 'utf8');
+    // `genomeSignature` ve `genomeDistance` GENOME_KEYS ile gezmeli.
+    expect(ecology).toMatch(/GENOME_KEYS\.map\(/);
+    expect(readFileSync(join(ROOT, 'src/sim/experiments/colony.ts'), 'utf8')).toMatch(/for \(const key of GENOME_KEYS\)/);
+  });
+
+  it('genom parametresi metabolik maliyetli (proje kuralı)', () => {
+    // `cooperation` bedelsiz olsaydı düşük değerli bireyler her zaman kazanırdı
+    // ve hileci deneyi anlamsızlaşırdı. Test maliyetin varlığını korur.
+    const energy = readFileSync(join(ROOT, 'src/sim/biology/energy.ts'), 'utf8');
+    expect(energy).toMatch(/COOPERATION_COST_K/);
+    expect(energy).toMatch(/COOPERATION_COST_K \* genome\.cooperation/);
+  });
+});
+
 describe('ölçüm kodu · denetim zinciri bütünlüğü', () => {
   it('deney raporu üretilebilir durumda (bozuk sözdizimi yok)', () => {
     // Pipeline'ın üretim kodunda sözdizimi hatası olursa rapor sessizce

@@ -21,7 +21,7 @@
 
 import { bootstrapCI, bootstrapTest, fmt, fmtInterval, type HypothesisTest, type Interval } from '../stats.ts';
 import { deserializeWorld, serializeWorld } from '../persistence/snapshot.ts';
-import { GENOME_BOUNDS } from '../genome.ts';
+import { GENOME_BOUNDS, GENOME_KEYS } from '../genome.ts';
 import { LIFE_SIZE_MAX, LIFE_SPEED_MAX } from '../lab/lifeMap.ts';
 import { genomeDistance } from './colony.ts';
 import type { Genome } from '../types.ts';
@@ -2112,13 +2112,18 @@ export interface ModesReport {
   reading: string;
 }
 
-/** Genomu kısa, kararlı bir imzaya çevirir (benzersizlik ölçümü için). */
+/**
+ * Genomu kısa, kararlı bir imzaya çevirir (benzersizlik ölçümü için).
+ *
+ * ⚠️ `GENOME_KEYS` üzerinden **dinamik** üretilir. Elle yazılmış liste
+ * `cooperation` eklenirken güncellenmezse çeşitlilik ölçümü onu görmez —
+ * ölçüldü: 12.000 tick'te 8-parametreli imza 61/58 benzersiz genom bulurken
+ * tam imza 62/60 buluyor, yani çeşitlilik **sistemli olarak küçük
+ * hesaplanıyor**. Bu sessizdir; p-değeri geçerli görünür.
+ */
 function genomeSignature(g: Genome): string {
   const r = (v: number) => Math.round(v * 1000) / 1000;
-  return [
-    r(g.bondAffinity), r(g.bondStrength), r(g.motility), r(g.senseRadius),
-    r(g.shareEfficiency), r(g.toleranceA), r(g.toleranceB), r(g.plasticity),
-  ].join(',');
+  return GENOME_KEYS.map((k) => r(g[k])).join(',');
 }
 
 function shannonEntropy(counts: readonly number[]): number {
