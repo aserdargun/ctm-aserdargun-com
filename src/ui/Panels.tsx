@@ -11,6 +11,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../engine/store.ts';
 import type { SimClient } from '../engine/client.ts';
+import type { GenomeKey } from '../sim/genome.ts';
 import { actionLabels, getStrings, genomeLabels, inputLabels } from '../i18n/index.ts';
 import {
   forwardMasked,
@@ -71,7 +72,7 @@ export function InspectorPanel(): React.ReactElement {
           </dl>
 
           <h4>{t.inspector.genome}</h4>
-          {Object.entries(org.genome).map(([key, value]) => (
+          {(Object.entries(org.genome) as [GenomeKey, number][]).map(([key, value]) => (
             <div className="micro__row" key={key}>
               <span className="micro__rowlabel">{labels[key] ?? key}</span>
               <span className="bar" aria-hidden="true">
@@ -359,7 +360,7 @@ export function LineagePanel({ client }: { client: SimClient }): React.ReactElem
                   <dd>{num(distance, 4)}</dd>
                 </dl>
                 <div className="chips">
-                  {Object.entries(l.meanGenome).map(([k, v]) => (
+                  {(Object.entries(l.meanGenome) as [GenomeKey, number][]).map(([k, v]) => (
                     <span className="chip" key={k}>
                       {labels[k] ?? k}: {num(v as number, 2)}
                     </span>

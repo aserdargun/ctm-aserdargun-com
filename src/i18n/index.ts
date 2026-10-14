@@ -7,6 +7,7 @@
  */
 
 import type { Language } from '../engine/store.ts';
+import type { GenomeKey } from '../sim/genome.ts';
 
 export const tr = {
   title: 'Cell to Mind',
@@ -425,7 +426,15 @@ export function actionLabels(lang: Language): readonly string[] {
   return lang === 'tr' ? ACTION_LABELS_TR : ACTION_LABELS_EN;
 }
 
-export const GENOME_LABELS_TR: Record<string, string> = {
+/**
+ * Genom parametrelerinin görünen adları.
+ *
+ * ⚠️ Tip **gevşek** (`Record<string, string>`) olsaydı eksik bir üye derleyiciye
+ * yakalanmazdı: `cooperation` eklenirken buraya yazılmadı ve soy defteri panelinde
+ * o parametrenin satırı **boş** göründü. `Record<GenomeKey, string>` ile bir
+ * eksik üye artık **derleme hatası** olur.
+ */
+export const GENOME_LABELS_TR: Record<GenomeKey, string> = {
   bondAffinity: 'Bağlı kalma',
   bondStrength: 'Bağ dayanımı',
   motility: 'Hareket',
@@ -434,9 +443,10 @@ export const GENOME_LABELS_TR: Record<string, string> = {
   toleranceA: 'A uyumu',
   toleranceB: 'B uyumu',
   plasticity: 'Plastisite',
+  cooperation: 'İşbirliği',
 };
 
-export const GENOME_LABELS_EN: Record<string, string> = {
+export const GENOME_LABELS_EN: Record<GenomeKey, string> = {
   bondAffinity: 'Attachment',
   bondStrength: 'Bond strength',
   motility: 'Motility',
@@ -445,9 +455,10 @@ export const GENOME_LABELS_EN: Record<string, string> = {
   toleranceA: 'Tolerance A',
   toleranceB: 'Tolerance B',
   plasticity: 'Plasticity',
+  cooperation: 'Cooperation',
 };
 
-export function genomeLabels(lang: Language): Record<string, string> {
+export function genomeLabels(lang: Language): Record<GenomeKey, string> {
   return lang === 'tr' ? GENOME_LABELS_TR : GENOME_LABELS_EN;
 }
 

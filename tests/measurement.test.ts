@@ -21,6 +21,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { GENOME_KEYS } from '../src/sim/genome.ts';
 import { join, resolve } from 'node:path';
 
 const ROOT = resolve(__dirname, '..');
@@ -164,6 +165,25 @@ describe('ölçüm kodu · ölü ölçüm kapsamı koruması', () => {
     // `genomeSignature` ve `genomeDistance` GENOME_KEYS ile gezmeli.
     expect(ecology).toMatch(/GENOME_KEYS\.map\(/);
     expect(readFileSync(join(ROOT, 'src/sim/experiments/colony.ts'), 'utf8')).toMatch(/for \(const key of GENOME_KEYS\)/);
+  });
+
+  it('i18n genom etiketleri TÜM parametreleri kapsıyor', () => {
+    // ⚠️ `GENOME_LABELS_*` bir zamanlar `Record<string, string>` idi — **gevşek
+    // tip**. `cooperation` eklendiğinde etiketi yazılmadı ve derleyici sessiz
+    // kaldı; soy defteri panelinde o parametrenin satırı **boş** göründü.
+    // Tip `Record<GenomeKey, string>` yapıldı; eksik üye artık derleme hatası.
+    // Buradaki denetim, tipten bağımsız ikinci bir güvence.
+    const i18n = readFileSync(join(ROOT, 'src/i18n/index.ts'), 'utf8');
+    for (const lang of ['TR', 'EN']) {
+      const block = i18n.match(new RegExp(`GENOME_LABELS_${lang}[\\s\\S]*?\\n};`))?.[0] ?? '';
+      const present = (block.match(/^\s{2}(\w+):/gm) ?? []).map((s) => s.trim().replace(':', ''));
+      const keys = new Set(present);
+      const missing = [...GENOME_KEYS].filter((k) => !keys.has(k));
+      expect(missing, `GENOME_LABELS_${lang} eksik parametreler: ${missing.join(', ')}`).toEqual([]);
+    }
+    // Ve tip sıkı olmalı (gevşek `Record<string,string>` sessiz geçer).
+    expect(i18n).toMatch(/Record<GenomeKey, string>/);
+    expect(i18n).not.toMatch(/GENOME_LABELS_\w+: Record<string, string>/);
   });
 
   it('genom parametresi metabolik maliyetli (proje kuralı)', () => {

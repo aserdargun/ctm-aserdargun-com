@@ -2605,8 +2605,26 @@ olan iki organizma "aynı genom" sayılıyordu. Aynı sınıf, aynı sessizlik:
    (`a.plasticity` + `b.plasticity`) — yani bir çiftin tüm üyelerini tek tek
    sayan elle liste.
 
-Denetleyici **doğrulandı**: elle liste geçici olarak geri konunca kırmızı döndü,
-geri alınınca yeşile döndü.
+#### Üçüncü ölü kapsam: **i18n genom etiketleri kullanıcıya görünüyordu**
+
+`GENOME_LABELS_TR/EN` bir zamanlar `Record<string, string>` idi — **gevşek
+tip**. `cooperation` eklendiğinde etiketi yazılmadı, derleyici **sessiz**
+kaldı ve soy defteri panelinde o parametrenin satırı **boş** göründü.
+
+Bu, sınıfın en "zararsız görünen" hâli: derleme yeşil, testler yeşil, ekran
+büyük ölçüde doğru — yalnız **bir satır boş**.
+
+Düzeltme: tip `Record<GenomeKey, string>` yapıldı ve `cooperation` etiketleri
+eklendi (`İşbirliği` / `Cooperation`). Sıkı tip, tüketim yerlerindeki darboğazı
+da ortaya çıkardı (`Object.entries` indekslemesi `string` ile yapılıyordu) ve o
+noktalar `GenomeKey` ile işaretlendi.
+
+Doğrulama: `cooperation` etiketi geçici olarak silindi → **derleme hatası**;
+geri alındı → temiz. Artık eksik etiket sessizce geçmiyor.
+
+> **Genel kural:** bir sözlük/harita için `Record<string, X>` kullanma. Anahtar
+> kümesi kesin biliniyorsa (`GenomeKey`, `SimEventType`) tipi **o küme** yap;
+> eksik üye o zaman **derleme hatası** olur.
 
 > Bir denetleyicinin "tutarlı" olması yetmez; **kötü durumda neyi yakaladığını**
 > bilmelisin. Her yanlış pozitif, ölçütün yanlış olduğunun kanıtıdır.
