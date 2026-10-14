@@ -2637,7 +2637,7 @@ Hilecin varlığı artık **kavramsal olarak** tanımlı: bedeli ödemeyen hücr
 organizmanın yenilenmiş bağlarından yararlanır.
 
 ⚠️ **Ama ölçülmedi.** Hilecin **kalıtsal** olması için genoma bir parametre
-eklenmesi gerekir (şu an genomda 8 parametre var, hepsi metabolik maliyetli).
+eklenmesi gerekiyordu (o sırada genomda 8 parametre vardı) — §6.58'de eklendi.
 Bu, modelin biyolojisini değiştiren bir adımdır ve **kullanıcının kararına**
 bırakıldı. Şu an ölçülen şey aktının kendisi, hilecin değil.
 

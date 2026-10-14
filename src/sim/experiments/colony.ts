@@ -15,6 +15,7 @@ import { C } from '../biology/energy.ts';
 import { meanGenome } from '../genome.ts';
 import { World } from '../world.ts';
 import type { Genome } from '../types.ts';
+import { GENOME_BOUNDS, GENOME_KEYS } from '../genome.ts';
 
 export interface ColonyOptions {
   seed: number;
@@ -84,7 +85,7 @@ export interface ColonyResult {
   /**
    * Kurucu popülasyonun ortalama genomu ile koşu sonunda **yaşayan**
    * organizmaların ortalama genomu arasındaki ortalama mutlak kayma
-   * (8 parametre üzerinden, 0..1 ölçeğinde normalize).
+   * (tüm parametreler üzerinden, her biri kendi aralığına normalize).
    *
    * Bu, "uyarlanma"nın ölçülebilir hâlidir: seçilim genların bir yönde
    * sistematik olarak kaydırmıyorsa bu sayı sıfıra yakın çıkar. Sıfır
@@ -97,19 +98,26 @@ export interface ColonyResult {
   livingGenome: Genome;
 }
 
-/** İki genom arasındaki ortalama mutlak fark (8 parametre, normalize ölçekte). */
+/**
+ * İki genom arasındaki ortalama mutlak fark (tüm parametreler, normalize
+ * ölçekte).
+ *
+ * ⚠️ `GENOME_KEYS` üzerinden **dinamik** hesaplanır; parametre listesi elle
+ * güncellenmez. `cooperation` eklenirken buradaki sabit liste güncellenmezse
+ * ölçüm o parametreyi **görmez** ve işbirliği evrimi sessizce ölçülemez
+ * hale gelir — sessiz bir boşluk.
+ *
+ * Ölçek: her parametre kendi `GENOME_BOUNDS` aralığına bölünür, böylece
+ * `senseRadius` (2..7) ile `motility` (0..1) aynı ağırlıkta sayılır.
+ */
 export function genomeDistance(a: Genome, b: Genome): number {
-  return (
-    (Math.abs(a.bondAffinity - b.bondAffinity) +
-      Math.abs(a.bondStrength - b.bondStrength) +
-      Math.abs(a.motility - b.motility) +
-      Math.abs(a.senseRadius - b.senseRadius) +
-      Math.abs(a.shareEfficiency - b.shareEfficiency) +
-      Math.abs(a.toleranceA - b.toleranceA) +
-      Math.abs(a.toleranceB - b.toleranceB) +
-      Math.abs(a.plasticity - b.plasticity)) /
-    8
-  );
+  let total = 0;
+  for (const key of GENOME_KEYS) {
+    const [lo, hi] = GENOME_BOUNDS[key];
+    const span = Math.max(1e-9, hi - lo);
+    total += Math.abs(a[key] - b[key]) / span;
+  }
+  return total / GENOME_KEYS.length;
 }
 
 export function runColony(options: ColonyOptions): ColonyResult {

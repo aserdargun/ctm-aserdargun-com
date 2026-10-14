@@ -120,9 +120,9 @@ Bu değerler HUD'da ve gözlemci raporunda açıkça "işletimsel ölçüm" diye
 
 ## 3. Kalıtım
 
-Genom gerçek DNA dizisi değil, **8 kalıtsal parametredir**:
+Genom gerçek DNA dizisi değil, **9 kalıtsal parametredir**:
 `bondAffinity`, `bondStrength`, `motility`, `senseRadius`, `shareEfficiency`,
-`toleranceA`, `toleranceB`, `plasticity`.
+`toleranceA`, `toleranceB`, `plasticity`, `cooperation`.
 
 Her parametrenin metabolik maliyeti vardır (`basalCostFor`), bu yüzden hiçbir
 özellik bedelsiz avantaj sağlamaz.
@@ -135,8 +135,19 @@ Her parametrenin metabolik maliyeti vardır (`basalCostFor`), bu yüzden hiçbir
 | `plasticity` | Daha hızlı öğrenme | Öğrenme metabolik maliyeti |
 | `shareEfficiency` | Enerji paylaşımı verimi | Artan bağ trafiği |
 | `toleranceA/B` | Kaynak türüne uyum | Düşük tolerans = düşük emilim |
+| `cooperation` | Bağ yenilemeye katılım (baskınlık) | Doğrudan metabolik maliyet (~bazalin %26'sı) |
 
 Ortam değişince genomlar **anında düzeltilmez**; uyarlanma seçilimden doğar.
+
+### `cooperation` ve "hileci"
+
+`cooperation` (0..1) hücrenin bağ bütünlüğünü yenilemeye ne kadar enerji
+koyduğunu belirler. Yenileme bedeli **ortaktır**: bağın iki ucundaki hücreler
+birlikte öder, dolayısıyla **ödemeyen hücre de yararlanır** — işte *hileci*.
+
+Ölçülen sonuç (`VALIDATION.md` §6.58): 16.000 tick'te seçilim bu parametreye
+**yön vermiyor** (ak etkisi p = 0,74). Yani bu modelde hileci tanımlı ama
+evrimsel olarak baskın çıkmıyor.
 
 ### Ağırlık kalıtımı (kritik ayrım)
 
