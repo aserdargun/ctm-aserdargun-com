@@ -29,15 +29,6 @@ import {
 } from 'three';
 import { useStore } from '../engine/store.ts';
 
-const PALETTE = {
-  deep: '#071B22',
-  panel: '#102B33',
-  text: '#E9F0DF',
-  life: '#A8D672',
-  resource: '#F2BA72',
-  damage: '#E58D81',
-} as const;
-
 /** Kaustik + kum deseni taşıyan zemin malzemesi. */
 function useSedimentMaterial(): { material: MeshStandardMaterial; uniforms: Record<string, { value: number }> } {
   const uniforms = useMemo(() => ({ uTime: { value: 0 }, uLight: { value: 0.62 } }), []);
@@ -284,5 +275,3 @@ export function MarineSnow({
 }
 
 type Group = import('three').Group;
-
-export const HABITAT_PALETTE = PALETTE;

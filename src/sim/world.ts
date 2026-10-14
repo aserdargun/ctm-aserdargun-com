@@ -23,7 +23,7 @@ import {
   perceptionCostFor,
   radiusForCount,
   shareAlongBond,
-  speedScaleForRadius,
+  maxSpeedFor,
 } from './biology/energy.ts';
 import {
   binOf,
@@ -35,7 +35,11 @@ import {
   type LifeCell,
   type LifeSnapshot,
 } from './lab/lifeMap.ts';
-import { chooseIdentityComponent, connectedComponents } from './biology/connectivity.ts';
+import {
+  chooseIdentityComponent,
+  connectedComponents,
+  splitsIntoMultiple,
+} from './biology/connectivity.ts';
 import { NeuralPolicy, type DecisionInfo } from './behavior/policy.ts';
 import { computeObservation } from './behavior/perception.ts';
 import { createTheta, initTheta, MLP_SHAPE } from './behavior/mlp.ts';
@@ -818,7 +822,9 @@ export class World {
       if (!intent) continue;
       const cells = this.organismCells(org);
       const radius = radiusForCount(cells.length);
-      const maxSpeed = C.BASE_SPEED * (0.4 + 0.6 * org.genome.motility) * speedScaleForRadius(radius) * intent.speedScale;
+      // `maxSpeedFor` bu üç çarpanı zaten tanımlıyor; elle yazmak aynı formülü
+      // ikinci bir yere yazmaktı ve yardımcı ölü kalmıştı.
+      const maxSpeed = maxSpeedFor(org.genome, radius) * intent.speedScale;
       const flow = currentAt(this.centroidOf(org), timeSec, this.settings.currentStrength);
 
       for (const cellId of org.cells) {
@@ -1134,7 +1140,9 @@ export class World {
       }
 
       const components = connectedComponents(aliveCells, relevantBonds, (id) => this.bonds.has(id));
-      if (components.length <= 1) continue;
+      // Kuralın adı ne yaptığını söyler; `components.length <= 1` yazmak aynı
+      // şeydi ama `splitsIntoMultiple` yardımcısı ölü kalmıştı.
+      if (!splitsIntoMultiple(components)) continue;
 
       const keepIdx = chooseIdentityComponent(components);
       org.cells = (components[keepIdx] as { cells: number[] }).cells;

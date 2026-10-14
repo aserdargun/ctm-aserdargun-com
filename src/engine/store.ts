@@ -98,7 +98,6 @@ interface StoreState {
   energyResidual: number;
   light: number;
   predator: { active: boolean; energy: number; x: number; y: number; z: number; radius: number };
-  resourcesLeft: number;
 
   settings: SettingsState;
   organisms: OrganismSummary[];
@@ -153,7 +152,6 @@ interface StoreState {
     py: number;
     pz: number;
     pr: number;
-    resourcesLeft: number;
   }) => void;
   setSettings: (patch: Partial<SettingsState>) => void;
   setOrganisms: (organisms: OrganismSummary[]) => void;
@@ -225,7 +223,6 @@ export const useStore = create<StoreState>((set, get) => ({
   energyResidual: 0,
   light: 0.62,
   predator: { active: true, energy: 0, x: 0, y: 0, z: 0, radius: 0.55 },
-  resourcesLeft: 0,
 
   settings: { light: 0.62, currentStrength: 0.045, selectionPressure: 0.18, learningEnabled: true },
   organisms: [],
@@ -278,7 +275,6 @@ export const useStore = create<StoreState>((set, get) => ({
       energyResidual:
         t.systemEnergy + t.dissipated - (t.initialEnergy + t.externalInput),
       light: t.light,
-      resourcesLeft: t.resourcesLeft,
       predator: {
         active: t.predatorActive,
         energy: t.predatorEnergy,

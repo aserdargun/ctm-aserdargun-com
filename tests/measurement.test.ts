@@ -330,6 +330,113 @@ describe('genom uzaklığı · tek tanım kuralı', () => {
   });
 });
 
+describe('ölü alet · dışa aktarım gerçekten tüketiliyor mu', () => {
+  // ⚠️ Bu sınıfın ilk üyesi `listEvents` idi: yıllardır hiç çağrılmamış,
+  // worker yanıtı üretiyordu ama arayüzde hiç işlenmiyordu. Yani **ölçülemez
+  // alet**. Yeniden doğmasını engellemek için dışa aktarımlar taranıyor.
+  //
+  // Ölçüt bilinçli olarak GEREKSİ BİR AYRINTILILIK: sembol, tanımlandığı
+  // dosya dışında **en az bir** dosyada geçmeli. Yalnız kendi dosyasında
+  // geçmesi (tanımı + yorum satırı) "tüketiliyor" sayılmaz.
+  const walk = (dir: string): string[] => {
+    const out: string[] = [];
+    for (const e of readdirSync(dir)) {
+      if (['node_modules', '.git', 'dist'].includes(e)) continue;
+      const p = join(dir, e);
+      if (statSync(p).isDirectory()) out.push(...walk(p));
+      else if (/\.tsx?$/.test(p)) out.push(p);
+    }
+    return out;
+  };
+  const corpus = ['src', 'tests', 'tools', 'e2e', 'scripts']
+    .map((d) => join(ROOT, d))
+    .filter((d) => {
+      try {
+        return statSync(d).isDirectory();
+      } catch {
+        return false;
+      }
+    })
+    .flatMap(walk)
+    .map((f) => [f, readFileSync(f, 'utf8')] as const);
+
+  it('hiçbir dışa aktarım tüketilmeden kalmıyor', () => {
+    const orphans: string[] = [];
+    let scanned = 0;
+    for (const [f, src] of corpus) {
+      if (!f.includes(`${ROOT}/src/`)) continue;
+      for (const m of src.matchAll(
+        /^export\s+(?:async\s+)?(?:function|const|class)\s+([A-Za-z0-9_]+)/gm,
+      )) {
+        scanned++;
+        const name = m[1] as string;
+        // Ölçüt: sembol tanımı dışında HİÇBİR YERDE geçmemeli.
+        // "Yalnız kendi dosyasında geçiyor" ÖLÜ değildir — `GENOME_LABELS_TR`
+        // gibi semboller `genomeLabels()` tarafından aynı dosyada tüketilir ve
+        // sağlıklıdır. `listEvents`'ın öldüğü şey tanımlı olup HİÇ ÇAĞRILMAMASIYDI.
+        //
+        // ⚠️ İlk ölçüt "başka dosyada geçmeli" idi ve 12 yanlış pozitif üretti.
+        // Dışa aktarımın kendisi gereksiz olabilir, ama kod ölü değildir.
+        const total = corpus.reduce(
+          (sum, [, t]) =>
+            sum + (t.match(new RegExp(`\\b${name}\\b`, 'g'))?.length ?? 0),
+          0,
+        );
+        if (total <= 1) orphans.push(`${name}  (${f.replace(`${ROOT}/`, '')})`);
+      }
+    }
+    // Tarama gerçekten dosya buldu mu — boş dönse denetim sessizce her şeyi geçer.
+    expect(scanned, 'hiçbir dışa aktarım taranmadı').toBeGreaterThan(100);
+
+    // ⚠️ **AÇIK BORÇ.** Aşağıdakiler taramada bulunan, **bağlanmamış** dışa
+    // aktarımlardır. Bu turda her birinin ÜRÜN ETKİSİ araştırılmadı; "zararsız"
+    // denmiş bir tescil değildir. Hepsi için geçerli tek gerekçe: yazılmış,
+    // hiç çağrılmamış, silinmemiş. Ayrı temizlik geçişi gerekiyor.
+    //
+    // Bu turun düzelttikleri AYRI: `resourcesLeft` (ölü **ve yanlış**),
+    // `useStrings` (ölü, dili yok sayan), `HABITAT_PALETTE`/`PALETTE` (ölü
+    // takma ad), `splitsIntoMultiple` ve `maxSpeedFor` (kullanılmayan yardımcı
+    // iken formülün satır içi kopyası yaşıyordu — kopyalar bağlandı).
+    const KNOWN_UNWIRED: Record<string, string> = {
+      // Ürün kararı gerektirenler:
+      systemPrefersReducedMotion:
+        'prefers-reduced-motion erişilebilirliği. Bağlamak ÜRÜN KARARIDIR: ' +
+        'simülasyonun sürekli hareketi ürünün kendisi (6 useFrame), basit aç/kapa değil',
+      getRecord: 'IndexedDB kayıt okuma — UI düğmesi yok; PROGRESS.md "tarayıcıda test edilmemiş" diye kayıtlı',
+      estimateUsage: 'IndexedDB kota ölçümü — getRecord ile aynı bağlanmamış yüzey',
+      // Saf temizlik borcu — etkileri bu turda araştırılmadı:
+      createShaftMaterial: 'görsel yardımcı; bu turda ürün etkisi araştırılmadı',
+      scratchObject: 'görsel yardımcı; bu turda ürün etkisi araştırılmadı',
+      ACTIONS: 'eylem sabitleri; bu turda ürün etkisi araştırılmadı',
+      organismCapacityFor: 'kapasite kuralı; bu turda ürün etkisi araştırılmadı',
+      summarizeTrials: 'deney yardımcısı; bu turda ürün etkisi araştırılmadı',
+      sweepShareThreshold: 'deney yardımcısı; bu turda ürün etkisi araştırılmadı',
+      formatShareThreshold: 'deney biçimlendiricisi; bu turda ürün etkisi araştırılmadı',
+      experimentInWorldEvolution: 'deney kaydı; bu turda ürün etkisi araştırılmadı',
+      formatInWorldEvolution: 'deney biçimlendiricisi; bu turda ürün etkisi araştırılmadı',
+      assertPolicyShape: 'deney doğrulaması; bu turda ürün etkisi araştırılmadı',
+      lifeMapOf: 'yaşam haritası yardımcısı; bu turda ürün etkisi araştırılmadı',
+      restorePolicy: 'snapshot yardımcısı; bu turda ürün etkisi araştırılmadı',
+      RESOURCE_KINDS: 'kaynak türleri; bu turda ürün etkisi araştırılmadı',
+      zeroTheta: 'ağırlık sıfırlayıcı; bu turda ürün etkisi araştırılmadı',
+      MLP_PARAMS: 'ağ boyutu sabiti; bu turda ürün etkisi araştırılmadı',
+      readFrame: 'kare okuma; bu turda ürün etkisi araştırılmadı',
+    };
+    const unexpected = orphans.filter((line) => {
+      const name = line.trim().split(/\s+/)[0] as string;
+      return !(name in KNOWN_UNWIRED);
+    });
+    expect(
+      unexpected,
+      `tüketilmeyen ve gerekçesiz dışa aktarım:\n${unexpected.join('\n')}`,
+    ).toEqual([]);
+    // Liste boşalmamalı: hepsi bağlanırsa bu denetim işe yaramaz olur.
+    for (const [name, why] of Object.entries(KNOWN_UNWIRED)) {
+      expect(why.length, `${name} için gerekçe yok`).toBeGreaterThan(20);
+    }
+  });
+});
+
 describe('ölçüm kodu · denetim zinciri bütünlüğü', () => {
   it('deney raporu üretilebilir durumda (bozuk sözdizimi yok)', () => {
     // Pipeline'ın üretim kodunda sözdizimi hatası olursa rapor sessizce

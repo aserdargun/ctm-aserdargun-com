@@ -48,7 +48,6 @@ export function App(): React.ReactElement {
           const data = new Float32Array(message.buffer);
           setFrame(data);
           // Telemetri düşük frekansta panele yazılır (kare başına render yok).
-          const cellCount = data[H.CELL_COUNT] as number;
           s.setTelemetry({
             tick: data[H.TICK] as number,
             simTime: data[H.SIM_TIME] as number,
@@ -67,7 +66,6 @@ export function App(): React.ReactElement {
             py: data[H.PREDATOR_Y] as number,
             pz: data[H.PREDATOR_Z] as number,
             pr: data[H.PREDATOR_RADIUS] as number,
-            resourcesLeft: Math.max(0, cellCount),
           });
           break;
         }

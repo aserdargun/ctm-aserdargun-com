@@ -411,10 +411,6 @@ const en: Strings = {
 
 const DICTIONARIES: Record<Language, Strings> = { tr, en };
 
-export function useStrings(): Strings {
-  return DICTIONARIES.tr;
-}
-
 export function getStrings(lang: Language): Strings {
   return DICTIONARIES[lang] ?? tr;
 }
