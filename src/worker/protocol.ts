@@ -6,7 +6,7 @@
  * kare başına hücre yazılmaz.
  */
 
-import type { SimEvent, Vec3 } from '../sim/types.ts';
+import type { Genome, SimEvent, Vec3 } from '../sim/types.ts';
 import type { LifeSnapshot } from '../sim/lab/lifeMap.ts';
 
 /** Kare paketi başlık uzunluğu (float). */
@@ -129,7 +129,11 @@ export interface OrganismSummary {
   cellCount: number;
   totalEnergy: number;
   meanEnergyNorm: number;
-  genome: Record<string, number>;
+  // ⚠️ Bu dört alan `Record<string, number>` idi. Gevşek tip, worker sınırında
+  // eksik bir genom parametresinin **sessizce** taşınmasına izin veriyordu;
+  // panel `labels[k] ?? k` yüzünden eksik satırı ham anahtarla gösterirdi.
+  // `Genome` ile bir eksik parametre artık derleme hatasıdır.
+  genome: Genome;
   alive: boolean;
   diedAtTick?: number;
   deathCause?: string | null;
@@ -149,9 +153,9 @@ export interface LineageSummary {
   organismCount: number;
   aliveCount: number;
   maxGeneration: number;
-  meanGenome: Record<string, number>;
-  ancestorGenome: Record<string, number>;
-  generations: { generation: number; organismId: number; genome: Record<string, number>; tick: number }[];
+  meanGenome: Genome;
+  ancestorGenome: Genome;
+  generations: { generation: number; organismId: number; genome: Genome; tick: number }[];
 }
 
 export interface DecisionSnapshot {

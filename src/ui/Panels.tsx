@@ -11,6 +11,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../engine/store.ts';
 import type { SimClient } from '../engine/client.ts';
+import { genomeDistance } from '../sim/genome.ts';
 import type { GenomeKey } from '../sim/genome.ts';
 import { actionLabels, getStrings, genomeLabels, inputLabels } from '../i18n/index.ts';
 import {
@@ -338,12 +339,11 @@ export function LineagePanel({ client }: { client: SimClient }): React.ReactElem
           <p className="note">{t.lineage.note}</p>
           {lineages.slice(0, 12).map((l) => {
             const latest = l.generations[l.generations.length - 1];
-            const distance = latest
-              ? Object.keys(l.ancestorGenome).reduce(
-                  (s, k) => s + Math.abs((l.ancestorGenome[k] ?? 0) - (latest.genome[k] ?? 0)),
-                  0,
-                ) / Object.keys(l.ancestorGenome).length
-              : 0;
+            // ⚠️ Burada elle mesafe hesaplamak YANLIŞ: ham toplam, `senseRadius`
+            // (2..7) ile `motility` (0..1)'yi eşit tartıyor ve ölçümün kullandığı
+            // tanımdan saptığı yerde **sıralamayı** ters çeviriyordu. Tek kanonik
+            // tanım `sim/genome.ts` içinde; ürün ve ölçüm aynı sayıyı gösterir.
+            const distance = latest ? genomeDistance(l.ancestorGenome, latest.genome) : 0;
             return (
               <section key={l.id}>
                 <h4>

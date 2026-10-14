@@ -1,7 +1,7 @@
 /**
  * Cell to Mind — genom: sınırlı kalıtsal parametreler.
  *
- * Bu gerçek bir DNA dizisi DEĞİLDİR. Sekiz kalıtsal parametredir ve her birinin
+ * Bu gerçek bir DNA dizisi DEĞİLDİR. Dokuz kalıtsal parametredir ve her birinin
  * `biology/energy.ts` içinde bir metabolik maliyeti vardır; bu yüzden hiçbir
  * özellik bedelsiz avantaj sağlamaz.
  */
@@ -159,10 +159,34 @@ export function createLineage(
   };
 }
 
-/** İki genom arasındaki ortalama mutlak fark (uyarlanma ölçümü). */
+/**
+ * İki genom arasındaki ortalama mutlak fark — **kanonik tanım**.
+ *
+ * ⚠️ Bu, kod tabanındaki genom uzaklığının **tek** tanımıdır: hem ölçüm
+ * (`experiments/colony.ts`), hem ürün arayüzü (soy paneli) hem de kanıt paketi
+ * (`worker/evidence.ts`) buradan çağırır. Elle ikinci bir tanım yazılırsa iki
+ * yüzey aynı adlı ama farklı sayı gösterir.
+ *
+ * Ölçek: her parametre kendi `GENOME_BOUNDS` aralığına bölünür. Ham toplam
+ * yanlıştır — `senseRadius` 2..7, `motility` 0..1; ham ölçekte 1 birimlik
+ * `motility` kayması ile 1 birimlik `senseRadius` kayması eşit sayılır, oysa
+ * birincisi parametrenin **tamamı**, ikincisi yalnızca beşte biridir. Ham
+ * ölçek bu yüzden `senseRadius`'u sistematik olarak fazla tartıyor.
+ *
+ * Ölçülen etki (93 soy çifti, 8 tohum × 6000 tick): iki tanımın **büyüklük
+ * ortalaması neredeyse aynı** (ham/normalize ≈ 1,02) ama **sıralaması %76'sında
+ * değişiyor**, en büyük kayma 32 basamak. Yani ham sürüm yanlış görünmez —
+ * yalnız hangi soyun daha çok uzaklaştığını ters söyler.
+ *
+ * `GENOME_KEYS` üzerinden **dinamik** gezilir; parametre listesi elle
+ * güncellenmez (yeni parametre eklenince burası kendiliğinden kapsar).
+ */
 export function genomeDistance(a: Genome, b: Genome): number {
   let sum = 0;
-  for (const key of GENOME_KEYS) sum += Math.abs(a[key] - b[key]);
+  for (const key of GENOME_KEYS) {
+    const [lo, hi] = GENOME_BOUNDS[key];
+    sum += Math.abs(a[key] - b[key]) / Math.max(1e-9, hi - lo);
+  }
   return sum / GENOME_KEYS.length;
 }
 

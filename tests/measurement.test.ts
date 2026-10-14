@@ -21,7 +21,9 @@
 
 import { describe, expect, it } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { GENOME_KEYS } from '../src/sim/genome.ts';
+import { GENOME_KEYS, founderGenomes, genomeDistance } from '../src/sim/genome.ts';
+import { Rng } from '../src/sim/rng.ts';
+import type { Genome } from '../src/sim/types.ts';
 import { join, resolve } from 'node:path';
 
 const ROOT = resolve(__dirname, '..');
@@ -162,9 +164,14 @@ describe('ölçüm kodu · ölü ölçüm kapsamı koruması', () => {
 
   it('genom ölçümleri parametreleri tek kaynaktan okuyor', () => {
     const ecology = readFileSync(join(ROOT, 'src/sim/experiments/ecology.ts'), 'utf8');
-    // `genomeSignature` ve `genomeDistance` GENOME_KEYS ile gezmeli.
     expect(ecology).toMatch(/GENOME_KEYS\.map\(/);
-    expect(readFileSync(join(ROOT, 'src/sim/experiments/colony.ts'), 'utf8')).toMatch(/for \(const key of GENOME_KEYS\)/);
+    // ⚠️ Bu döngü bir zamanlar `colony.ts` içindeydi. Kanonik tanım
+    // `sim/genome.ts`'e taşındığında koruma **aynen kaldı** ve doğru şekilde
+    // kırıldı: artık yanlış dosyayı gösteren bir korumadan ibaret olmasın,
+    // tanımın **doğru yerde** olduğunu da doğrulasın.
+    expect(readFileSync(join(ROOT, 'src/sim/genome.ts'), 'utf8')).toMatch(
+      /for \(const key of GENOME_KEYS\)/,
+    );
   });
 
   it('i18n genom etiketleri TÜM parametreleri kapsıyor', () => {
@@ -192,6 +199,108 @@ describe('ölçüm kodu · ölü ölçüm kapsamı koruması', () => {
     const energy = readFileSync(join(ROOT, 'src/sim/biology/energy.ts'), 'utf8');
     expect(energy).toMatch(/COOPERATION_COST_K/);
     expect(energy).toMatch(/COOPERATION_COST_K \* genome\.cooperation/);
+  });
+});
+
+describe('genom uzaklığı · tek tanım kuralı', () => {
+  // ⚠️ Bu blok bir hatanın **ölçülmüş** kaydını korur.
+  //
+  // Kod tabanında `genomeDistance` adıyla ÜÇ tanım yaşıyordu:
+  //   1. sim/genome.ts           → HAM (normalize değil)  ← kanıt paketi
+  //   2. sim/experiments/colony  → NORMALİZE              ← rapor
+  //   3. ui/Panels.tsx (satır içi reduce) → HAM            ← arayüz
+  // Arayüz etiketi bunu "Atasal → torun genom uzaklığı" diye vaat ediyordu.
+  //
+  // ÖLÇÜLEN ETKİ (93 soy çifti, 8 tohum × 6000 tick): iki tanımın büyüklük
+  // ortalaması neredeyse aynı (ham/normalize ≈ 1,02) — yani HAM SÜRÜM YANLIŞ
+  // GÖRÜNMEZ. Ama soyların sıralaması %76'sında değişiyor, en büyük kayma 32
+  // basamak. Hata ancak bakış açısından görünür.
+
+  it('normalize eder: eşit göreli kayma, eşit katkı verir', () => {
+    // ⚠️ SAYISAL DENEME. Metin taraması değil — davranışı ölçer, yani kod
+    // yeniden yazılsa bile doğruyu yakalar. Ham sürümde bu test KIRMIZIDIR.
+    //
+    // senseRadius aralığı 2..7 (genişlik 5), motility 0..1 (genişlik 1).
+    // İkisinde de tam **yarım aralık** kayma yapıyoruz: normalize sürümde
+    // katkılar eşit olmalı, ham sürümde senseRadius 5 kat baskın çıkar.
+    // Taban genom geçerli bir `Genome` olmalı; alanları elle yazmıyoruz
+    // (proje kuralı: liste tek kaynaktan gelsin). `genomeDistance` yalnız
+    // **farklara** baktığı için tabanın değerleri kendiliğinden geri düşer.
+    const base = founderGenomes(new Rng(7), 1)[0] as Genome;
+    const n = GENOME_KEYS.length;
+
+    // senseRadius: 2 → 4.5 (2..7 aralığının yarısı = 2.5 birim)
+    const srA = { ...base, senseRadius: 2 };
+    const srB = { ...base, senseRadius: 4.5 };
+    // motility: 0 → 0.5 (0..1 aralığının yarısı = 0.5 birim)
+    const moA = { ...base, motility: 0 };
+    const moB = { ...base, motility: 0.5 };
+
+    const dSense = genomeDistance(srA, srB);
+    const dMotility = genomeDistance(moA, moB);
+    expect(dSense).toBeCloseTo(dMotility, 12);
+    // Ham sürümde bu ikisi 5 kat farklı olurdu (0.2778 vs 0.0556).
+    expect(dSense).toBeCloseTo(0.5 / n, 12);
+
+    // Simetri ve sıfır kayma da korunmalı.
+    expect(genomeDistance(srA, srA)).toBe(0);
+    expect(genomeDistance(srA, srB)).toBeCloseTo(genomeDistance(srB, srA), 12);
+  });
+
+  it('kod tabanında genom uzaklığının YALNIZCA bir tanımı var', () => {
+    const defs: string[] = [];
+    for (const f of filesUnder(join(ROOT, 'src'), (p) => /\.tsx?$/.test(p))) {
+      const src = readFileSync(f, 'utf8');
+      if (/function\s+genomeDistance\s*\(/.test(src)) defs.push(f.replace(ROOT + '/', ''));
+    }
+    // İkinci bir tanım yazılırsa iki yüzey aynı adlı farklı sayı gösterir.
+    expect(defs, `genom uzaklığı birden çok yerde tanımlı: ${defs.join(', ')}`).toEqual([
+      'src/sim/genome.ts',
+    ]);
+    // Kanonik tanım gerçekten normalize ediyor (yoksa yukarıdaki sayısal test zaten
+    // yakalar; buradaki kontrol niyetin kaydı).
+    // ⚠️ DİKKAT: dosyanın tamamında `GENOME_BOUNDS[key]` aramak **boş** bir
+    // denetlemeydi — `clampGenome`/`mutateGenome`/`randomGenome` da o satırı
+    // içeriyordu, yani `genomeDistance` ham olsa bile geçiyordu. Ateşlenemeyen
+    // denetleme hiç olmamasından kötüdür: yanlış güvence üretir. Bu yüzden
+    // denetim **fonksiyonun kendi gövdesine** kısıtlı.
+    const src = readFileSync(join(ROOT, 'src/sim/genome.ts'), 'utf8');
+    const body = src.match(/function genomeDistance[\s\S]*?\n}/)?.[0] ?? '';
+    expect(body, 'genomeDistance gövdesi bulunamadı').not.toBe('');
+    expect(body, 'kanonik tanım normalize etmiyor (GENOME_BOUNDS kullanmıyor)').toMatch(
+      /GENOME_BOUNDS\[key\]/,
+    );
+  });
+
+  it('ürün yüzeyleri kanonik tanımı çağırıyor, kendi hesabını yapmıyor', () => {
+    const panels = readFileSync(join(ROOT, 'src/ui/Panels.tsx'), 'utf8');
+    // Soy paneli mesafeyi `genomeDistance(...)` ile almalı…
+    expect(panels).toMatch(/genomeDistance\(l\.ancestorGenome, latest\.genome\)/);
+    // …ve genom alanlarını elle toplamamalı.
+    expect(panels).not.toMatch(/Object\.keys\([^)]*[Gg]enome/);
+
+    // Kanıt paketi de aynı tanımı kullanmalı.
+    const evidence = readFileSync(join(ROOT, 'src/worker/evidence.ts'), 'utf8');
+    expect(evidence).toMatch(/from '\.\.\/sim\/genome\.ts'/);
+    expect(evidence).toMatch(/genomeDistance\(founder\.genome, latest\.genome\)/);
+  });
+
+  it('worker sınırındaki genom tipleri sıkı (sessiz eksik parametre olmaz)', () => {
+    const protocol = readFileSync(join(ROOT, 'src/worker/protocol.ts'), 'utf8');
+    // Dört genom alanı vardı; `Record<string, number>` idi.
+    expect(protocol).not.toMatch(/genome: Record<string, number>/);
+    expect(protocol).not.toMatch(/meanGenome: Record<string, number>/);
+    expect(protocol).not.toMatch(/ancestorGenome: Record<string, number>/);
+    expect(protocol).toMatch(/ancestorGenome: Genome;/);
+  });
+
+  it('genom modülünün başlığı bayat parametre sayısı taşımıyor', () => {
+    // ⚠️ `genome.ts` "Sekiz kalıtsal parametredir" diyordu; genom dokuz
+    // parametreye çıktığında güncellenmemişti. Modül artık kanonik tanımın
+    // evi olduğu için buradaki yanlış sayı özellikle yanıltıcı.
+    const head = readFileSync(join(ROOT, 'src/sim/genome.ts'), 'utf8').slice(0, 600);
+    expect(head).not.toMatch(/[Ss]ekiz kalıtsal parametre/);
+    expect(head).toMatch(/[Dd]okuz kalıtsal parametre/);
   });
 });
 

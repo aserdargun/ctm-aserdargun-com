@@ -2873,6 +2873,61 @@ Bunlar testlerin bulduğu, düzeltildiği ve **yeniden test edildiği** hatalard
 | 16 | `maxGeneration` **nesil derinliği** sanılıyordu | Yaşayan popülasyondaki anlık en yüksek nesildir ve uzun koşularda **düşüyor** (ölçüldü: 10k tick → 3.0, 100k tick → 1.3). "Pencere çok kısa" gerekçesi bu hatadan kaynaklanmış ve kaldırıldı | `cumulativeBirths` (`nextOrganismIdForSnapshot() − 1`) eklendi; gerçek üreme çevrimi **≈5.5** ve durağanlıkta (§5.9) |
 | 15 | Bağ uzaması **hayatta kalanların** ortalamasıyla ölçülüyordu | Değer 0.010–0.029 çıktı ve "uzama açıklama değil" izlenimi verdi. Gerçekte **seçilim yanlılığı**: gerilmiş bağlar zaten koptuğu için hayatta kalanlar seçilmiş olarak düşük gerilimli. `bond-break.detail.strain` üzerinden kırılma anı ölçülünce medyan 0.079 çıktı ve kırılmaların %100'ü bütünlük tükenmesiyle olduğu görüldü (§5.3) |
 | 14 | `probabilityOfImprovement` **ikinci kez** yanlış veriyle hesaplanıyordu | Değerlendirme koşularında öğrenme kapalı olduğu için metrik tanım gereği hep 0 dönüyordu; rapor "öğrenme ağırlıkları hiç hareket ettirmiyor" izlenimi veriyordu, oysa eğitimde hareket ediyordu | `learnedDeltaNorm` artık koşunun **kendi başlangıç ağırlıklarına** göre ölçülüyor; `thetaInjected` alanı eklendi; regresyon testi yazıldı |
+| 22 | **`genomeDistance` adıyla üç ayrı tanım** yaşıyordu | Arayüz ve kanıt paketi **ham** toplam kullanıyordu, ölçüm **normalize** toplamı. Ham sürüm `senseRadius` (2..7) ile `motility` (0..1)'yi eşit tartıyor. Ölçüldü: 93 soy çifti, 8 tohum × 6.000 tick → büyüklükler neredeyse aynı (**ham/normalize ≈ 1,02**) ama **sıralamanın %76'sı değişiyor**, en büyük kayma **32 basamak**. Yani hata büyüklükte değil **bakış açısında** görünüyor. Arayüz etiketi ("Atasal → torun genom uzaklığı") hangi tanımı kastettiğini söylemediği için iki yüzey sessizce ayrışmıştı | Tek kanonik tanım `sim/genome.ts` içinde; `colony.ts` yalnızca yeniden dışa aktarıyor, arayüz ve kanıt paketi aynı fonksiyonu çağırıyor. Beş koruma testi eklendi (§10.1) |
+| 23 | Worker protokolünde **dört genom alanı** `Record<string, number>` idi | Gevşek tip, worker sınırında eksik bir genom parametresinin sessizce taşınmasına izin veriyordu; soy paneli `labels[k] ?? k` yüzünden eksik satırı ham anahtarla gösterirdi. **Bu bir canlı hata değildi** — üretici (`genomeSummary`) eksiksiz çalışıyordu — tip güvenlik açığıydı | Alanlar `Genome` tipine bağlandı; eksik parametre artık derleme hatası |
+| 24 | `sim/genome.ts` başlığı **"Sekiz kalıtsal parametredir"** diyordu | Genom dokuz parametreye çıktığında güncellenmemişti; modül kanonik tanımın evi olduğu için buradaki yanlış sayı özellikle yanıltıcıydı | "Dokuz" olarak düzeltildi; kaynak dokümanındaki parametre sayısı artık testle korunuyor |
+
+### 10.1 `genomeDistance` — aynı ad, üç tanım
+
+Bu bulgu "ölü alet" sınıfının yeni bir hâli: **ölü beyan**. Kod çalışıyor,
+sayı üretiyor, makul görünüyor — yalnız **bu sayının ne olduğu** konusunda
+kod tabanında üç farklı fikir var.
+
+| yüzey | tanım | kime gidiyor |
+|---|---|---|
+| `sim/genome.ts` | ham `Σ\|a−b\| / 9` | kanıt paketi (`ancestorToLatestDistance`) |
+| `sim/experiments/colony.ts` | normalize `Σ\|a−b\|/span / 9` | `EXPERIMENTS.md` (`genomeShift`) |
+| `ui/Panels.tsx` (satır içi `reduce`) | ham `Σ\|a−b\| / 9` | soy paneli, "genom uzaklığı" etiketiyle |
+
+Ham tanım **yanlıştır**: `motility`'nin tamamı 1 birim, `senseRadius`'un tamamı
+5 birim. Ham ölçekte 1 birimlik kaymalar eşit sayılır; oysa biri parametrenin
+**tamamı**, öteki beşte biri.
+
+**Ölçüm (93 soy çifti, 8 tohum × 6.000 tick):**
+
+| | değer |
+|---|---|
+| büyüklük farkı (ham/normalize ortalaması) | **1,02** — neredeyse aynı |
+| sırası değişen soy | **71 / 93 (%76)** |
+| en büyük sıra kayması | **32 basamak** |
+| baskın parametre | hamda her örnekte `senseRadius`; normalize'da `motility`, `toleranceA/B`, `bondStrength` |
+
+1,02'lik büyüklük oranı hatayı gizler: sayılar "doğru" görünür. Hata yalnız
+**hangi soyun daha çok uzaklaştığını** sorduğunda ortaya çıkar.
+
+Düzeltmenin bir yan etkisi **bilinçlidir**: kanıt paketindeki
+`ancestorToLatestDistance` ve soy panelindeki sayı artık **değişir** (rapordaki
+`genomeShift` **değişmez** — zaten normalize olandan kopyası kaldırıldı).
+
+#### Koruma: beş test, ve hepsi sınandı
+
+1. **Sayısal** — eşit göreli kayma eşit katkı vermeli (`senseRadius` 2→4,5 ile
+   `motility` 0→0,5 → ikisi de 0,5/9). Ham sürümde bu test kırmızıdır:
+   ölçüldü **0,2778 ↔ 0,0556** (tam 5 kat).
+2. **Tek tanım** — `src/` altında `genomeDistance` tanımı yalnız
+   `sim/genome.ts` içinde olmalı.
+3. **Ürün yüzeyleri** — panel ve kanıt paketi kanonik fonksiyonu çağırıyor;
+   panel genom alanlarını elle toplamıyor.
+4. **Protokol sıkılığı** — dört genom alanı `Genome`, `Record<string, number>` değil.
+5. **Bayat sayı** — modül başlığı dokuz parametre diyor.
+
+> **Koruma yazarken dördüncü kez yanlış pozitif ürettim.** "Kanonik tanım
+> normalize ediyor" denetlemesini dosyanın **tamamında** `GENOME_BOUNDS[key]`
+> arayarak yazdım; o satır `clampGenome`/`mutateGenome`/`randomGenome` içinde de
+> geçtiği için denetleme **hiç ateşlenemiyordu** — yani varlığını kanıtladığı
+> hatayı yakalayamıyordu. Fonksiyonun **kendi gövdesine** kısıtlayınca
+> ateşlendi. Ateşlenemeyen bir denetleme, hiç olmayandan kötüdür: yanlış güvence
+> üretir.
 
 ---
 

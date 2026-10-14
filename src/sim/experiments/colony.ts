@@ -12,10 +12,9 @@
  */
 
 import { C } from '../biology/energy.ts';
-import { meanGenome } from '../genome.ts';
+import { genomeDistance, meanGenome } from '../genome.ts';
 import { World } from '../world.ts';
 import type { Genome } from '../types.ts';
-import { GENOME_BOUNDS, GENOME_KEYS } from '../genome.ts';
 
 export interface ColonyOptions {
   seed: number;
@@ -99,26 +98,11 @@ export interface ColonyResult {
 }
 
 /**
- * İki genom arasındaki ortalama mutlak fark (tüm parametreler, normalize
- * ölçekte).
- *
- * ⚠️ `GENOME_KEYS` üzerinden **dinamik** hesaplanır; parametre listesi elle
- * güncellenmez. `cooperation` eklenirken buradaki sabit liste güncellenmezse
- * ölçüm o parametreyi **görmez** ve işbirliği evrimi sessizce ölçülemez
- * hale gelir — sessiz bir boşluk.
- *
- * Ölçek: her parametre kendi `GENOME_BOUNDS` aralığına bölünür, böylece
- * `senseRadius` (2..7) ile `motility` (0..1) aynı ağırlıkta sayılır.
+ * Ölçüm burada hesaplanmaz. `sim/genome.ts`'deki kanonik `genomeDistance`
+ * yeniden dışa aktarılır: iki modülün ayrı tanımı olursa aynı adlı sayı iki
+ * farklı değere döner ve rapor ile ürün sessizce ayrışır.
  */
-export function genomeDistance(a: Genome, b: Genome): number {
-  let total = 0;
-  for (const key of GENOME_KEYS) {
-    const [lo, hi] = GENOME_BOUNDS[key];
-    const span = Math.max(1e-9, hi - lo);
-    total += Math.abs(a[key] - b[key]) / span;
-  }
-  return total / GENOME_KEYS.length;
-}
+export { genomeDistance };
 
 export function runColony(options: ColonyOptions): ColonyResult {
   const {
