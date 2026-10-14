@@ -114,6 +114,14 @@ bir deney kodu, yanlış sayılar üretir ve bu rapor yanıltıcı hâle gelir.
 
 Headless ölçüm (`vite-node`), 48 kurucu organizma, standart habitat:
 
+> ⚠️ **Köken notu (14 Ekim 2026):** bu tablo **elle koşulmuş** bir ölçüm —
+> `npm run experiments` pipeline'ının ürettiği bir bölüm **değil**. Bu yüzden
+> §4'teki üç deney gibi üretilmiş rapora bağlanamaz ve otomatik bir denetim
+> tarafından korunamaz. Buradaki sayıların güncel genomla (dokuz parametre)
+> tutarlı olduğu **doğrulanmadı**; doğrulama kanıtı olmadığı için değiştirilmedi.
+> `docs/ROADMAP.md` bu tablonun bir kopyasını taşır ve aynı sınırlamaya tabidir.
+> Yeniden ölçmek için tohum ve yapılandırma kaydedilmelidir.
+
 | Tick | Sim süresi (1×) | Popülasyon | En büyük küme | 4+ hücreli yapı | Bağ |
 |---|---|---|---|---|---|
 | 2.000 | 100 s | 225 | **9** | **11** | 78 |
