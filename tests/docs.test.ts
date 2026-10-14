@@ -18,7 +18,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const ROOT = resolve(__dirname, '..');
@@ -67,6 +67,39 @@ function lastCommitTime(rel: string): number {
     throw new Error(`git geçmişi yok (${rel} için tarih alınamadı). Sessizce geçmek yerine düşmelidir.`);
   }
   return t;
+}
+
+/**
+ * Bir dosyanın **etkin** değişiklik zamanı (saniye).
+ *
+ * ⚠️ Neden `lastCommitTime` tek başına yetmez: git geçmişinden tarih okur,
+ * yani **commit edilmemiş** değişikliği görmez. Ölçüldü: `colony.ts`
+ * değiştirilip rapor üretilmeden çalıştırılan `npm run check` **yeşil** geçti,
+ * aynı commit CI'da **kırmızı** oldu. Yerel kapı, tam da uyarması gerektiği
+ * yerde sessiz kaldı.
+ *
+ * Düzeltme: dosya çalışma ağacında **değiştirilmiş**se mtime esas alınır.
+ * Yalnız *değiştirilmiş* dosyada — çünkü `actions/checkout` her dosyaya taze
+ * mtime verir; mtime'ı her zaman esas alsak temiz bir CI klonunda tüm dosyalar
+ * raporun commit'inden yeni görünür ve denetim **daima** kırmızı olurdu.
+ * Değiştirilmemiş dosyada git tarihi kullanılır, dolayısıyla CI doğru davranır.
+ */
+function effectiveCodeTime(rel: string): number {
+  const committed = lastCommitTime(rel);
+  const dirty = (() => {
+    try {
+      execFileSync('git', ['diff', '--quiet', 'HEAD', '--', rel], { cwd: ROOT });
+      return false;
+    } catch {
+      return true;
+    }
+  })();
+  if (!dirty) return committed;
+  try {
+    return Math.max(committed, Math.floor(statSync(resolve(ROOT, rel)).mtimeMs / 1000));
+  } catch {
+    return committed;
+  }
 }
 
 /**
@@ -131,8 +164,8 @@ describe('belge tutarlılığı · üretilmiş rapor', () => {
     // (`energy.ts`) ve kanonik `genomeDistance` (`genome.ts`) eklenirken denetim
     // hiç kırmızıya basmadı — yani **tehlikeli yön** sessiz kalmıştı.
     // Liste artık içe aktarma grafiğinden türetilir.
-    const codeTime = Math.max(...reportInputFiles().map(lastCommitTime));
-    const reportTime = lastCommitTime('docs/EXPERIMENTS.md');
+    const codeTime = Math.max(...reportInputFiles().map(effectiveCodeTime));
+    const reportTime = effectiveCodeTime('docs/EXPERIMENTS.md');
     expect(reportTime).toBeGreaterThan(0);
     expect(reportTime).toBeGreaterThanOrEqual(codeTime);
   });
