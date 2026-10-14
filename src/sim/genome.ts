@@ -18,6 +18,7 @@ export const GENOME_BOUNDS = {
   toleranceA: [0, 1],
   toleranceB: [0, 1],
   plasticity: [0, 1],
+  cooperation: [0, 1],
 } as const satisfies Record<keyof Genome, readonly [number, number]>;
 
 export type GenomeKey = keyof Genome;
@@ -32,6 +33,7 @@ export const MUTATION_SCALE: Record<GenomeKey, number> = {
   toleranceA: 0.07,
   toleranceB: 0.07,
   plasticity: 0.06,
+  cooperation: 0.06,
 };
 
 export const GENOME_KEYS = Object.keys(GENOME_BOUNDS) as GenomeKey[];
@@ -79,6 +81,7 @@ export function randomGenome(rng: Rng): Genome {
     toleranceA: 0,
     toleranceB: 0,
     plasticity: 0,
+    cooperation: 0,
   };
   for (const key of GENOME_KEYS) {
     const [lo, hi] = GENOME_BOUNDS[key];
@@ -101,6 +104,7 @@ export function founderGenomes(rng: Rng, count: number): Genome[] {
     toleranceA: 0.6,
     toleranceB: 0.6,
     plasticity: 0.5,
+    cooperation: 0.5,
   };
   const out: Genome[] = [];
   for (let i = 0; i < count; i++) {
@@ -121,6 +125,7 @@ export function meanGenome(list: readonly Genome[]): Genome {
       toleranceA: 0,
       toleranceB: 0,
       plasticity: 0,
+      cooperation: 0,
     };
   }
   const acc = cloneGenome(list[0] as Genome);

@@ -1639,7 +1639,7 @@ Protokol: iki kol, **aynı 4 tohum** (eşleştirilmiş). Kontrol ε = 0, tedavi
 
 Eşleştirilmiş fark **0,00** [−2,75, +2,75], **p = 1,0000**.
 
-Tohum başına eşleştirilmiş farklar (dolu kutu): `[1, -4, 4, -1]`.
+Tohum başına eşleştirilmiş farklar (dolu kutu): `[-2, 2, 2, 0]`.
 **İşaret tohumlar arasında bile değişiyor** — biri artı, biri eksi. Yani deney
 "hep çalışmıyor" değil, "**rastgele** çalışıyor"; ortalama etki sıfır.
 Bu, sonraki bölümdeki mekanizma teşhisini destekliyor.
@@ -1860,7 +1860,7 @@ sayı **sessizce bayatlar**. Hiçbir şey bunu yakalamıyordu.
    dönülürse (kırık %83 geri gelirse) test düşer.
 
 **Test yazarken gerçek bir boşluk bulundu:** §6.28'deki ε>0 bölümünde tohum
-başına fark dizisi **hiç yazılmamıştı** — raporda `[1, -4, 4, -1]` vardı,
+başına fark dizisi **hiç yazılmamıştı** — raporda `[-2, 2, 2, 0]` vardı,
 belgede yoktu. Bu, "farklar işaret değiştiriyor" gözlemini taşıyan kanıttı;
 eksikti, eklendi.
 
@@ -2474,6 +2474,114 @@ Testte erken pencere seçilip "mekanizma çalışmıyor" sanılmıştı; **kod d
 test koşulu yanlıştı.**
 
 ### 6.56 Hileci tanımı — yapısal olarak tanımlı, deneysel olarak sınanmadı
+
+(Bu bölüm §6.58 ile güncellendi: kullanıcı kararıyla genom parametresi
+**eklendi**, dolayısıyla hileci artık seçilebilirdir. Sonuç: seçilim yön vermedi.)
+
+### 6.58 `genome.cooperation` eklendi — hileci artık **seçilebilir**
+
+Kullanıcı kararıyla genoma **dokuzuncu** parametre eklendi.
+
+| zincir | değişiklik |
+|---|---|
+| `types.ts` | `Genome.cooperation: number` (0..1) |
+| `genome.ts` | `GENOME_BOUNDS`, `MUTATION_SCALE`, `founderGenomes` (0,5), boş ortalama |
+| `energy.ts` | `COOPERATION_COST_K = 3,2e-3` → `basalCostFor` |
+| `world.ts` | yenileme katılımı `genome.cooperation` ile ölçeklenir |
+
+#### Neden metabolik maliyet şart
+
+Proje kuralı: **hiçbir özellik bedelsiz avantaj sağlamaz.** İşbirliği bedelsiz
+olsaydı, düşük işbirliği her zaman kazanırdı (aynı fayda, daha az maliyet) ve
+"hileci" deneyi anlamsızlaşırdı.
+
+Ölçüldü: kurucu `cooperation ≈ 0,57` → metabolik maliyet **bazalin %26'sı**.
+Yani bedelsiz değil, ihmal de edilemez.
+
+#### "Hileci" nasıl tanımlandı
+
+Düşük `cooperation` = daha az öder, ama bedel **ortak** olduğu için
+yenilenen bağlardan aynı ölçüde yararlanır. Yani hileci, ödeyen kardeşinin
+yararına bedelsiz binen hücredir.
+
+#### Ölçülen seçilim sonucu: **yön yok**
+
+3 tohum, 16.000 tick, ak açık ve ak kapalı kollar:
+
+| | ak açık | ak kapalı |
+|---|---|---|
+| başlangıç ort. işbirliği | ~0,494 | ~0,494 |
+| bitiş ort. işbirliği | ~0,487 | ~0,486 |
+| kayma | **−0,007** | **−0,008** |
+
+Değişim min 0,26 · maks 0,60–0,69 aralığında kaldı: **çeşitlilik var ama yön
+yok.** Bu, "mutasyon + seçilim → uyarlanma"nın sonuçsüz olduğu eski bulgusuyla
+(p = 0,097, ~3 nesle yetmiyor) tutarlıdır.
+
+> **Değişikliğin bedeli:** yeni parametre metabolik bütçeyi değiştirdiği için
+> **tüm deney ölçümleri geçersizleşti** ve baştan koşuldu. Bu, parametre
+> eklemeden önce söylenen riskti; kabul edildi.
+
+### 6.59 Varsayılan davranış korundu mu
+
+Kanca **hâlâ kapalı** (`coopRenewal = 0`): iki koşu bit düzeyinde aynı
+(enerji 6399.903235 = 6399.903235, bağ 70 = 70) ve enerji korunumu 0.
+
+> Dikkat: `COOPERATION_COST_K` **her koşuda** aktiftir — yani ürünün enerji
+> bütçesi değişti. Bu kasıtsız değil, parametrenin tanımı gereği; ama
+> "ürün davranışı bit düzeyinde aynı" iddiası yalnız **yenileme kancası**
+> için geçerlidir, genom değişikliği için değil.
+
+### 6.60 Parametre değişikliğinin ölçümlere etkisi — **iki bulgu**
+
+Beklenen bedel gerçekleşti: iki test düştü ve ikisi de **test hatası değil,
+gerçek sonuçtu**.
+
+#### (a) Koloni sönümlenmesi **geçti**
+
+| pencere | collapseTick | zirve | çöküş |
+|---|---|---|---|
+| 12.000 | **null** | t2400: küme 7 | — |
+| 20.000 | **13.400** | t2400: küme 7 | t13400: küme 1 |
+| 30.000 | 13.400 | t2400: küme 7 | t13400: küme 1 |
+| 40.000 | 13.400 | t2400: küme 7 | t13400: küme 1 |
+
+Sönümlenme **kaybolmadı, geçti.** Yeni enerji bütçesi kolonilerin biraz daha
+uzun dayanmasını sağlıyor. Testin penceresi 12.000 → 20.000'e çıkarıldı.
+
+> Bu, §5.12–5.16'daki uzun vadeli bulguların da **yeniden ölçülmesi**
+> gerektiği anlamına gelir: 12.000 tick'lik pencereler artık sönümlenmeyi
+> göremiyor.
+
+#### (b) Hız ekseninde 2 gözlem tavana kırpılıyor
+
+Kalibrasyon **yeniden koşuldu** (yeni genom):
+
+```
+hız (yol uzunluğu/tick): p50=0,0626 · p99=0,0948 · p99,9=0,1038 · maks=0,1117
+→ NICHE_SPEED_MAX = 0,120 geçerli (gözlenen maksın üzerinde)
+```
+
+Yani sınır doğru; 5 tohumluk kalibrasyonda görülmeyen bir uç değer var. Test
+`clamped === 0` gibi **kırılgan bir mutlak** koyduğu için düştü.
+
+Düzeltme: mutlak yerine **oran** denetleniyor (`kırpılan / toplam < %1`).
+Bu, §6.40'ın öğrettiği dersin aynısı: "nadir" olan bir özelliği `0` gibi
+garanti etmek yanlıştır.
+
+#### Yeniden ölçüm gerekenler
+
+Genom değişikliği **tüm deney paketini geçersizleştirdi**; `npm run experiments`
+baştan koşuldu. Özellikle 12.000 tick'e dayalı bütün sonuçlar yeniden
+yorumlanmalı — sönümlenme artık o pencerenin dışında kalıyor.
+
+#### Doğrulama: hangi bulgular ayakta kaldı?
+
+| bulgu | yeni genomle |
+|---|---|
+| Paylaşma varsayılan ayarda etkisiz | ✅ **ayakta** — 12 tohumun hepsinde fark 0 (ort. tepe 14,58 = 14,58) |
+| Koloni sönümlenmesi | ⚠️ **geçti** — 13.400 tick (12.000'de görünmüyor) |
+| Hız ekseni kalibrasyonu | ✅ geçerli — gözlenen maks 0,1117, tavan 0,120; 2 uç gözlem nadir |
 
 Hilecin varlığı **kavramsal** olarak tanımlıdır: bedeli ödemeyen hücre de
 organizmanın yenilenmiş bağlarından yararlanır. Ancak **kalıtsal değil** —

@@ -1039,7 +1039,15 @@ export class World {
       const coopK = this.bondTuning.coopRenewal ?? 0;
       if (coopK > 0 && bond.integrity < C.BOND_COOP_REPAIR_FLOOR) {
         const deficit = C.BOND_COOP_REPAIR_FLOOR - bond.integrity;
-        const perCell = Math.min(deficit, coopK) * 0.5;
+        // Katılım **genomun işbirliği eğilimine** göre ölçeklenir: yüksek
+        // `cooperation` daha çok öder, düşük `cooperation` daha az. Düşük
+        // eğilimli hücre bedeli azaldığı için **hileci** olur — ama
+        // `COOPERATION_COST_K` metabolik karşılığını da azaltır, yani
+        // bedelsiz avantaj sağlamaz.
+        const wA = a.organismId >= 0 ? this.cooperationOf(a.organismId) : 0;
+        const wB = b.organismId >= 0 ? this.cooperationOf(b.organismId) : 0;
+        const share = Math.max(0.02, (wA + wB) * 0.5);
+        const perCell = Math.min(deficit, coopK * share) * 0.5;
         let drawn = 0;
         for (const cell of [a, b]) {
           if (cell.energy <= perCell) continue;
@@ -1690,6 +1698,12 @@ export class World {
   /** Kaç kez popülasyon-ES güncellemesi yapıldı (ölçüm). */
   populationUpdatesApplied(): number {
     return this.populationUpdateCount;
+  }
+
+  /** Bir organizmanın işbirliği eğilimi (ölçüm kancası kapalıysa orta). */
+  private cooperationOf(organismId: number): number {
+    const org = this.organisms.get(organismId);
+    return org ? org.genome.cooperation : 0.5;
   }
 
   /** Faz D · işbirliği aktı istatistiği (ölçüm). */

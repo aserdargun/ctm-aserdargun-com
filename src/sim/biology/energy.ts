@@ -87,6 +87,13 @@ export const C = {
    * enerji harcayarak bağı **yeniler**. Ölçüm kancasıdır; üründe kapalıdır.
    */
   BOND_COOP_REPAIR_FLOOR: 0.28,
+  /**
+   * Faz D · işbirliği eğiliminin metabolik maliyeti. `genome.cooperation`
+   * ile çarpılır. Proje kuralı: **hiçbir özellik bedelsiz avantaj sağlamaz**;
+   * işbirliği bedelsiz olsaydı, hileci (düşük cooperation) her zaman kazanırdı
+   * ve deney anlamsızlaşırdı.
+   */
+  COOPERATION_COST_K: 3.2e-3,
 
   /**
    * Yoğunluğa bağlı rekabet maliyeti katsayısı.
@@ -242,8 +249,10 @@ export function basalCostFor(
   const maintenance = C.MAINTENANCE_COST_K * surface;
   const sensory = C.SENSORY_COST_K * genome.senseRadius;
   const plasticity = C.PLASTICITY_COST_K * genome.plasticity;
+  // İşbirliği eğilimi sürekli bir maliyettir: yüksek işbirliği = pahalı.
+  const cooperation = C.COOPERATION_COST_K * genome.cooperation;
   const bonds = C.BOND_MAINTENANCE_K * bondCount * (0.5 + 0.5 * genome.bondStrength);
-  return (C.BASE_BASAL + maintenance + sensory + plasticity + bonds) * densityFactor;
+  return (C.BASE_BASAL + maintenance + sensory + plasticity + cooperation + bonds) * densityFactor;
 }
 
 /** Verilen popülasyon için yoğunluk rekabeti çarpanı. */

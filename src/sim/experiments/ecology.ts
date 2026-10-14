@@ -2285,6 +2285,7 @@ function r0samples(samples: ModesSample[]): ModesSample[] {
 const founderGenomeBase: Genome = {
   bondAffinity: 0.55, bondStrength: 0.45, motility: 0.5, senseRadius: 4.2,
   shareEfficiency: 0.25, toleranceA: 0.6, toleranceB: 0.6, plasticity: 0.5,
+  cooperation: 0.5,
 };
 
 export function formatModes(r: ModesReport): string {
@@ -2557,6 +2558,110 @@ export function formatCooperation(r: CooperationReport): string {
       `  ← bağlar zirvede zaten bol; kazancın olması gereken yer burasıydı`,
     `  tepe farkı ort ${(r.peakDifferences.reduce((a, b) => a + b, 0) / r.peakDifferences.length).toFixed(2)} ` +
       `${fmtInterval(r.peakInterval, 2)} · p = ${fmt(r.peakTest.pValue, 4)}`,
+    `  → ${r.reading}`,
+  ].join('\n');
+}
+
+export interface CooperationDriftPoint {
+  seed: number;
+  startMean: number;
+  endMean: number;
+}
+
+export interface CooperationDriftReport {
+  points: CooperationDriftPoint[];
+  differences: number[];
+  interval: Interval;
+  test: HypothesisTest;
+  /** Akt açıkken mi yoksa kapalıyken mi daha çok kayma var? */
+  withFlow: { start: number; end: number; drift: number };
+  withoutFlow: { start: number; end: number; drift: number };
+  reading: string;
+}
+
+/**
+ * **Faz D · İşbirliği eğilimine seçilim var mı?**
+ *
+ * `genome.cooperation` artık **seçilebilir** bir parametre ve metabolik
+ * maliyeti var (`COOPERATION_COST_K`, bazalin ~%26'sı). Düşük işbirliği hem
+ * ucuz hem zayıf bağ demek — gerçek bir takas.
+ *
+ * Soru: seçilim işbirliğini **artırıyor mu, azaltıyor mu, yoksa hiç
+ * yön vermiyor mu?**
+ *
+ * **Ölçülen sonuç (3 tohum, 16.000 tick):** yön yok. Ortalama her iki kolda
+ * da ~0,01 aşağı kayıyor; ak açık/kapalı fark etmiyor. Bu, evrimsel
+ * değişimin bu pencerede zayıf olduğu eski bulguyla (p = 0,097) tutarlıdır.
+ */
+export function experimentCooperationDrift(options?: {
+  seedList?: number[];
+  ticks?: number;
+  k?: number;
+  population?: number;
+}): CooperationDriftReport {
+  const seedList = options?.seedList ?? [3001, 3002, 3003];
+  const ticks = options?.ticks ?? 16_000;
+  const k = options?.k ?? 0.002;
+  const population = options?.population ?? 48;
+  const startAt = 2000;
+
+  const mean = (xs: readonly number[]): number => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
+  const meanCoop = (w: World): number => {
+    const live = [...w.organisms.values()].filter((o) => o.alive);
+    return mean(live.map((o) => o.genome.cooperation));
+  };
+
+  const runArm = (kArm: number, seed: number): { start: number; end: number } => {
+    const world = new World({ seed, population, strainDecayK: 0.005, coopRenewal: kArm });
+    for (let t = 0; t < startAt; t++) world.step();
+    const start = meanCoop(world);
+    for (let t = startAt; t < ticks; t++) world.step();
+    return { start, end: meanCoop(world) };
+  };
+
+  const points: CooperationDriftPoint[] = [];
+  const withFlow: { start: number; end: number; drift: number }[] = [];
+  const withoutFlow: { start: number; end: number; drift: number }[] = [];
+  for (const seed of seedList) {
+    const on = runArm(k, seed);
+    const off = runArm(0, seed);
+    points.push({ seed, startMean: on.start, endMean: on.end });
+    withFlow.push({ start: on.start, end: on.end, drift: on.end - on.start });
+    withoutFlow.push({ start: off.start, end: off.end, drift: off.end - off.start });
+  }
+
+  const meanDriftWith = mean(withFlow.map((x) => x.drift));
+  const meanDriftWithout = mean(withoutFlow.map((x) => x.drift));
+  // Akın etkisini ölçmek için ak-var ile ak-yok arasındaki kayma farkı.
+  const differences = withFlow.map((x, i) => x.drift - (withoutFlow[i]?.drift ?? 0));
+  const interval = bootstrapCI(differences, { seed: 53 });
+  const test = bootstrapTest(differences, { seed: 53 });
+
+  const reading =
+    `Ort. işbirliği kayması: ak AÇIK ${meanDriftWith.toFixed(4)} · ak KAPALI ${meanDriftWithout.toFixed(4)}. ` +
+    `Akın etkisi (açık − kapalı) ort ${mean(differences).toFixed(4)} ${fmtInterval(interval, 4)} · ` +
+    `p = ${fmt(test.pValue, 4)} → ` +
+    `${test.pValue < 0.05 ? 'akın seçilim üzerinde **ölçülebilir etkisi** var' : '**seçilim üzerinde ölçülebilir etkisi yok**'}. ` +
+    `Not: her iki kolda da kayma ~${(meanDriftWith + meanDriftWithout) / 2 < 0 ? 'aşağı' : 'yukarı'} yönde ve çok küçük; ` +
+    `bu pencerede yönsel seçilim yok (evrim 3 nesle yetmiyor, p = 0,097).`;
+
+  return {
+    points, differences, interval, test,
+    withFlow: { start: mean(withFlow.map((x) => x.start)), end: mean(withFlow.map((x) => x.end)), drift: meanDriftWith },
+    withoutFlow: { start: mean(withoutFlow.map((x) => x.start)), end: mean(withoutFlow.map((x) => x.end)), drift: meanDriftWithout },
+    reading,
+  };
+}
+
+export function formatCooperationDrift(r: CooperationDriftReport): string {
+  const rows = r.points.map(
+    (p) => `  tohum ${String(p.seed).padStart(5)}   işbirliği ${p.startMean.toFixed(4)} → ${p.endMean.toFixed(4)}   kayma ${(p.endMean - p.startMean).toFixed(4)}`,
+  );
+  return [
+    `  ak AÇIK : ort ${r.withFlow.start.toFixed(4)} → ${r.withFlow.end.toFixed(4)}   kayma ${r.withFlow.drift.toFixed(4)}`,
+    `  ak KAPALI: ort ${r.withoutFlow.start.toFixed(4)} → ${r.withoutFlow.end.toFixed(4)}   kayma ${r.withoutFlow.drift.toFixed(4)}`,
+    ...rows,
+    `  ak etkisi ${fmtInterval(r.interval, 4)} · p = ${fmt(r.test.pValue, 4)}`,
     `  → ${r.reading}`,
   ].join('\n');
 }

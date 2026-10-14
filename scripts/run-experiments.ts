@@ -53,6 +53,8 @@ import {
   formatSharingEffect,
   experimentCooperation,
   formatCooperation,
+  experimentCooperationDrift,
+  formatCooperationDrift,
 } from '../src/sim/experiments/ecology.ts';
 import {
   calibrateArena,
@@ -299,6 +301,10 @@ function main(): void {
   process.stdout.write(`\n27/27 Faz D · işbirliği aktı (hücre bağını enerjiyle yeniler)…\n`);
   const cooperation = experimentCooperation(args.quick ? { ticks: 4000 } : {});
   process.stdout.write(`${formatCooperation(cooperation)}\n`);
+
+  process.stdout.write(`\n28/28 Faz D · işbirliği eğilimine seçilim var mı…\n`);
+  const coopDrift = experimentCooperationDrift(args.quick ? { ticks: 8000 } : {});
+  process.stdout.write(`${formatCooperationDrift(coopDrift)}\n`);
 
   process.stdout.write(`\n22/22 dal (branch) doğruluğu ve maliyeti…\n`);
   const branch = args.quick
@@ -612,6 +618,16 @@ function main(): void {
       '',
       '```',
       formatCooperation(cooperation),
+      '```',
+      '',
+      '## Faz D · İşbirliği eğilimine seçilim',
+      '',
+      '`genome.cooperation` artık **seçilebilir** bir parametre ve metabolik',
+      'maliyeti var (bazalin ~%26\'sı). Düşük işbirliği hem ucuz hem zayıf bağ',
+      'demek — gerçek bir takas. Soru: seçilim yön veriyor mu?',
+      '',
+      '```',
+      formatCooperationDrift(coopDrift),
       '```',
       '',
       '## Dal (branch) doğruluğu ve maliyeti',

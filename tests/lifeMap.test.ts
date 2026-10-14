@@ -24,7 +24,9 @@ import {
   experimentNicheSeeding,
   formatNicheSeeding,
   experimentCooperation,
+  experimentCooperationDrift,
 } from '../src/sim/experiments/ecology.ts';
+import { basalCostFor } from '../src/sim/biology/energy.ts';
 
 function run(ticks: number, bins = 3, seed = 11, extra: Record<string, unknown> = {}): World {
   const world = new World({ seed, population: 48, strainDecayK: 0.005, nicheBins: bins, ...extra });
@@ -187,6 +189,25 @@ describe('Faz D · işbirliği aktı', () => {
     const w = run(4000, 3, 3001, { coopRenewal: 0.01 });
     expect(w.cooperationStats().renewals).toBeGreaterThan(0);
     expect(residual(w)).toBeCloseTo(0, 6);
+  });
+
+  it('genom işbirliği parametresi **bedelsiz değil** (proje kuralı)', () => {
+    // Eğer işbirliğin maliyeti olmasaydı, düşük işbirliği her zaman kazanırdı
+    // ve "hileci" deneyi anlamsızlaşırdı. Maliyet ölçüldü: bazalin ~%26'sı.
+    const g = run(0).organisms.values().next().value!;
+    expect(g.genome.cooperation).toBeGreaterThan(0);
+    expect(g.genome.cooperation).toBeLessThan(1);
+    // Daha çok işbirliği = daha pahalı.
+    const cheap = basalCostFor({ ...g.genome, cooperation: 0 }, 1, 0);
+    const dear = basalCostFor({ ...g.genome, cooperation: 1 }, 1, 0);
+    expect(dear, 'yüksek işbirliği daha pahalı olmalı').toBeGreaterThan(cheap);
+  });
+
+  it('seçilim deneyi üretilebilir', () => {
+    const r = experimentCooperationDrift({ ticks: 6000, seedList: [3001, 3002] });
+    expect(r.points).toHaveLength(2);
+    expect(Number.isFinite(r.test.pValue)).toBe(true);
+    expect(Number.isFinite(r.withFlow.drift)).toBe(true);
   });
 
   it('ölçüm her tohum için veri üretir ve mekanizma uzun pencerede çalışır', () => {

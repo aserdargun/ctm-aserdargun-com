@@ -100,6 +100,17 @@ export interface Genome {
   toleranceB: number;
   /** Öğrenme plastisitesi (0..1) — öğrenme metabolik maliyeti doğurur. */
   plasticity: number;
+  /**
+   * **İşbirliği eğilimi (0..1) — bağ yenilemeye katılma oranı.**
+   *
+   * Yüksek değer: hücre bağ bütünlüğünü yenilemeye daha çok enerji koyar.
+   * Düşük değer: bedeli daha az öder — ama bağın faydasından da yararlanır
+   * (bedel **ortak** olduğu için). Yani düşük `cooperation` bir **hileci**.
+   *
+   * ⚠️ Bunun **metabolik maliyeti** vardır (proje kuralı: hiçbir özellik
+   * bedelsiz avantaj sağlamaz). Seçilim sonucu **ölçülmüştür**, varsayılmamıştır.
+   */
+  cooperation: number;
 }
 
 export interface NeuralState {

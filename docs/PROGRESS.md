@@ -383,6 +383,30 @@ işbirliği parametresi eklenmeli. Bu; `Genome` tipi, sınırlar, mutasyon ölç
 **metabolik maliyet** ve kurucu genomlar zincirini değiştirir ve **tüm önceki
 ölçümleri geçersizleştirir**. Tek taraflı yapılmadı.
 
+### 2.2i `genome.cooperation` **eklendi** (kullanıcı kararı)
+
+(`VALIDATION.md` §6.58–6.59)
+
+Genom 8 → **9** parametreye çıktı. `cooperation` (0..1), bağ yenilemeye
+katılım oranı ve **metabolik maliyetli** (bazalin ~%26'sı — proje kuralı:
+hiçbir özellik bedelsiz avantaj sağlamaz).
+
+**"Hileci" tanımı tamamlandı:** düşük `cooperation` daha az öder ama bedel
+ortak olduğu için yenilenen bağlardan aynı ölçüde yararlanır.
+
+**Ölçülen seçilim sonucu: YÖN YOK.** 3 tohum, 16.000 tick:
+
+| | ak açık | ak kapalı |
+|---|---|---|
+| kayma (işbirliği) | **−0,007** | **−0,008** |
+
+Çeşitlilik korunuyor (min 0,26 · maks 0,60–0,69) ama yön yok. Bu, evrimsel
+değişimin 3 nesle yetmediği eski bulgusuyla (p = 0,097) tutarlı.
+
+**Kabul edilen bedel:** metabolik bütçe değiştiği için **tüm deney ölçümleri
+geçersizleşti** ve baştan koşuldu. Yenileme kancası hâlâ **kapalı** ve
+kapalıyken iki koşu bit düzeyinde aynı.
+
 > Bu ölçüm ilk önce birim testine kondu ve **CI'da zaman aşımına** düştü
 > (24 dünya koşusu > 120 sn). Doğru yer deney motoruydu: `experimentSharingEffect()`,
 > `npm run experiments` içinde 26. bölüm.
