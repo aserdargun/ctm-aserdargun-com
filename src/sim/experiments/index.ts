@@ -132,10 +132,14 @@ export function baselineThetas(seed: number, count: number, n: number): Float64A
 }
 
 function meanOf(values: readonly number[]): number {
-  if (values.length === 0) return Number.NaN;
+  // Sonlu olmayan değerler ortalamaya katılmaz; ortalama, var olanların
+  // ortalamasıdır. `-Infinity` sentinel'inin ortalamayı yuttuğu hatanın
+  // genel hali — bkz. VALIDATION §10 satır 30.
+  const ok = values.filter((v) => Number.isFinite(v));
+  if (ok.length === 0) return Number.NaN;
   let sum = 0;
-  for (const v of values) sum += v;
-  return sum / values.length;
+  for (const v of ok) sum += v;
+  return sum / ok.length;
 }
 
 // --------------------------------------------------- Deney 1 · bağ gücü

@@ -24,6 +24,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { GENOME_KEYS, founderGenomes, genomeDistance } from '../src/sim/genome.ts';
 import { ACTION_NAMES, MLP_SHAPE } from '../src/sim/behavior/mlp.ts';
 import { baselineThetas, readInWorldEvolution } from '../src/sim/experiments/index.ts';
+import { medianOf } from '../src/sim/experiments/ecology.ts';
 import { ACTION_LABELS_EN, ACTION_LABELS_TR } from '../src/i18n/index.ts';
 import { Rng } from '../src/sim/rng.ts';
 import type { Genome } from '../src/sim/types.ts';
@@ -509,6 +510,20 @@ describe('ölçüm · hüküm kendi kanıtına bağlı mı', () => {
       expect(r, `hüküm "${r}" kanıtsız olumlu`).toContain('ÖLÇÜLEMEDİ');
       expect(r, `hüküm "${r}" kanıtsız olumlu`).not.toContain('işe yarıyor');
     }
+  });
+
+  it('toplayıcılar sonlu olmayan değerleri kendileri eler', () => {
+    // ⚠️ Aynı sınıf, daha küçük ölçekte: tek bir NaN medyanı/ortalamayı
+    // yutuyor ve rapor "—" diyordu — okuyucu "veri yok" ile "tek eksik alan
+    // yüzünden kayboldu" ayırt edemiyordu. Çağıran taraf filtreliyordu ama
+    // bu tesadüfdi; koruma TOPLAYICININ İÇİNDE olmalı.
+    expect(medianOf([1, 2, 3])).toBe(2);
+    expect(medianOf([1, Number.NaN, 3])).toBe(2);          // NaN yutmasın
+    expect(medianOf([-Infinity, 2, 4])).toBe(3);           // -Infinity de yutmasın
+    expect(Number.isNaN(medianOf([Number.NaN]))).toBe(true); // hepsi geçersizse tanımsız
+
+    expect(medianOf([2, 2, 2, 99])).toBe(2);
+    expect(medianOf([2, Number.NaN, 2, 99])).toBe(2);
   });
 
   it('rastgele taban SABİT bir referans (arama akışından bağımsız)', () => {

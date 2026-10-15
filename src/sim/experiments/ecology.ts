@@ -336,8 +336,12 @@ export function diagnoseColonyCollapse(options?: {
 }
 
 export function medianOf(values: readonly number[]): number {
-  if (values.length === 0) return Number.NaN;
-  const s = [...values].sort((a, b) => a - b);
+  // ⚠️ Sonlu olmayan değerler DIŞARIDA bırakılır. Aksi hâlde tek bir NaN
+  // tüm medyanı yutar ve rapor "—" der; okuyucu "veri yok" ile "tek eksik
+  // alan yüzünden medyan kayboldu" ayırt edemez. Aynı sınıfın çok daha ağır
+  // hâli `-Infinity` sentinel'inin ortalamaya karışmasıydı (bkz. §10 satır 30).
+  const s = values.filter((v) => Number.isFinite(v)).sort((a, b) => a - b);
+  if (s.length === 0) return Number.NaN;
   const mid = Math.floor(s.length / 2);
   return s.length % 2 === 0 ? ((s[mid - 1] as number) + (s[mid] as number)) / 2 : (s[mid] as number);
 }
@@ -517,10 +521,12 @@ export function formatBondDurability(points: readonly BondDurabilityPoint[]): st
 }
 
 function meanOf(values: readonly number[]): number {
-  if (values.length === 0) return Number.NaN;
+  // Sonlu olmayan değerler ortalama yerine yok sayılır — bkz. `medianOf`.
+  const ok = values.filter((v) => Number.isFinite(v));
+  if (ok.length === 0) return Number.NaN;
   let sum = 0;
-  for (const v of values) sum += v;
-  return sum / values.length;
+  for (const v of ok) sum += v;
+  return sum / ok.length;
 }
 
 // --------------------------------------------------- Y-2: bağ ömrünün kalıtılabilirliği
