@@ -861,8 +861,18 @@ export interface EvolutionResult {
   randomBaselineN: number;
   /** **Hiç görülmemiş** değerlendirme tohumlarındaki en iyi skor. */
   evalBest: number;
-  /** Değerlendirmedeki rastgele taban çizgi ortalaması. */
+  /** Değerlendirmedeki rastgele taban çizgi ortalaması (yalnız bilgi için). */
   evalBaselineMean: number;
+  /**
+   * Değerlendirmedeki rastgele taban çizginin **en iyisi** — kazanç BUNA
+   * karşı hesaplanır.
+   *
+   * ⚠️ Arama MAKSİMUM döndürüyor. Ortalamayla karşılaştırıldığında kazanç
+   * yapısal olarak şişer: "binlerce adayın en iyisi" ile "birkaç rastgele
+   * örneğin ortalaması" aynı şey değildir. Aynı düzeltme evrimsel-arama
+   * deneyinde de yapıldı; burada atlanmıştı.
+   */
+  evalBaselineMax: number;
   /** Aramanın taban çizginin üstüne kazandırdığı miktar. */
   gainOverRandom: number;
   /** Bulunan politikanın ağırlıkları. */
@@ -1020,7 +1030,10 @@ export function evolvePolicy(options?: {
   // aynı seed, aynı population, farklı örneklem.
   // Taban artık SABİT bir referans: ne kadar arama koşulursa koşulsun aynı.
   const randomThetas = baselineThetas(seedBase, trainSeeds, N);
-  const evalBaselineMean = meanOf(randomThetas.map((t) => score(t, EVAL_SEED_BASE, trainSeeds, evalTicks)));
+  const evalScores = randomThetas.map((t) => score(t, EVAL_SEED_BASE, trainSeeds, evalTicks));
+  const evalBaselineMean = meanOf(evalScores);
+  const evalSurvivors = evalScores.filter((v) => Number.isFinite(v));
+  const evalBaselineMax = evalSurvivors.length > 0 ? Math.max(...evalSurvivors) : Number.NaN;
   const trainScores = randomThetas.map((t) => score(t, seedBase, trainSeeds, trainTicks));
   const randomBaselineMean = meanOf(trainScores);
   // Sentinel (-Infinity) bir organizmanın öldüğünü anlatıyor; ortalama onu
@@ -1040,7 +1053,8 @@ export function evolvePolicy(options?: {
     randomBaselineN: trainScores.length,
     evalBest,
     evalBaselineMean,
-    gainOverRandom: evalBest - evalBaselineMean,
+    evalBaselineMax,
+    gainOverRandom: evalBest - evalBaselineMax,
     bestTheta,
     history,
   };
@@ -1054,8 +1068,8 @@ export function formatEvolution(r: EvolutionResult): string {
   return [
     head,
     ...rows,
-    `  eğitim en iyi ${fmt(r.trainBest, 3)} · rastgele taban ${fmt(r.randomBaselineMean, 3)}`,
-    `  DEĞERLENDİRME (görülmemiş tohumlar): bulunan ${fmt(r.evalBest, 3)} · rastgele taban ${fmt(r.evalBaselineMean, 3)} · kazanç ${fmt(r.gainOverRandom, 3)}`,
+    `  eğitim en iyi ${fmt(r.trainBest, 3)} · rastgele taban(en iyi) ${fmt(r.randomBaselineMax, 3)} · ort ${fmt(r.randomBaselineMean, 3)}`,
+    `  DEĞERLENDİRME (görülmemiş tohumlar): bulunan ${fmt(r.evalBest, 3)} · rastgele taban(en iyi) ${fmt(r.evalBaselineMax, 3)} · ort ${fmt(r.evalBaselineMean, 3)} · kazanç ${fmt(r.gainOverRandom, 3)}`,
   ].join('\n');
 }
 

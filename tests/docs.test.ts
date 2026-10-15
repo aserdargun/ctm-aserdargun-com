@@ -235,7 +235,7 @@ describe('belge tutarlılığı · üretilmiş rapor', () => {
     const validation = read('docs/VALIDATION.md');
     expect(validation, `VALIDATION §4.9 raporun kazancını (${gain}) taşımıyor`).toContain(`+${gain}`);
     // Aynı satırdaki taban da taşınmalı.
-    const base = report.match(/DEĞERLENDİRME[^\n]*rastgele taban\s+(-?\d+\.\d+)/)?.[1];
+    const base = report.match(/DEĞERLENDİRME[^\n]*rastgele taban\(en iyi\)\s+(-?\d+\.\d+)/)?.[1];
     expect(base, 'raporda değerlendirme tabanı bulunamadı').toBeTruthy();
     expect(validation, `VALIDATION §4.9 raporun tabanını (${base}) taşımıyor`).toContain(base as string);
   });

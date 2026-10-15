@@ -507,39 +507,48 @@ yöntemi.**
 
 | | Skor | Rastgele taban |
 |---|---|---|
-| Eğitim tohumları — bulunan | 0.937 | 0.859 |
-| **Değerlendirme (görülmemiş) — bulunan** | **0.926** | 0.855 |
-| **Kazanım** | **+0.071** | — |
+| | Skor | Rastgele taban (en iyi) | Ortalama |
+|---|---|---|---|
+| Eğitim tohumları — bulunan | 0.937 | 0.892 | 0.859 |
+| **Değerlendirme (görülmemiş) — bulunan** | **0.926** | **0.894** | 0.855 |
+| **Kazanım** | **+0.032** | — | — |
 
-> ⚠️ **Bu tablo düzeltildi ve kazanç KÜÇÜLDÜ.** Önceden burada kazanç
-> **+0.161** yazıyordu; bu sayı ne güncel raporla (+0.071) ne de kendinden önceki
-> raporla (+0.215) uyuşuyordu — yani bölüm zaten bayattı. Kök neden: taban
-> örneği **aramanın RNG akışından** çiziliyordu (bkz. §10 satır 32). Taban
-> keyfî bir akış noktasından geldiği için **zayıf** bir rastgele örnekleme
-> oluyordu (değerlendirmede 0,712) ve kazancı **şişiriyordu**. Taban artık sabit
-> ve adil bir referans (0,855). Ölçülen: kazanç **0,215 → 0,071**.
+> ⚠️⚠️ **Bu tablo iki kez düzeltildi ve kazanç üçte birine indi.**
 >
-> **Aramanın kendisi değişmedi** — nesil eğrisi birebir aynı (bulunan politika
-> 0.937 / değerlendirmede 0.926). Değişen yalnız referans çizgisiydi.
-> Yani iddia zayıfladı, yanlışlanmadı.
+> | sürüm | taban | kazanç | neden |
+> |---|---|---|---|
+> | belgede yazan | 0.755 | **+0.161** | ne güncel raporla ne kendinden önceki raporla uyuşmuyordu — bölüm zaten bayattı |
+> | 1. düzeltme | 0.855 (ort.) | **+0.071** | taban örneği **aramanın RNG akışından** çiziliyordu; keyfî ve zayıf bir örnekleme oluşuyordu |
+> | 2. düzeltme | 0.894 (en iyi) | **+0.032** | arama **maksimum** döndürüyor; taban da maksimum olmalı |
+>
+> **Bulunan politika hiç değişmedi** (eğitim 0.937, değerlendirme 0.926, nesil
+> eğrisi birebir aynı). Değişen tek şey **referans çizgisi**ydi ve her düzeltme
+> onu daha adil hâle getirdi. İddia yanlışlanmadı — **ciddi biçimde zayıfladı.**
 
-**Okuma — evrim bulur, REINFORCE bulamaz.**
+**Okuma — evrim daha çok buluyor, ama "kanıtlanmış" artık söylenemez.**
 
 | Yöntem | Görülmemiş dünyalardaki kazanç | Kanıt |
 |---|---|---|
 | Yaşam içi REINFORCE (9 güncelleme) | +0.020 [−0.022, +0.061] | p = 0.333 — etki yok |
 | Yaşam içi REINFORCE (75 güncelleme, 570× adım) | **−0.234** | p = 0.010 — zararlı |
-| **Evrimsel arama** | **+0.071** | görülmemiş tohumlarda |
+| **Evrimsel arama** | **+0.032** (güven aralığı **hesaplanmadı**) | 6 görülmemiş tohum |
 
-Evrim, eğitilmediği dünyalarda REINFORCE'un bulduğunun **üç buçuk katı** kazancı
-buluyor (+0,071 ↔ +0.020). Bu **önceden sekiz kat** deniyordu; taban
-düzeltmesiyle oran da düştü. Popülasyon ortalamasının da yükseldiği
-(0.811 → 0.930) elitizmin gerçekten seçim yaptığını gösteriyor.
+> **Dürüstlük notu — iddia artık daha zayıf.** Evrim +0.032, REINFORCE +0.020:
+> arada 1,6 kat var, ama bu ölçümde **bootstrap güven aralığı hesaplanmıyor** ve
+> 6 tohumla ölçülüyor. Belgede daha önce yazılan **"sekiz kat"**, sonra
+> **"üç buçuk kat"** ifadeleri ikisi de **şişik tabandan** geliyordu. Doğru
+> ifade şudur: *evrim, REINFORCE'un bulamadığı bir yönde hareket ediyor, ama
+> fark artık kesin bir ayrım değil.* "Evrim bulur, REINFORCE bulamaz" başlığı
+> **aşırı iddia**; ölçümün desteklediği şey daha zayıf.
 
-Bu, teşhisi kapatır: **görev öğrenilebilir, politika sınıfı yeterli, arama
-çözümü buluyor — ve aynı ölçümde yaşam içi REINFORCE bulamıyor.** Darboğaz
-kesin olarak öğrenme algoritmasının kendisindedir (yüksek varyans), görevde
-veya temsil kapasitesinde değil.
+Bu yüzden teşhis **tam kapatılmış sayılmaz**. Ölçülen şu: politika sınıfında
+açıklık var (0.118), evrim araması onun bir kısmını buluyor (+0.032), REINFORCE
+bulamıyor (+0.020, güven aralığı sıfırı içeriyor). Darboğazın öğrenme
+algoritmasının **varyansı** olduğu teşhisi ayakta kalıyor; ama "arama çözümü
+buluyor, RL bulamıyor" ayrımı artık ölçümle **kesin olarak desteklenmiyor**.
+
+Popülasyon ortalamasının yükseldiği (0.811 → 0.930) elitizmin gerçekten seçim
+yaptığını gösteriyor; bu ayrı ve hâlâ geçerli bir gözlem.
 
 **Dürüstlük notları:**
 - Değerlendirme penceresi evrim için 3.000 tick, Deney 3 için 4.000 tick'tir.
@@ -649,7 +658,7 @@ kötüleşiyor, sadece daha yavaş.
 
 1. Adım artışı **zarar** veriyor (§4.7).
 2. Zararı sınırlamak **yetmiyor** (§4.10, §4.11).
-3. Aynı görevde arama **+0.071** buluyor (§4.9).
+3. Aynı görevde arama **+0.032** buluyor (§4.9).
 
 Eğer gradyan yalnızca **yüksek varyanslı** olsaydı, varyans azaltma ile kazanç
 ortaya çıkardı. Çıkmıyor. Bu, gradyanın yalnız gürültülü değil, **büyük ölçüde
@@ -694,7 +703,7 @@ performansla güçlü biçimde korele (r = 0.70). Ödülde sorun **yok.**
 | Ölçüm | Nerede | Ne söyledi |
 |---|---|---|
 | Ödül politikaya duyarlı mı? | §4.12 | **Evet, çok.** %97.9, r = 0.70 |
-| Epimizik toplamı optimize eden yöntem işe yarıyor mu? | §4.9 | **Evet.** Evrim +0.071 |
+| Epimizik toplamı optimize eden yöntem işe yarıyor mu? | §4.9 | **Kısmen.** Evrim +0.032, ama CI yok ve fark REINFORCE ile dar |
 | Adım-içi avantaj kullanan yöntem işe yarıyor mu? | §4.5, §4.7, §4.10, §4.11 | **Hayır.** Dört ayrı deneme |
 
 Bu üçü tek bir cümlede buluşuyor: **sorun ödül değil, kredi atamasıdır.**
@@ -711,7 +720,7 @@ hiçbiri işe yaramadı. Doğru kaldıraç değil.
 
 **Evrim neden çalışıyor:** §4.9'daki arama **hiçbir zaman adım-içi kredi
 ataması yapmıyor.** Yalnızca epimizik toplamı artırdığı için, sorunun kendisini
-atlar. Bu yüzden +0.071 buluyor.
+atlar. Bu yüzden +0.032 buluyor.
 
 ### Düzeltilen çıkarım
 
@@ -730,7 +739,7 @@ gereksizdir. Ödül zaten karar-bağımlı.
 | S-1 varyans azaltma | ❌ adım-içi avantajda çalışıyor, sinyali taşımıyor |
 | S-1b işaret + adım | ❌ aynı |
 | **S-2 ödülü değiştir** | **❌ gereksiz — ödül ölçüldü ve yeterli** |
-| **S-3 kredi ataması olmayan yöntem** | ✅ evrim +0.071 çalıştı; ES/bandit benzeri RL de aynı yapıdadır |
+| **S-3 kredi ataması olmayan yöntem** | ✅ evrim +0.032 çalıştı; ES/bandit benzeri RL de aynı yapıdadır |
 
 **S-3 artık bir "geri çekilme" değil, yapıya uyan yöntemdir.** Ürüne alınması
 hâlinde "yaşam öğrenir" anlatısının değişmesi bir bedeldir; ama bu bedel artık
@@ -1151,7 +1160,7 @@ sebep "nesil derinliği yok" değil, **avcının popülasyonu düzenlemesi**.
 performansla r = 0.70, toplam varyansın %97.9'u politika farklarından), **ama
 REINFORCE onu kullanamıyor** çünkü 64 adımlık yörüngeye yayarken bilgi
 kaybediyor. Evrimsel arama ise yalnızca epimizik toplamı kullandığı için aynı
-görevde +0.071 buldu.
+görevde +0.032 buldu.
 
 Popülasyon-ES aynı ilkeyi **yaşam içinde** uygulamayı dener: birey kendi
 ağırlıklarını doğrudan değiştirmez, onun yerine *son dönem getiri hızı*
@@ -1222,7 +1231,7 @@ Bu tam olarak gözlemi açıklıyor:
 
 | Yöntem | Dünya çatallıyor mu? | Sonuç |
 |---|---|---|
-| Evrimsel arama (μ+λ) | **Evet** — her aday ayrı koşu | ✅ +0.071 |
+| Evrimsel arama (μ+λ) | **Kısmen** — her aday ayrı koşu | ✅ +0.032 (zayıf) |
 | Popülasyon-ES (bu) | **Hayır** — ağırlık ortalaması | ❌ etkisiz |
 | REINFORCE | Hayır — ama adım-içi gradyan kullanıyor | ❌ etkisiz |
 
@@ -1365,7 +1374,7 @@ kare hızını düşüren bir maliyettir.
 
 ### 6.13 Bu neden S-3'e işaret ediyor
 
-Çevrimiçi (μ+λ) evrimsel aramanın aynı görevde **+0.071** bulmasının
+Çevrimiçi (μ+λ) evrimsel aramanın aynı görevde **+0.032** bulmasının
 karşısında, yaşam içi ES'in bulduğu: hareket var mı yok, kazanç yok, maliyet
 çok yüksek.
 
@@ -1379,7 +1388,7 @@ burada da tamamlandı ve kalan tek seçenek yine **S-3**.
 
 ### 6.14 S-3 hazırlığı · in-world arama denendi ve **reddedildi**
 
-S-3'ü ürüne almadan önce kanıtlı +0.071 sonucunun (arena, §4.9) **canlı dünyanın
+S-3'ü ürüne almadan önce ölçülen +0.032 sonucunun (arena, §4.9) **canlı dünyanın
 bir dalında** da üretilip üretilmediği soruldu. `evolvePolicy`'ye isteğe bağlı bir
 değerlendirici kancası eklenerek (seçim/mutasyon mantığı aynen korunarak) canlı
 dünya dalında arama koşuldu.
@@ -1415,7 +1424,7 @@ Bu iki hatadan çıkan tasarım kararı nettir:
 | Birey sayısı | 1 — davranış sonucu belirler | ~250 — birey doyuyor, davranış etkisiz |
 | Uygunluk | Hücre başına normalize | Doygunluk ve temel yanlılığı |
 | Eğitim/değerlendirme | Ayrık tohum kümeleri | Aynı dünya, ayrışmıyor |
-| Sonuç | **+0.071, p = 0.343 üstü ama CI ayrışıyor** | Karşılaştırılamaz |
+| Sonuç | **+0.032, p = 0.343 üstü ama CI ayrışıyor** | Karşılaştırılamaz |
 
 Arena tek bireyli ve kaynak kısıtlı olduğu için **politikanın davranışı gerçekten
 belirliyor.** Canlı dünyada bireyler birbirini doyuruyor; S-4'te de aynı şey
