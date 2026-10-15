@@ -1622,14 +1622,7 @@ export function experimentInWorldEvolution(options?: {
     { label: `evrim (${generations} nesil)`, point: treatment },
   ];
 
-  const reading =
-    treatment.gain > 0
-      ? `Çevrimiçi evrim **canlı dünyanın dalında da işe yarıyor**: rastgele taban ` +
-        `${fmt(treatment.baseline, 3)} → bulunan politika ${fmt(treatment.best, 3)} ` +
-        `(kazanç +${fmt(treatment.gain, 3)}). Bölünmenin ardından organizmanın enerjisi ` +
-        `${fmt(treatment.startEnergy, 0)} → ${fmt(treatment.endEnergy, 0)} e ` +
-        `(kontrol ${fmt(control.endEnergy, 0)} e). Arama ${fmt(treatment.spentMs, 0)} ms sürdü.`
-    : `Çevrimiçi evrim canlı dünyanın dalında kazanç üretmedi: ${fmt(treatment.gain, 3)}.`;
+  const reading = readInWorldEvolution(treatment, control.endEnergy);
 
   return { seed, forkTick, evaluateTicks, arms, reading };
 }
@@ -1652,4 +1645,37 @@ export function formatInWorldEvolution(r: InWorldEvolutionReport): string {
   lines.push(`  enerji rezidülü: ${fmt(r.arms[1]?.point.worstLedgerResidual ?? 0, 9)} e`);
   lines.push(`  → ${r.reading}`);
   return lines.join('\n');
+}
+
+/**
+ * Dünya içi evrim deneyinin HÜKMÜ — saf fonksiyon, test edilebilir olsun diye.
+ *
+ * ⚠️ `forkScore` yok olan organizma için sentinel olarak `-Infinity` döndürüyor.
+ * Tek bir rastgele taban örneği organizmayı öldürürse ortalama `-Infinity`
+ * olur, kazanç `+Infinity` olur ve `Infinity > 0` **doğru** döner: deney saf
+ * aritmetik artefaktla "işe yarıyor" derdi.
+ *
+ * ÖLÇÜLDÜ (tohum 11, `generations: 0`): taban **-Infinity**, kazanç **+Infinity**,
+ * hüküm **"canlı dünyanın dalında da işe yarıyor"** — oysa ölçüm yoktu.
+ * Bu yüzden sonlu olmayan değerle **hüküm verilmez**.
+ */
+export function readInWorldEvolution(
+  treatment: { baseline: number; best: number; gain: number; startEnergy: number; endEnergy: number; spentMs: number },
+  controlEndEnergy: number,
+): string {
+  if (!Number.isFinite(treatment.baseline) || !Number.isFinite(treatment.gain)) {
+    return (
+      `Çevrimiçi evrim **ÖLÇÜLEMEDİ**: rastgele taban ${fmt(treatment.baseline, 3)}. ` +
+      `Sentinel (-Infinity) bir taban örneğinin organizmayı öldürdüğünü anlatıyor ve ` +
+      `ortalamaya karışıyor; çıkan kazanç (${fmt(treatment.gain, 3)}) aritmetik ` +
+      `artefakttır, kanıt değildir.`
+    );
+  }
+  return treatment.gain > 0
+    ? `Çevrimiçi evrim **canlı dünyanın dalında da işe yarıyor**: rastgele taban ` +
+      `${fmt(treatment.baseline, 3)} → bulunan politika ${fmt(treatment.best, 3)} ` +
+      `(kazanç +${fmt(treatment.gain, 3)}). Bölünmenin ardından organizmanın enerjisi ` +
+      `${fmt(treatment.startEnergy, 0)} → ${fmt(treatment.endEnergy, 0)} e ` +
+      `(kontrol ${fmt(controlEndEnergy, 0)} e). Arama ${fmt(treatment.spentMs, 0)} ms sürdü.`
+    : `Çevrimiçi evrim canlı dünyanın dalında kazanç üretmedi: ${fmt(treatment.gain, 3)}.`;
 }

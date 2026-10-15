@@ -23,6 +23,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { GENOME_KEYS, founderGenomes, genomeDistance } from '../src/sim/genome.ts';
 import { ACTION_NAMES, MLP_SHAPE } from '../src/sim/behavior/mlp.ts';
+import { readInWorldEvolution } from '../src/sim/experiments/index.ts';
 import { ACTION_LABELS_EN, ACTION_LABELS_TR } from '../src/i18n/index.ts';
 import { Rng } from '../src/sim/rng.ts';
 import type { Genome } from '../src/sim/types.ts';
@@ -474,6 +475,50 @@ describe('arayüz · etiket kapsamı gerçekten kapsıyor mu', () => {
     // TR/EN gerçekten ayrı listeler olmalı — biri diğerine kopyalanmışsa
     // dil değiştirmek hiçbir şey değiştirmez ve denetim bunu yakalamazdı.
     expect(ACTION_LABELS_TR[n - 1]).not.toBe(ACTION_LABELS_EN[n - 1]);
+  });
+});
+
+describe('ölçüm · hüküm kendi kanıtına bağlı mı', () => {
+  // ⚠️ ÖLÇÜLEN SAHTE POZİTİF. `forkScore`, organizma yoksa sentinel olarak
+  // `-Infinity` döndürüyor. Rastgele tabanda tek bir ölüm yeter: ortalama
+  // `-Infinity`, kazanç `+Infinity`, `Infinity > 0` doğru → deney
+  // "canlı dünyanın dalında da işe yarıyor" diyordu.
+  //   ÖLÇÜLDÜ (tohum 11, generations 0): taban -Infinity · kazanç +Infinity
+  //   → hüküm: OLUMLU. Ölçümün kendisi yoktu.
+  //
+  // Deney rapora bağlı olmadığı için şimdilik sahte sonuç YAYINLANMIYOR —
+  // ama bağlandığı anda yayınlanırdı. Koruma: sonlu olmayan değerle hüküm
+  // verilmez.
+  const arm = {
+    baseline: 41.783,
+    best: 64.812,
+    gain: 23.029,
+    startEnergy: 55,
+    endEnergy: 58,
+    spentMs: 1000,
+  };
+
+  it('sonlu olmayan kazanç "işe yarıyor" hükmü ÜRETMEZ', () => {
+    for (const bad of [
+      { baseline: -Infinity, best: 58.9, gain: Infinity },
+      { baseline: Number.NaN, best: 58.9, gain: Number.NaN },
+      { baseline: 41.8, best: 64.8, gain: Number.NaN },
+      { baseline: 41.8, best: 64.8, gain: Infinity },
+    ]) {
+      const r = readInWorldEvolution({ ...arm, ...bad }, 58);
+      expect(r, `hüküm "${r}" kanıtsız olumlu`).toContain('ÖLÇÜLEMEDİ');
+      expect(r, `hüküm "${r}" kanıtsız olumlu`).not.toContain('işe yarıyor');
+    }
+  });
+
+  it('sonlu ve pozitif kazanç olumlu hükmü korur', () => {
+    expect(readInWorldEvolution(arm, 58)).toContain('işe yarıyor');
+  });
+
+  it('sonlu ve negatif kazanç kazanç üretmedi der', () => {
+    const r = readInWorldEvolution({ ...arm, gain: -3 }, 58);
+    expect(r).toContain('kazanç üretmedi');
+    expect(r).not.toContain('işe yarıyor');
   });
 });
 
