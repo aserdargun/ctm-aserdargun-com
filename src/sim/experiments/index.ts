@@ -825,8 +825,22 @@ export interface EvolutionResult {
   offspringPerParent: number;
   /** Eğitim tohumlarındaki en iyi skor. */
   trainBest: number;
-  /** Rastgele politikaların eğitim tohumlarındaki ortalaması (taban çizgi). */
+  /** Rastgele politikaların eğitim tohumlarındaki ortalaması (seçimsiz taban). */
   randomBaselineMean: number;
+  /**
+   * Rastgele politikaların eğitim tohumlarındaki **en iyisi** (eşleşen taban).
+   *
+   * ⚠️ Arama bir MAKSİMUM döndürüyor; arama ile karşılaştırılan taban da
+   * maksimum olmalı, yoksa kazanç yapısal olarak şişer. ÖLÇÜLDÜ
+   * (`generations: 0`, yani arama hiç çalışmadı): ortalamaya karşı kazanç
+   * **+21,286** — sırf en büyüğün ortalamadan büyük olmasıyla. Bu bir
+   * başarı değil, seçim artefaktıdır.
+   */
+  randomBaselineMax: number;
+  /** Kaç rastgele taban örneği organizmayı öldürdü (ölüm oranı). */
+  randomBaselineDeaths: number;
+  /** Rastgele taban örneği sayısı. */
+  randomBaselineN: number;
   /** **Hiç görülmemiş** değerlendirme tohumlarındaki en iyi skor. */
   evalBest: number;
   /** Değerlendirmedeki rastgele taban çizgi ortalaması. */
@@ -984,7 +998,13 @@ export function evolvePolicy(options?: {
     randomThetas.push(randomTheta());
   }
   const evalBaselineMean = meanOf(randomThetas.map((t) => score(t, EVAL_SEED_BASE, trainSeeds, evalTicks)));
-  const randomBaselineMean = meanOf(randomThetas.map((t) => score(t, seedBase, trainSeeds, trainTicks)));
+  const trainScores = randomThetas.map((t) => score(t, seedBase, trainSeeds, trainTicks));
+  const randomBaselineMean = meanOf(trainScores);
+  // Sentinel (-Infinity) bir organizmanın öldüğünü anlatıyor; ortalama onu
+  // yutar. Ölüm sayısı ayrıca raporlanır ve MAKS taban bunlardan çıkarılır.
+  const deaths = trainScores.filter((v) => !Number.isFinite(v));
+  const survivors = trainScores.filter((v) => Number.isFinite(v));
+  const randomBaselineMax = survivors.length > 0 ? Math.max(...survivors) : Number.NaN;
 
   return {
     generations,
@@ -992,6 +1012,9 @@ export function evolvePolicy(options?: {
     offspringPerParent,
     trainBest: finalScores[finalBestIdx] as number,
     randomBaselineMean,
+    randomBaselineMax,
+    randomBaselineDeaths: deaths.length,
+    randomBaselineN: trainScores.length,
     evalBest,
     evalBaselineMean,
     gainOverRandom: evalBest - evalBaselineMean,
@@ -1481,7 +1504,14 @@ export interface InWorldEvolutionPoint {
   generations: number;
   /** Nesil nesil en iyi bireyin ortalama skoru. */
   history: number[];
+  /** Eşleşen taban: rastgele politikaların **en iyisi** (arama da maksimum). */
   baseline: number;
+  /** Seçimsiz taban: rastgele politikaların ortalaması (yalnız bilgi için). */
+  baselineMean: number;
+  /** Kaç rastgele taban örneği organizmayı öldürdü. */
+  baselineDeaths: number;
+  /** Rastgele taban örneği sayısı. */
+  baselineN: number;
   best: number;
   gain: number;
   /** Kazanan politikanın ortalama enerjisi (başlangıç ve son). */
@@ -1602,9 +1632,14 @@ export function experimentInWorldEvolution(options?: {
     return {
       generations: gens,
       history: result.history.map((h) => h.best),
-      baseline: result.randomBaselineMean,
+      baseline: result.randomBaselineMax,
+      baselineMean: result.randomBaselineMean,
+      baselineDeaths: result.randomBaselineDeaths,
+      baselineN: result.randomBaselineN,
       best: result.trainBest,
-      gain: result.trainBest - result.randomBaselineMean,
+      // Arama MAKSİMUM döndürdüğü için taban da maksimum olmalı; ortalama
+      // karşılaştırılırsa kazanç yapısal olarak pozitif olur.
+      gain: result.trainBest - result.randomBaselineMax,
       startEnergy: 55,
       endEnergy,
       spentMs: performance.now() - started,
@@ -1634,7 +1669,7 @@ export function formatInWorldEvolution(r: InWorldEvolutionReport): string {
   for (const arm of r.arms) {
     const p = arm.point;
     lines.push(
-      `  ${arm.label.padEnd(24)} taban ${fmt(p.baseline, 3)} → bulunan ${fmt(p.best, 3)} (kazanç ${fmt(p.gain, 3)}) · bölünme sonrası enerji ${fmt(p.endEnergy, 0)} e · pop ${p.finalPopulation} · 4+ ${p.finalMultiCellColonies} · süre ${fmt(p.spentMs, 0)} ms`,
+      `  ${arm.label.padEnd(24)} taban(en iyi) ${fmt(p.baseline, 3)} · ort ${fmt(p.baselineMean, 3)} · taban ölümü ${p.baselineDeaths}/${p.baselineN} → bulunan ${fmt(p.best, 3)} (kazanç ${fmt(p.gain, 3)}) · bölünme sonrası enerji ${fmt(p.endEnergy, 0)} e · pop ${p.finalPopulation} · 4+ ${p.finalMultiCellColonies} · süre ${fmt(p.spentMs, 0)} ms`,
     );
     if (p.history.length > 0) {
       const step = Math.max(1, Math.floor(p.history.length / 8));
