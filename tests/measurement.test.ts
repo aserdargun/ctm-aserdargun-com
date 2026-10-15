@@ -423,10 +423,10 @@ describe('ölü alet · dışa aktarım gerçekten tüketiliyor mu', () => {
         'simülasyonun sürekli hareketi ürünün kendisi (6 useFrame), basit aç/kapa değil',
       getRecord: 'IndexedDB kayıt okuma — UI düğmesi yok; PROGRESS.md "tarayıcıda test edilmemiş" diye kayıtlı',
       estimateUsage: 'IndexedDB kota ölçümü — getRecord ile aynı bağlanmamış yüzey',
-      // Saf temizlik borcu — etkileri bu turda araştırılmadı:
+      // Saf temizlik borcu — etkileri bu turda ARAŞTIRILMADI:
       createShaftMaterial: 'görsel yardımcı; bu turda ürün etkisi araştırılmadı',
       scratchObject: 'görsel yardımcı; bu turda ürün etkisi araştırılmadı',
-      ACTIONS: 'eylem sabitleri; bu turda ürün etkisi araştırılmadı',
+      ACTIONS: 'ARAŞTIRILDI: sayısal takma ad. ACTION_NAMES (4) ve MLP_SHAPE.OUTPUTS: 4 zaten eylem uzayını tanımlıyor; satır içi kopya YOK. Zararsız',
       summarizeTrials: 'deney yardımcısı; bu turda ürün etkisi araştırılmadı',
       sweepShareThreshold: 'deney yardımcısı; bu turda ürün etkisi araştırılmadı',
       formatShareThreshold: 'deney biçimlendiricisi; bu turda ürün etkisi araştırılmadı',
@@ -434,9 +434,9 @@ describe('ölü alet · dışa aktarım gerçekten tüketiliyor mu', () => {
       formatInWorldEvolution: 'deney biçimlendiricisi; bu turda ürün etkisi araştırılmadı',
       assertPolicyShape: 'deney doğrulaması; bu turda ürün etkisi araştırılmadı',
       lifeMapOf: 'yaşam haritası yardımcısı; bu turda ürün etkisi araştırılmadı',
-      RESOURCE_KINDS: 'kaynak türleri; bu turda ürün etkisi araştırılmadı',
-      zeroTheta: 'ağırlık sıfırlayıcı; bu turda ürün etkisi araştırılmadı',
-      MLP_PARAMS: 'ağ boyutu sabiti; bu turda ürün etkisi araştırılmadı',
+      RESOURCE_KINDS: "ARAŞTIRILDI: ['A','B'] dizisi ölü; asıl güvence ResourceKind TİPİ. Üçüncü tür eklenirse tip zaten derleme hatası verir. Zararsız",
+      zeroTheta: 'ARAŞTIRILDI: createTheta() için takma ad, satır içi kopya yok. Zararsız',
+      MLP_PARAMS: 'ARAŞTIRILDI: MLP_SHAPE.PARAM_COUNT için takma ad; asıl sabit mlp.ts içinde kullanılıyor. Zararsız',
       readFrame: 'kare okuma; bu turda ürün etkisi araştırılmadı',
     };
     const unexpected = orphans.filter((line) => {
