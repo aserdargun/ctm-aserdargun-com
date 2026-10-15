@@ -527,19 +527,26 @@ yöntemi.**
 
 **Okuma — evrim daha çok buluyor, ama "kanıtlanmış" artık söylenemez.**
 
-| Yöntem | Görülmemiş dünyalardaki kazanç | Kanıt |
+| Yöntem | Görülmemiş dünyalardaki kazanç | Ölçüm |
 |---|---|---|
-| Yaşam içi REINFORCE (9 güncelleme) | +0.020 [−0.022, +0.061] | p = 0.333 — etki yok |
-| Yaşam içi REINFORCE (75 güncelleme, 570× adım) | **−0.234** | p = 0.010 — zararlı |
-| **Evrimsel arama** | **+0.032** (güven aralığı **hesaplanmadı**) | 6 görülmemiş tohum |
+| Yaşam içi REINFORCE (9 güncelleme) | **+0.001** [−0.037, +0.037] | p = 0.9764 · **20 tohum** (§4.5, güncel) |
+| Yaşam içi REINFORCE (75 güncelleme, 570× adım) | **−0.234** | p = 0.010 — zararlı · **raporda YOK** (§4.6–4.7, ayrı ölçüm) |
+| **Evrimsel arama** | **+0.032** | güven aralığı **hesaplanmadı** · **6 tohum** |
 
-> **Dürüstlük notu — iddia artık daha zayıf.** Evrim +0.032, REINFORCE +0.020:
-> arada 1,6 kat var, ama bu ölçümde **bootstrap güven aralığı hesaplanmıyor** ve
-> 6 tohumla ölçülüyor. Belgede daha önce yazılan **"sekiz kat"**, sonra
-> **"üç buçuk kat"** ifadeleri ikisi de **şişik tabandan** geliyordu. Doğru
-> ifade şudur: *evrim, REINFORCE'un bulamadığı bir yönde hareket ediyor, ama
-> fark artık kesin bir ayrım değil.* "Evrim bulur, REINFORCE bulamaz" başlığı
-> **aşırı iddia**; ölçümün desteklediği şey daha zayıf.
+> ⚠️ **Bu karşılaştırma tablosu da düzeltildi.** REINFORCE satırı **eski
+> 6 tohumlu** koşumu (+0.020, p = 0.333) veriyordu ve güncel sunuluyordu.
+> §4.5 artık **20 tohum** kullanıyor: **+0.001, p = 0.9764**. Yani aynı yöntemin
+> güncel ölçümü sıfıra yakın.
+>
+> **Dolayısıyla "1,6 kat" ifadesi de düşürüldü.** Evrim 6 tohumla, REINFORCE
+> 20 tohumla ölçülüyor; farklı örneklem büyüklüklerini böyle bir orana
+> çevirmek sağlam değil. Satır 2 (75 güncelleme) ise güncel raporda **yok** —
+> §4.6–4.7'nin ayrı ölçümü; rapordan türetilemediği için dokunulmadı ama
+> **korumasız** olduğu not düşüldü.
+>
+> Doğru ifade şudur: *güncel ölçümde evrim +0.032, yaşam içi REINFORCE +0.001.
+> Arama bir yönde hareket ediyor, RL etmiyor — ama evrim de küçük bir sayı
+> buluyor ve güven aralığı hesaplanmıyor.*
 
 Bu yüzden teşhis **tam kapatılmış sayılmaz**. Ölçülen şu: politika sınıfında
 açıklık var (0.118), evrim araması onun bir kısmını buluyor (+0.032), REINFORCE
