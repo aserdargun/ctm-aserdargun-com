@@ -113,6 +113,24 @@ function worstResidual(results: readonly { ledgerResidual: number }[]): number {
   return worst;
 }
 
+/**
+ * Rastgele taban örnekleri — **sabit referans**.
+ *
+ * ⚠️ Aramanın RNG akışından kesinlikle AYRI bir akıştan çizilir. Bu yardımcı
+ * dışarıda çizilirse iki kol aynı tabanı paylaşır ve `generations: 0` geçerli
+ * bir kontrol olur.
+ */
+export function baselineThetas(seed: number, count: number, n: number): Float64Array[] {
+  const rng = new Rng(seed + 7919);
+  const out: Float64Array[] = [];
+  for (let i = 0; i < count; i++) {
+    const t = new Float64Array(n);
+    for (let p = 0; p < n; p++) t[p] = rng.normal();
+    out.push(t);
+  }
+  return out;
+}
+
 function meanOf(values: readonly number[]): number {
   if (values.length === 0) return Number.NaN;
   let sum = 0;
@@ -993,10 +1011,15 @@ export function evolvePolicy(options?: {
 
   // Değerlendirme: hiç görülmemiş tohumlar.
   const evalBest = score(bestTheta, EVAL_SEED_BASE, trainSeeds, evalTicks);
-  const randomThetas: Float64Array[] = [];
-  for (let i = 0; i < trainSeeds; i++) {
-    randomThetas.push(randomTheta());
-  }
+  // ⚠️ Taban örneği ARAMA AKIŞINDAN AYRI bir RNG'den çizilir.
+  // Ölçülen hata: `randomThetas`, nesil döngüsünden SONRA ve aynı `search`
+  // akışından çiziliyordu. Döngü kaç kez `search.normal()` tükettiyse taban
+  // örneği o kadar kayıyordu — yani iki kol FARKLI rastgele örneklemi
+  // karşılaştırıyordu ve `generations: 0` geçerli bir kontrol olmaktan
+  // çıkıyordu. ÖLÇÜLDÜ: kontrol taban(ort) 48.378, evrim kolu 48.386 —
+  // aynı seed, aynı population, farklı örneklem.
+  // Taban artık SABİT bir referans: ne kadar arama koşulursa koşulsun aynı.
+  const randomThetas = baselineThetas(seedBase, trainSeeds, N);
   const evalBaselineMean = meanOf(randomThetas.map((t) => score(t, EVAL_SEED_BASE, trainSeeds, evalTicks)));
   const trainScores = randomThetas.map((t) => score(t, seedBase, trainSeeds, trainTicks));
   const randomBaselineMean = meanOf(trainScores);

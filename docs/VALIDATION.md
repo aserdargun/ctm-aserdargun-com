@@ -500,16 +500,28 @@ yöntemi.**
 
 | Nesil | En iyi | Ortalama |
 |---|---|---|
-| 0 | 0.927 | 0.808 |
-| 1 | 0.927 | 0.905 |
-| 4 | 0.931 | 0.918 |
-| 9 | 0.931 | 0.916 |
+| 0 | 0.930 | 0.811 |
+| 1 | 0.930 | 0.908 |
+| 4 | 0.935 | 0.928 |
+| 9 | 0.937 | 0.930 |
 
 | | Skor | Rastgele taban |
 |---|---|---|
-| Eğitim tohumları (1..6) — bulunan | 0.931 | 0.735 |
-| **Değerlendirme (1001..1006, görülmemiş) — bulunan** | **0.916** | 0.755 |
-| **Kazanım** | **+0.161** | — |
+| Eğitim tohumları — bulunan | 0.937 | 0.859 |
+| **Değerlendirme (görülmemiş) — bulunan** | **0.926** | 0.855 |
+| **Kazanım** | **+0.071** | — |
+
+> ⚠️ **Bu tablo düzeltildi ve kazanç KÜÇÜLDÜ.** Önceden burada kazanç
+> **+0.161** yazıyordu; bu sayı ne güncel raporla (+0.071) ne de kendinden önceki
+> raporla (+0.215) uyuşuyordu — yani bölüm zaten bayattı. Kök neden: taban
+> örneği **aramanın RNG akışından** çiziliyordu (bkz. §10 satır 32). Taban
+> keyfî bir akış noktasından geldiği için **zayıf** bir rastgele örnekleme
+> oluyordu (değerlendirmede 0,712) ve kazancı **şişiriyordu**. Taban artık sabit
+> ve adil bir referans (0,855). Ölçülen: kazanç **0,215 → 0,071**.
+>
+> **Aramanın kendisi değişmedi** — nesil eğrisi birebir aynı (bulunan politika
+> 0.937 / değerlendirmede 0.926). Değişen yalnız referans çizgisiydi.
+> Yani iddia zayıfladı, yanlışlanmadı.
 
 **Okuma — evrim bulur, REINFORCE bulamaz.**
 
@@ -517,11 +529,12 @@ yöntemi.**
 |---|---|---|
 | Yaşam içi REINFORCE (9 güncelleme) | +0.020 [−0.022, +0.061] | p = 0.333 — etki yok |
 | Yaşam içi REINFORCE (75 güncelleme, 570× adım) | **−0.234** | p = 0.010 — zararlı |
-| **Evrimsel arama (12 nesil)** | **+0.161** | görülmemiş tohumlarda |
+| **Evrimsel arama** | **+0.071** | görülmemiş tohumlarda |
 
-Evrim, eğitilmediği dünyalarda **REINFORCE'un bulduğunun sekiz katı** kazancı
-buluyor. Popülasyon ortalamasının da yükseldiği (0.808 → 0.916) elitizmin
-gerçekten seçim yaptığını gösteriyor.
+Evrim, eğitilmediği dünyalarda REINFORCE'un bulduğunun **üç buçuk katı** kazancı
+buluyor (+0,071 ↔ +0.020). Bu **önceden sekiz kat** deniyordu; taban
+düzeltmesiyle oran da düştü. Popülasyon ortalamasının da yükseldiği
+(0.811 → 0.930) elitizmin gerçekten seçim yaptığını gösteriyor.
 
 Bu, teşhisi kapatır: **görev öğrenilebilir, politika sınıfı yeterli, arama
 çözümü buluyor — ve aynı ölçümde yaşam içi REINFORCE bulamıyor.** Darboğaz
@@ -530,7 +543,7 @@ veya temsil kapasitesinde değil.
 
 **Dürüstlük notları:**
 - Değerlendirme penceresi evrim için 3.000 tick, Deney 3 için 4.000 tick'tir.
-  Bu küçük fark 8 katlık farkı açıklamaz, ama kesin bir eşitlik iddiası da
+  Bu küçük fark katlar arası farkı açıklamaz, ama kesin bir eşitlik iddiası da
   değildir.
 - Evrim 2 tohumla koştuğunda **aşırı uyum** yapıyor ve kazanç negatife dönüyor
   (ölçüldü, `tests/experiments.test.ts`). Bu yüzden üretim ayarı 6 tohum; düşük
@@ -636,7 +649,7 @@ kötüleşiyor, sadece daha yavaş.
 
 1. Adım artışı **zarar** veriyor (§4.7).
 2. Zararı sınırlamak **yetmiyor** (§4.10, §4.11).
-3. Aynı görevde arama **+0.161** buluyor (§4.9).
+3. Aynı görevde arama **+0.071** buluyor (§4.9).
 
 Eğer gradyan yalnızca **yüksek varyanslı** olsaydı, varyans azaltma ile kazanç
 ortaya çıkardı. Çıkmıyor. Bu, gradyanın yalnız gürültülü değil, **büyük ölçüde
@@ -681,7 +694,7 @@ performansla güçlü biçimde korele (r = 0.70). Ödülde sorun **yok.**
 | Ölçüm | Nerede | Ne söyledi |
 |---|---|---|
 | Ödül politikaya duyarlı mı? | §4.12 | **Evet, çok.** %97.9, r = 0.70 |
-| Epimizik toplamı optimize eden yöntem işe yarıyor mu? | §4.9 | **Evet.** Evrim +0.161 |
+| Epimizik toplamı optimize eden yöntem işe yarıyor mu? | §4.9 | **Evet.** Evrim +0.071 |
 | Adım-içi avantaj kullanan yöntem işe yarıyor mu? | §4.5, §4.7, §4.10, §4.11 | **Hayır.** Dört ayrı deneme |
 
 Bu üçü tek bir cümlede buluşuyor: **sorun ödül değil, kredi atamasıdır.**
@@ -698,7 +711,7 @@ hiçbiri işe yaramadı. Doğru kaldıraç değil.
 
 **Evrim neden çalışıyor:** §4.9'daki arama **hiçbir zaman adım-içi kredi
 ataması yapmıyor.** Yalnızca epimizik toplamı artırdığı için, sorunun kendisini
-atlar. Bu yüzden +0.161 buluyor.
+atlar. Bu yüzden +0.071 buluyor.
 
 ### Düzeltilen çıkarım
 
@@ -717,7 +730,7 @@ gereksizdir. Ödül zaten karar-bağımlı.
 | S-1 varyans azaltma | ❌ adım-içi avantajda çalışıyor, sinyali taşımıyor |
 | S-1b işaret + adım | ❌ aynı |
 | **S-2 ödülü değiştir** | **❌ gereksiz — ödül ölçüldü ve yeterli** |
-| **S-3 kredi ataması olmayan yöntem** | ✅ evrim +0.161 çalıştı; ES/bandit benzeri RL de aynı yapıdadır |
+| **S-3 kredi ataması olmayan yöntem** | ✅ evrim +0.071 çalıştı; ES/bandit benzeri RL de aynı yapıdadır |
 
 **S-3 artık bir "geri çekilme" değil, yapıya uyan yöntemdir.** Ürüne alınması
 hâlinde "yaşam öğrenir" anlatısının değişmesi bir bedeldir; ama bu bedel artık
@@ -1138,7 +1151,7 @@ sebep "nesil derinliği yok" değil, **avcının popülasyonu düzenlemesi**.
 performansla r = 0.70, toplam varyansın %97.9'u politika farklarından), **ama
 REINFORCE onu kullanamıyor** çünkü 64 adımlık yörüngeye yayarken bilgi
 kaybediyor. Evrimsel arama ise yalnızca epimizik toplamı kullandığı için aynı
-görevde +0.161 buldu.
+görevde +0.071 buldu.
 
 Popülasyon-ES aynı ilkeyi **yaşam içinde** uygulamayı dener: birey kendi
 ağırlıklarını doğrudan değiştirmez, onun yerine *son dönem getiri hızı*
@@ -1209,7 +1222,7 @@ Bu tam olarak gözlemi açıklıyor:
 
 | Yöntem | Dünya çatallıyor mu? | Sonuç |
 |---|---|---|
-| Evrimsel arama (μ+λ) | **Evet** — her aday ayrı koşu | ✅ +0.161 |
+| Evrimsel arama (μ+λ) | **Evet** — her aday ayrı koşu | ✅ +0.071 |
 | Popülasyon-ES (bu) | **Hayır** — ağırlık ortalaması | ❌ etkisiz |
 | REINFORCE | Hayır — ama adım-içi gradyan kullanıyor | ❌ etkisiz |
 
@@ -1352,7 +1365,7 @@ kare hızını düşüren bir maliyettir.
 
 ### 6.13 Bu neden S-3'e işaret ediyor
 
-Çevrimiçi (μ+λ) evrimsel aramanın aynı görevde **+0.161** bulmasının
+Çevrimiçi (μ+λ) evrimsel aramanın aynı görevde **+0.071** bulmasının
 karşısında, yaşam içi ES'in bulduğu: hareket var mı yok, kazanç yok, maliyet
 çok yüksek.
 
@@ -1366,7 +1379,7 @@ burada da tamamlandı ve kalan tek seçenek yine **S-3**.
 
 ### 6.14 S-3 hazırlığı · in-world arama denendi ve **reddedildi**
 
-S-3'ü ürüne almadan önce kanıtlı +0.161 sonucunun (arena, §4.9) **canlı dünyanın
+S-3'ü ürüne almadan önce kanıtlı +0.071 sonucunun (arena, §4.9) **canlı dünyanın
 bir dalında** da üretilip üretilmediği soruldu. `evolvePolicy`'ye isteğe bağlı bir
 değerlendirici kancası eklenerek (seçim/mutasyon mantığı aynen korunarak) canlı
 dünya dalında arama koşuldu.
@@ -1402,7 +1415,7 @@ Bu iki hatadan çıkan tasarım kararı nettir:
 | Birey sayısı | 1 — davranış sonucu belirler | ~250 — birey doyuyor, davranış etkisiz |
 | Uygunluk | Hücre başına normalize | Doygunluk ve temel yanlılığı |
 | Eğitim/değerlendirme | Ayrık tohum kümeleri | Aynı dünya, ayrışmıyor |
-| Sonuç | **+0.161, p = 0.343 üstü ama CI ayrışıyor** | Karşılaştırılamaz |
+| Sonuç | **+0.071, p = 0.343 üstü ama CI ayrışıyor** | Karşılaştırılamaz |
 
 Arena tek bireyli ve kaynak kısıtlı olduğu için **politikanın davranışı gerçekten
 belirliyor.** Canlı dünyada bireyler birbirini doyuruyor; S-4'te de aynı şey
@@ -2925,6 +2938,7 @@ Bunlar testlerin bulduğu, düzeltildiği ve **yeniden test edildiği** hatalard
 | 27 | `EXPERIMENTS-DEEP.md` **2,9 gün** bayattı | Son üretim `1791719188`, dokuz parametreli genom ise `1791967248`'de geldi. Raporda "cooperation"/"işbirliği" geçişi **0** kez — yani **var olmayan bir genomu** raporluyordu. Tazelik denetimi yalnız `EXPERIMENTS.md`'yi izliyordu | Derin paket yeniden üretildi (2.072 koşu, 912 sn). Denetim, **genom tanımı** (`types.ts` + `genome.ts`) değiştiyse DEEP'i bayat sayacak biçimde eklendi — 40 dk'lık üretimin her kod değişikliğinde istenmesi denetimi işe yaramaz hâle getirirdi |
 | 28 | Telemetri alanı `resourcesLeft` **ölü ve yanlış**ydı | Her kare `Math.max(0, cellCount)` ile yazılıyordu — yani alan "kalan kaynak" adını taşıyordu ama **hücre sayısı** tutuyordu. Üstelik **hiçbir panelde okunmuyordu** (telemetrinin sıfır tüketiciye sahip tek alanı). Gerçek kaynak alanları `H.RESOURCE_COUNT`/`H.ROCK_COUNT` ve yalnız çizimde kullanılıyor | Alan kaldırıldı. `tsc` kullanılmayan `cellCount` yerelini de yakaladı — sıkı tip burada işe yaradı |
 | 30 | Bir deney **ölçümü olmadan** "işe yarıyor" diyordu | `experimentInWorldEvolution` rapora **hiç bağlı değil** (ölü). Koşturulunca `forkScore`'un sentinel davranışı ortaya çıktı: organizma yoksa `-Infinity` dönüyor. Rastgele tabanda **tek bir** ölüm yeter → ortalama `-Infinity`, kazanç `+Infinity`, `Infinity > 0` **doğru** → deney "canlı dünyanın dalında da işe yarıyor" diyordu. **ÖLÇÜLDÜ** (tohum 11, `generations: 0`): taban `-Infinity`, kazanç `+Infinity`, hüküm **olumlu** — ölçümün kendisi yoktu | Hüküm saf bir fonksiyona çıkarıldı (`readInWorldEvolution`) ve sonlu olmayan değerde **hüküm vermeyi reddediyor**. Aynı yapılandırma sonrası: "ÖLÇÜLEMEDİ ... aritmetik artefakttır, kanıt değildir". 3 test (NaN / ±Infinity / sonlu-pozitif / sonlu-negatif) |
+| 32 | Taban örneği **aramanın RNG akışından** çiziliyordu | `randomThetas`, nesil döngüsünden SONRA ve aynı `search` akışından çekiliyordu. Döngü kaç kez `search.normal()` tükettiyse taban o kadar kayıyordu — yani **iki kol farklı rastgele örneklemi karşılaştırıyordu** ve `generations: 0` geçerli bir kontrol olmaktan çıkıyordu. **ÖLÇÜLDÜ:** kontrol taban(ort) 48.378 · evrim kolu 48.386 — aynı seed, aynı population | Taban çizimi aramadan **ayrı bir akışa** taşındı (`baselineThetas`). Ölçüldü: iki kol artık **birebir aynı** tabanı paylaşıyor (65.027 / 43.773), kaç nesil koşulursa koşulsun. Koruma: aynı seed → aynı örneklem, farklı seed → farklı örneklem |
 | 31 | Arama **maksimum** döndürüyor, taban **ortalama**ydı | Kazanç yapısal olarak şişik: en büyük > ortalama olduğu için `generations: 0`'da (arama **hiç** çalışmadı) bile kazanç **+21,286** çıkıyordu. **ÖLÇÜLDÜ:** ortalama tabanla +21,286 → **eşleşen (en iyi) tabanla +8,676**. Yani ortalama karşılaştırma kazancı **2,45 kat** şişiriyormuş | Taban artık `randomBaselineMax`; ortalama yalnız bilgi için (`baselineMean`) ve **taban ölüm oranı** (`0/4`) raporlanıyor. Ölümden gelen sentinel'ler maksimumdan da çıkarılıyor. Artık maksimum–maksimum karşılaştırılıyor |
 | 29 | `splitsIntoMultiple` ve `maxSpeedFor` **ölü**, formülleri satır içi yaşıyordu | İkisi de hiç çağrılmıyordu; buna karşılık `world.ts` aynı formülleri elle yazmıştı (`components.length <= 1`, `BASE_SPEED * (0.4 + 0.6*motility) * …`). Yani kural "adıyla" değil, kopyasıyla yaşıyordu | İkisi de bağlandı; satır içi kopyalar kaldırıldı. **Ölçüldü:** rapor yeniden üretildi ve simülasyon sayıları birebir aynı çıktı — yani bağlama anlamsal olarak nötrdü |
 

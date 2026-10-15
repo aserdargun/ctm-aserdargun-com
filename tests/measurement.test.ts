@@ -23,7 +23,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { GENOME_KEYS, founderGenomes, genomeDistance } from '../src/sim/genome.ts';
 import { ACTION_NAMES, MLP_SHAPE } from '../src/sim/behavior/mlp.ts';
-import { readInWorldEvolution } from '../src/sim/experiments/index.ts';
+import { baselineThetas, readInWorldEvolution } from '../src/sim/experiments/index.ts';
 import { ACTION_LABELS_EN, ACTION_LABELS_TR } from '../src/i18n/index.ts';
 import { Rng } from '../src/sim/rng.ts';
 import type { Genome } from '../src/sim/types.ts';
@@ -509,6 +509,30 @@ describe('ölçüm · hüküm kendi kanıtına bağlı mı', () => {
       expect(r, `hüküm "${r}" kanıtsız olumlu`).toContain('ÖLÇÜLEMEDİ');
       expect(r, `hüküm "${r}" kanıtsız olumlu`).not.toContain('işe yarıyor');
     }
+  });
+
+  it('rastgele taban SABİT bir referans (arama akışından bağımsız)', () => {
+    // ⚠️ ÖLÇÜLEN HATA: taban örneği, aramanın RNG akışından ve nesil döngüsü
+    // SONRASINDAN çiziliyordu. Döngü kaç kez `search.normal()` tükettiyse taban
+    // o kadar kayıyor, yani iki kol FARKLI rastgele örneklemi karşılaştırıyordu
+    // ve `generations: 0` geçerli bir kontrol olmaktan çıkıyordu.
+    //   ÖLÇÜLDÜ (önce): kontrol taban(ort) 48.378 · evrim kolu 48.386
+    //   ÖLÇÜLDÜ (sonra): ikisi de 43.773 — birebir aynı
+    //
+    // Buradaki koruma: taban çizimi KENDİ akışından, girdi olarak yalnız seed
+    // alıyor. Arama ne kadar koşarsa koşsun sonuç değişemez.
+    const a = baselineThetas(11, 4, 140);
+    const b = baselineThetas(11, 4, 140);
+    expect(a.length).toBe(4);
+    expect(a[0]?.length).toBe(140);
+    for (let i = 0; i < 4; i++) {
+      expect(Array.from(a[i] as Float64Array), `taban örneği ${i} tekrarlanamıyor`).toEqual(
+        Array.from(b[i] as Float64Array),
+      );
+    }
+    // Farklı seed FARKLI taban vermeli (sabit ama anlamlı referans).
+    const c = baselineThetas(12, 4, 140);
+    expect(Array.from(c[0] as Float64Array)).not.toEqual(Array.from(a[0] as Float64Array));
   });
 
   it('sonlu ve pozitif kazanç olumlu hükmü korur', () => {

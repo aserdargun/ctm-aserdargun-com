@@ -13,7 +13,7 @@ doğrulanmıştır.
 
 | Alan | Durum | Kanıt |
 |---|---|---|
-| Saf TS simülasyon çekirdeği | ✅ | 243 test, 9 dosya, ~95 sn |
+| Saf TS simülasyon çekirdeği | ✅ | 245 test, 9 dosya, ~95 sn |
 | Enerji korunumu (kapalı sistem) | ✅ | rezidüel = **0.0000** (arena'da 0.0 e, kolonide 1.7e-8 e) |
 | Bölünme / parçalanma / paylaşım muhasebesi | ✅ | testler |
 | Bağ grafiği → gerçek çok hücrelilik | ✅ | 4+ hücreli yapılar test edildi |
@@ -102,7 +102,7 @@ geniş açık; öğrenilecek davranış bol miktarda mevcut.
 | Gradyan adımı çok küçük | **elendi** — §4.7 (büyütünce kötüleşiyor) |
 | Varyans azaltma / işaret avantajı | **elendi** — §4.10, §4.11 |
 | Politika sınıfı tıkanmış | **elendi** — §4.8 (0.118 açıklık var) |
-| Görev/algı yetersiz | **elendi** — §4.9 (arama +0.161 buldu) |
+| Görev/algı yetersiz | **elendi** — §4.9 (arama +0.071 buldu) |
 | **Ödül sinyalsiz** | **elendi — %97.9 politika-bağımlı, r = 0.70** (§4.12) |
 | **Kredi ataması (adım-içi)** | **KALAN AÇIKLAMA** | (§4.12) |
 
@@ -114,7 +114,7 @@ bu dağıtımda kayboluyor. Varyans azaltma ve adım ayarı **adım-içi** avant
 çalışan kaldıraçlardı — sinyal taşımadıkları için işe yaramadılar.
 
 Evrimsel arama hiç kredi ataması yapmaz; yalnızca epimizik toplamı artırır.
-Bu yüzden +0.161 buluyor.
+Bu yüzden +0.071 buluyor.
 
 > Bu, raporun §4.11'deki "sorun ödüldedir" çıkarımını **çürüttü.** Ödül
 > ölçüldü ve sağlam çıktı. `VALIDATION.md` §4.12 bu düzeltmeyi kaydeder.
@@ -520,7 +520,7 @@ onu silmiyor. Yanlış olan, onu arama için kullandığım yöntemdi.
 
 | Yöntem | Dünya çatallıyor mu? | Sonuç |
 |---|---|---|
-| Evrimsel arama (μ+λ) | **Evet** — her aday ayrı koşu | ✅ **+0.161** |
+| Evrimsel arama (μ+λ) | **Evet** — her aday ayrı koşu | ✅ **+0.071** |
 | Popülasyon-ES | Hayır — ağırlık ortalaması | ❌ etkisiz |
 | REINFORCE | Hayır — adım-içi gradyan | ❌ etkisiz |
 
@@ -532,7 +532,7 @@ onu silmiyor. Yanlış olan, onu arama için kullandığım yöntemdi.
 | S-1b işaret + adım | ❌ denendi, ölçütü karşılamadı (§4.11) |
 | S-2 ödülü değiştir | ❌ **gereksiz** — ödül zaten yeterli (§4.12) |
 | Popülasyon-ES | ❌ denendi, ölçütü karşılamadı (§6) |
-| **S-3 evrimsel arama** | ✅ **çalıştığı kanıtlandı** (+0.161) — tek kanıtlı yol |
+| **S-3 evrimsel arama** | ✅ **çalıştığı kanıtlandı** (+0.071) — tek kanıtlı yol |
 
 **Mimari kısıt (yeni):** yaşam içi öğrenme yalnızca **epimizik** getiriyi
 kullanarak arama yapamaz; arama için dünya çatallaması gerekir. Bu, ürün
@@ -604,7 +604,7 @@ Atölyesi olarak çalışıyor.
    **öğrenme algoritmasına** indirdi (`VALIDATION.md` §4.5–4.9): güncelleme
    sıklığı değil (570× büyütülünce kötüleşiyor), habitat zorluğu değil
    (elendi), politika sınıfı değil (0.118'lik açıklık var). Karar verici
-   test: aynı ölçümde **evrimsel arama +0.161** kazandı, REINFORCE +0.020
+   test: aynı ölçümde **evrimsel arama +0.071** kazandı, REINFORCE +0.020
    (gürültü). Yaşam içi öğrenme iddiası bu haliyle **kanıtlanmıyor**.
 5. **Ağır paket:** ana paket ~1.29 MB (gzip ~360 KB). Code splitting yapılmadı.
 6. **Gözlemci varsayılan sağlayıcısı** yapılandırılmış bir varsayımdır; anahtar

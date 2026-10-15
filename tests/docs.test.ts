@@ -222,6 +222,24 @@ describe('belge tutarlılığı · üretilmiş rapor', () => {
     }
   });
 
+  it('VALIDATION §4.9 evrimsel arama sayıları raporla AYNI', () => {
+    // ⚠️ §4.9 "evrim bulur, REINFORCE bulamaz" iddiasının dayandığı bölüm.
+    // Burada uzun süre **+0.161** yazıyordu; bu sayı ne güncel raporla ne de
+    // kendinden önceki raporla uyuşuyordu — bölüm sessizce bayatlamıştı.
+    // Taban örneğinin arama RNG'sinden çizilmesi düzeltilince kazanç
+    // **0,215 → 0,071**'e düştü; iddia zayıfladı, yanlışlanmadı.
+    const report = read('docs/EXPERIMENTS.md');
+    const line = report.match(/DEĞERLENDİRME[^\n]*kazanç\s+(-?\d+\.\d+)/)?.[1];
+    expect(line, 'raporda "DEĞERLENDİRME … kazanç" satırı bulunamadı').toBeTruthy();
+    const gain = line as string;
+    const validation = read('docs/VALIDATION.md');
+    expect(validation, `VALIDATION §4.9 raporun kazancını (${gain}) taşımıyor`).toContain(`+${gain}`);
+    // Aynı satırdaki taban da taşınmalı.
+    const base = report.match(/DEĞERLENDİRME[^\n]*rastgele taban\s+(-?\d+\.\d+)/)?.[1];
+    expect(base, 'raporda değerlendirme tabanı bulunamadı').toBeTruthy();
+    expect(validation, `VALIDATION §4.9 raporun tabanını (${base}) taşımıyor`).toContain(base as string);
+  });
+
   it('anlatı belgeleri bayat test sayısı taşımıyor', () => {
     // PROGRESS.md "145 test, 4 dosya" diyordu; gerçek sayı kaynaktan gelir.
     const progress = read('docs/PROGRESS.md');

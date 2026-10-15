@@ -1,7 +1,7 @@
 # Cell to Mind — Deney Sonuçları
 
-**Körüldü:** 2026-10-15T10:53:05.104Z
-**Toplam koşu:** 1921 · **duvar süresi:** 811.3 s
+**Körüldü:** 2026-10-15T11:21:24.807Z
+**Toplam koşu:** 1921 · **duvar süresi:** 838.3 s
 **Mod:** standart
 **Pencere:** 12.000 tick (40.000 tick'lik ekolojik çöküşü kapsamak için `--deep` kullanın)
 
@@ -92,8 +92,8 @@ Aynı arena, aynı ölçüm, aynı tohum ayrımı — tek fark arama yöntemi.
        1  0.9304197  0.907753020
        4  0.9348259  0.927527870
        9  0.9369076  0.929581605
-  eğitim en iyi 0.937 · rastgele taban 0.733
-  DEĞERLENDİRME (görülmemiş tohumlar): bulunan 0.926 · rastgele taban 0.712 · kazanç 0.215
+  eğitim en iyi 0.937 · rastgele taban 0.859
+  DEĞERLENDİRME (görülmemiş tohumlar): bulunan 0.926 · rastgele taban 0.855 · kazanç 0.071
 ```
 
 ## S-1 · Varyans azaltma (varsayılan adım ayarlarında)
@@ -459,9 +459,9 @@ bozuktu**. Düzeltildi; regresyon testi eklendi.
 ```
   çatal noktası: tick 3000 · 1500 adım sonra karşılaştırma
   snapshot boyutu: 2.371.910 bayt
-  çatallama süresi: 47.87 ms · iki dalın koşusu: 3422.4 ms · oran 1.4%
+  çatallama süresi: 40.84 ms · iki dalın koşusu: 2246.5 ms · oran 1.8%
   dallar bit düzeyinde aynı: evet · müdahale sızıntısı: yok · müdahale etkili: evet
-  → Çatallama **doğru**: iki dal bit düzeyinde aynı ilerliyor ve müdahale diğerine sızmıyor. Snapshot 2.37 MB; bir dal açmak 23.9 ms, bir simülasyon adımı 1.141 ms → **bir çatal ≈ 21 tick** maliyetinde. Yani 500 tick'te bir, 16 pertürbasyonlu güncelleme ≈ 67% ek yük demek: üstel strateji yaşam içinde pratikte **bütçelenebilir**. Müdahale testi: müdahalesiz dal referansla AYNI, müdahale görmüş dal AYRILDI. **DİKKAT:** bu maliyet 3000. tick'te ölçüldü ve snapshot boyutuyla ölçeklenir; geç pencerelerde farklı olabilir ve **ölçülmedi**.
+  → Çatallama **doğru**: iki dal bit düzeyinde aynı ilerliyor ve müdahale diğerine sızmıyor. Snapshot 2.37 MB; bir dal açmak 20.4 ms, bir simülasyon adımı 0.749 ms → **bir çatal ≈ 27 tick** maliyetinde. Yani 500 tick'te bir, 16 pertürbasyonlu güncelleme ≈ 87% ek yük demek: üstel strateji yaşam içinde pratikte **bütçelenebilir**. Müdahale testi: müdahalesiz dal referansla AYNI, müdahale görmüş dal AYRILDI. **DİKKAT:** bu maliyet 3000. tick'te ölçüldü ve snapshot boyutuyla ölçeklenir; geç pencerelerde farklı olabilir ve **ölçülmedi**.
 ```
 
 ## S-4 · Çatallanmış ortamda yaşam içi üstel arama
@@ -475,10 +475,10 @@ ortalaması boyunca kaydırılır. Seyrek dünyada koşulur (pop 6, kaynak 6).
   kontrol (arama kapalı): medyan enerji 47.56 e · pop 15 · arama 0
   tedavi  (arama açık) : medyan enerji 47.56 e · pop 15 · arama 24 (4 pertürbasyon × 120 tick)
   ağırlık hareketi: kontrol 0.00000 · tedavi 0.00066
-  maliyet: 4000 tick'in koşusu 49 ms · arama 187 ms → ek yük ≈ 2156 tick
+  maliyet: 4000 tick'in koşusu 46 ms · arama 164 ms → ek yük ≈ 2164 tick
   enerji rezidülü: 0.000000000 e
   eşleştirilmiş fark 0.000 [0.000, 0.000] · p = 1.0000
-  → Çatallanmış arama **ölçülebilir performans artışı üretmedi**: fark 0.000 [0.000, 0.000], p = 1.0000. Ağırlık hareketi: medyan ‖Δθ‖ = 0.0007 (kontrol 0.0000) — yani arama θ'yı hareket ettirdi ama davranış kazanmadı. Ek yük ≈ 2156 tick'lik eşdeğer.
+  → Çatallanmış arama **ölçülebilir performans artışı üretmedi**: fark 0.000 [0.000, 0.000], p = 1.0000. Ağırlık hareketi: medyan ‖Δθ‖ = 0.0007 (kontrol 0.0000) — yani arama θ'yı hareket ettirdi ama davranış kazanmadı. Ek yük ≈ 2164 tick'lik eşdeğer.
 ```
 
 ## Bağ gücü koloni büyüklüğünü artırıyor mu?
