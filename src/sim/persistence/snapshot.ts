@@ -14,7 +14,6 @@
  */
 
 import { World, type WorldOptions } from '../world.ts';
-import { NeuralPolicy } from '../behavior/policy.ts';
 import { MLP_SHAPE } from '../behavior/mlp.ts';
 import type {
   Bond,
@@ -312,32 +311,7 @@ export function importJson(text: string): WorldSnapshot {
   return envelope.world;
 }
 
-/** Yardımcı: yeni organizmanın NeuralPolicy'ini snapshot'tan geri kurar. */
-export function restorePolicy(snapshot: SnapshotOrganism): NeuralPolicy {
-  const theta = Float64Array.from(snapshot.neural.thetaInherited);
-  const policy = new NeuralPolicy(theta);
-  policy.state.thetaLive = Float64Array.from(snapshot.neural.thetaLive);
-  policy.state.baseline = snapshot.neural.baseline;
-  policy.state.prevReward = snapshot.neural.prevReward;
-  policy.state.prevObs = snapshot.neural.prevObs ? Float64Array.from(snapshot.neural.prevObs) : null;
-  policy.state.prevAction = snapshot.neural.prevAction;
-  policy.state.prevLogProb = snapshot.neural.prevLogProb;
-  policy.state.prevBaseline = snapshot.neural.prevBaseline;
-  policy.state.hasPrev = snapshot.neural.hasPrev;
-  policy.pushTrajectory(
-    snapshot.trajectory.map(
-      (t): TrajectoryStep => ({
-        obs: Float64Array.from(t.obs),
-        action: t.action,
-        logProb: t.logProb,
-        baseline: t.baseline,
-        reward: t.reward,
-      }),
-    ),
-  );
-  policy.decisionCount = snapshot.decisionCount;
-  policy.updateCount = snapshot.updateCount;
-  return policy;
-}
+// Politika kurulumu artık `sim/behavior/policy.ts` içindeki kanonik
+// `restorePolicyFromSnapshot` — bu dosyada ikinci bir kopya yok.
 
 export type { Cell, Bond };

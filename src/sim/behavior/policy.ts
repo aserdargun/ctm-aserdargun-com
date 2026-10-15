@@ -415,3 +415,65 @@ export function learnedDeltaNorm(state: NeuralState): number {
   }
   return Math.sqrt(sum);
 }
+/** Bir organizmanın snapshot'undan `NeuralPolicy` kurar. */
+export interface PolicySnapshotLike {
+  neural: {
+    thetaInherited: ArrayLike<number>;
+    thetaLive: ArrayLike<number>;
+    baseline: number;
+    prevReward: number;
+    prevObs: ArrayLike<number> | null;
+    prevAction: number;
+    prevLogProb: number;
+    prevBaseline: number;
+    hasPrev: boolean;
+  };
+  trajectory: readonly {
+    obs: ArrayLike<number>;
+    action: number;
+    logProb: number;
+    baseline: number;
+    reward: number;
+  }[];
+  decisionCount: number;
+  updateCount: number;
+}
+
+/**
+ * Snapshot'tan bir `NeuralPolicy` kurar — **kanonik** uygulama.
+ *
+ * ⚠️ Bu işlev iki yerde kopyalanmıştı: burada ve `sim/world.ts` içinde. Kopya
+ * `sim/persistence/snapshot.ts`'in `World`'i içe aktarması nedeniyle
+ * konmuştu (world → snapshot → world döngüsü), ama politika durumuna alan
+ * ekleyen birinin **iki yeri** de güncellemesi gerekiyordu; birini unutmak
+ * fork/save yolunda sessizce öğrenme kaybı demek.
+ *
+ * Doğru yer burası: `policy.ts` yalnız `energy/types/rng/mlp` içe aktarıyor,
+ * yani `world.ts` ve `snapshot.ts` bu modülü serbestçe kullanabiliyor.
+ */
+export function restorePolicyFromSnapshot(snap: PolicySnapshotLike): NeuralPolicy {
+  const theta = Float64Array.from(snap.neural.thetaInherited);
+  const policy = new NeuralPolicy(theta);
+  policy.state.thetaLive = Float64Array.from(snap.neural.thetaLive);
+  policy.state.baseline = snap.neural.baseline;
+  policy.state.prevReward = snap.neural.prevReward;
+  policy.state.prevObs = snap.neural.prevObs ? Float64Array.from(snap.neural.prevObs) : null;
+  policy.state.prevAction = snap.neural.prevAction;
+  policy.state.prevLogProb = snap.neural.prevLogProb;
+  policy.state.prevBaseline = snap.neural.prevBaseline;
+  policy.state.hasPrev = snap.neural.hasPrev;
+  policy.pushTrajectory(
+    snap.trajectory.map(
+      (t): TrajectoryStep => ({
+        obs: Float64Array.from(t.obs),
+        action: t.action,
+        logProb: t.logProb,
+        baseline: t.baseline,
+        reward: t.reward,
+      }),
+    ),
+  );
+  policy.decisionCount = snap.decisionCount;
+  policy.updateCount = snap.updateCount;
+  return policy;
+}

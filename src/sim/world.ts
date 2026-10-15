@@ -41,7 +41,7 @@ import {
   connectedComponents,
   splitsIntoMultiple,
 } from './biology/connectivity.ts';
-import { NeuralPolicy, type DecisionInfo } from './behavior/policy.ts';
+import { NeuralPolicy, restorePolicyFromSnapshot, type DecisionInfo } from './behavior/policy.ts';
 import { computeObservation } from './behavior/perception.ts';
 import { createTheta, initTheta, MLP_SHAPE } from './behavior/mlp.ts';
 import { clampGenome, createLineage, founderGenomes, meanGenome, mutateGenome } from './genome.ts';
@@ -61,7 +61,6 @@ import type {
   Predator,
   ResourceNode,
   Rock,
-  TrajectoryStep,
   SimEvent,
   SimEventType,
   Vec3,
@@ -2746,38 +2745,6 @@ interface SnapshotOrganismLike {
   trajectory: { obs: number[]; action: number; logProb: number; baseline: number; reward: number }[];
   decisionCount: number;
   updateCount: number;
-}
-
-/**
- * Snapshot'tan bir NeuralPolicy kurar.
- * (Bu, `persistence/snapshot.ts` içindeki eşdeğerden bağımsız kopyadır;
- *  modüller arasında döngüsel içe aktarmım olmaması için burada durur.)
- */
-function restorePolicyFromSnapshot(snap: SnapshotOrganismLike): NeuralPolicy {
-  const theta = Float64Array.from(snap.neural.thetaInherited);
-  const policy = new NeuralPolicy(theta);
-  policy.state.thetaLive = Float64Array.from(snap.neural.thetaLive);
-  policy.state.baseline = snap.neural.baseline;
-  policy.state.prevReward = snap.neural.prevReward;
-  policy.state.prevObs = snap.neural.prevObs ? Float64Array.from(snap.neural.prevObs) : null;
-  policy.state.prevAction = snap.neural.prevAction;
-  policy.state.prevLogProb = snap.neural.prevLogProb;
-  policy.state.prevBaseline = snap.neural.prevBaseline;
-  policy.state.hasPrev = snap.neural.hasPrev;
-  policy.pushTrajectory(
-    snap.trajectory.map(
-      (t): TrajectoryStep => ({
-        obs: Float64Array.from(t.obs),
-        action: t.action,
-        logProb: t.logProb,
-        baseline: t.baseline,
-        reward: t.reward,
-      }),
-    ),
-  );
-  policy.decisionCount = snap.decisionCount;
-  policy.updateCount = snap.updateCount;
-  return policy;
 }
 
 function round(v: number, digits: number): number {

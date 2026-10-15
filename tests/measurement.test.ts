@@ -387,6 +387,23 @@ describe('ölü alet · dışa aktarım gerçekten tüketiliyor mu', () => {
         if (total <= 1) orphans.push(`${name}  (${f.replace(`${ROOT}/`, '')})`);
       }
     }
+    // Politika kurulumu (fork/save yolu) TEK yerde durmalı.
+    // Bu işlev bilinçli olarak iki kopyalanmıştı: `snapshot.ts` → `World`
+    // içe aktardığı için world onu çağıramıyordu ve kopyayı yanına koymuştu.
+    // Politika durumuna alan ekleyen birinin iki yeri de güncellemesi
+    // gerekiyordu; birini unutmak fork/save yolunda sessiz öğrenme kaybı.
+    // Doğru yer `behavior/policy.ts` — o modül hiçbir şeyi içe aktarmıyor.
+    const policySrc = readFileSync(join(ROOT, 'src/sim/behavior/policy.ts'), 'utf8');
+    expect(policySrc, 'kanonik politika kurulumu policy.ts içinde değil').toMatch(
+      /function restorePolicyFromSnapshot/,
+    );
+    for (const f of ['src/sim/world.ts', 'src/sim/persistence/snapshot.ts']) {
+      expect(
+        readFileSync(join(ROOT, f), 'utf8'),
+        `${f} kendi politika kurulumunu taşıyor — kopyadır, policy.ts'e taşı`,
+      ).not.toMatch(/function restorePolicyFromSnapshot/);
+    }
+
     // Tarama gerçekten dosya buldu mu — boş dönse denetim sessizce her şeyi geçer.
     expect(scanned, 'hiçbir dışa aktarım taranmadı').toBeGreaterThan(100);
 
@@ -417,7 +434,6 @@ describe('ölü alet · dışa aktarım gerçekten tüketiliyor mu', () => {
       formatInWorldEvolution: 'deney biçimlendiricisi; bu turda ürün etkisi araştırılmadı',
       assertPolicyShape: 'deney doğrulaması; bu turda ürün etkisi araştırılmadı',
       lifeMapOf: 'yaşam haritası yardımcısı; bu turda ürün etkisi araştırılmadı',
-      restorePolicy: 'snapshot yardımcısı; bu turda ürün etkisi araştırılmadı',
       RESOURCE_KINDS: 'kaynak türleri; bu turda ürün etkisi araştırılmadı',
       zeroTheta: 'ağırlık sıfırlayıcı; bu turda ürün etkisi araştırılmadı',
       MLP_PARAMS: 'ağ boyutu sabiti; bu turda ürün etkisi araştırılmadı',
