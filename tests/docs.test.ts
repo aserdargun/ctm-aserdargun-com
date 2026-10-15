@@ -222,6 +222,22 @@ describe('belge tutarlılığı · üretilmiş rapor', () => {
     }
   });
 
+  it('VALIDATION §5.3 bağ kırılması ölçümleri raporla AYNI', () => {
+    // ⚠️ Bu tablo rapordan alıntı ama KORUMASIZDI: medyan uzama 0,079 olarak
+    // kalmıştı, rapor 0,066 diyordu. Aynı sınıfın §4.9'daki hâliydi.
+    const report = read('docs/EXPERIMENTS.md');
+    const strain = report.match(/kopma anındaki uzama: medyan\s+(\d+\.\d+)/)?.[1];
+    const strength = report.match(/koptukları andaki medyan dayanım:\s+(\d+\.\d+)/)?.[1];
+    const broken = report.match(/kopan (\d+) bağ/)?.[1];
+    expect(strain, 'raporda kopma anı medyan uzaması yok').toBeTruthy();
+    expect(strength, 'raporda kopma anı medyan dayanımı yok').toBeTruthy();
+    expect(broken, 'raporda kopan bağ sayısı yok').toBeTruthy();
+    const validation = read('docs/VALIDATION.md');
+    expect(validation, `§5.3 medyan uzaması (${strain}) uyuşmuyor`).toContain(strain as string);
+    expect(validation, `§5.3 medyan dayanımı (${strength}) uyuşmuyor`).toContain(strength as string);
+    expect(validation, `§5.3 kopan bağ sayısı (${broken}) uyuşmuyor`).toContain(broken as string);
+  });
+
   it('VALIDATION §4.9 evrimsel arama sayıları raporla AYNI', () => {
     // ⚠️ §4.9 "evrim bulur, REINFORCE bulamaz" iddiasının dayandığı bölüm.
     // Burada uzun süre **+0.161** yazıyordu; bu sayı ne güncel raporla ne de
