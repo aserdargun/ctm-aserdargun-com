@@ -1161,7 +1161,27 @@ B3 (somatik mutasyon) için önkoşul hâlâ: yeterli üreme çevrimi. Ancak bu 
 sebep "nesil derinliği yok" değil, **avcının popülasyonu düzenlemesi**.
 
 
-## 6. Popülasyon-ES — seçilen öğrenme yönünün testi
+## 6. Deney günlüğü — **tarihsel kayıt**
+
+> ⚠️ **BU BÖLÜM TARİHSEL BİR GÜNLÜKTÜR, GÜNCEL SONUÇ TABLOSU DEĞİLDİR.**
+>
+> Buradaki sayılar **kendi tarihindeki ölçümlerdir** ve bilinçli olarak
+> değiştirilmez — bir deneyin geçmişini silmek, ne ölçüldüğünü gizlemektir.
+> Bu nedenle buradaki `p = 0,097`, `p = 0,333` gibi değerler güncel raporda
+> **yoktur**; onların bugünkü karşılıkları §4.4 ve §4.5'te ve
+> `docs/EXPERIMENTS.md`'de durur.
+>
+> **Ölçülen sürüklenme (15 Ekim 2026):** §4.9'daki karşılaştırma tablosu
+> "eski 6 tohumlu" REINFORCE satırını güncel diye sunuyordu; §4.5 artık
+> **20 tohum** kullanıyor. Aynı hatanın bu bölümdeki kopyaları **tarihsel
+> çerçeveleme sayesinde** ayırt edilebildi — tarihsel olanlar "eski bulgusuyla
+> tutarlıdır" diyor, bayat olan güncel tabloydu.
+>
+> GÜNCEL SONUÇ İÇİN: §4 (deney sonuçları) + `docs/EXPERIMENTS.md`.
+> §4.2–4.5, §4.9 ve §5.3 rapordan **türetilen** sayılarla korunuyor; §4.9'daki
+> 75 güncelleme kolu raporda **yok** ve korumasız olduğu not düşüldü.
+
+### 6.0 Popülasyon-ES — seçilen öğrenme yönünün testi
 
 **Komut:** `npm run experiments` · `src/sim/experiments/ecology.ts` · `src/sim/world.ts`
 
