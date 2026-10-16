@@ -117,7 +117,7 @@ export const tr = {
 
   experiments: {
     title: 'Deneyler',
-    hint: 'Üç deney uygulamada çalışır. Her deney tek değişkenli olacak şekilde tasarlanmıştır.',
+    hint: 'Üç deney, npm run experiments ile Node\'da koşar (tarayıcıdan tetiklenmez).',
     togetherness: '1 · Birlikte kalmak',
     togethernessDesc: 'Aynı kayıttan iki dal; yalnız bağlı kalma eğilimi değişir, baskı sabit.',
     adaptation: '2 · Adaptasyon',
@@ -134,6 +134,7 @@ export const tr = {
     ablation: 'Ablasyon',
     ablationDesc: 'Eğitilmiş ağın bir gizli birimi susturulur; eğitim kapalıyken etkisi ölçülür.',
     notYetRun: 'Bu deney henüz çalıştırılmadı.',
+    notWired: 'Tarayıcıdan tetikleme BAĞLI DEĞİL. Bu düğme deneyi çalıştırmaz; sonuçlar docs/EXPERIMENTS.md içinde, npm run experiments ile üretilir.',
     honestNote:
       'Kabul hedefi (20 tohumun en az 15\'inde eğitilmiş politika kontrolü aşar) bir ÜRÜN HEDEFİDİR; gerçekleşmiş sonuç değildir.',
   },
@@ -323,7 +324,7 @@ const en: Strings = {
   },
   experiments: {
     title: 'Experiments',
-    hint: 'Three experiments run in-app. Each is designed to change a single variable.',
+    hint: 'Three experiments run in Node via npm run experiments (not from the browser).',
     togetherness: '1 · Staying together',
     togethernessDesc: 'Two branches from one record; only attachment tendency changes, pressure fixed.',
     adaptation: '2 · Adaptation',
@@ -342,6 +343,7 @@ const en: Strings = {
     notYetRun: 'This experiment has not been run yet.',
     honestNote:
       'The acceptance target (trained policy beats control on at least 15 of 20 seeds) is a PRODUCT TARGET, not a measured result.',
+    notWired: 'Browser triggering is NOT WIRED. This button does not run the experiment; results live in docs/EXPERIMENTS.md, produced by npm run experiments.',
   },
   observer: {
     title: 'AI Observer',

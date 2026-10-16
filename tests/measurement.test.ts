@@ -219,6 +219,33 @@ describe('ölçüm kodu · ölü ölçüm kapsamı koruması', () => {
     expect(unused, `kullanılmayan i18n anahtarı: ${unused.join(', ')}`).toEqual([]);
   });
 
+  it('deney düğmeleri ÇALIŞMADIĞINI iddia etmiyor', () => {
+    // ⚠️ Ölü beyanın ÜRÜN yüzeyindeki hâli. Worker'daki `runExperiment`
+    // yalnızca `{ queued: true }` yankılıyor; hiçbir deneyi başlatmıyor ve
+    // `experimentResult` mesajının HİÇBİR abonelisi yok. Buna rağmen:
+    //   - panel "Üç deney uygulamada çalışır" diyordu
+    //   - düğme 400 ms sahte "Çalışıyor…" gösteriyordu
+    //   - sonuç alanına aynı anda "Çalışıyor… Bu deney henüz çalıştırılmadı."
+    //     yazılıyordu — kendi kendini çürüten bir iddia
+    //
+    // ⚠️ KORUMA KOŞULSUZ. Önceden "worker gerçekten koşuyorsa atla" diye
+    // koşullu yazılmıştı ve OLAY TESPİTİ BOZUKTU: `experimentResult` mesaj
+    // adı "experiment" kelimesini içerdiği için koşul her zaman yanlış dönüyor
+    // ve koruma HİÇ ÇALIŞMIYORDU. Mutasyonla sınandı ve boş çıktı.
+    // Şimdi: worker'ı bağlayan kişi bu testi BİLEREK güncellemek zorunda.
+    const panel = readFileSync(join(ROOT, 'src/ui/ExperimentPanels.tsx'), 'utf8');
+    expect(panel, 'panel sahte ilerleme taklidi yapıyor (setRunning)').not.toMatch(/setRunning\(/);
+    expect(
+      panel,
+      'panel sonuç alanına hem koştu hem koşmadı diyen mesaj yazıyor',
+    ).not.toMatch(/experiments\.running\}/);
+    const i18n = readFileSync(join(ROOT, 'src/i18n/index.ts'), 'utf8');
+    expect(i18n, 'panel deneylerin uygulamada çalıştığını söylüyor').not.toMatch(
+      /uygulamada çalışır|run in-app/,
+    );
+    expect(i18n, 'dürüst notWired metni yok').toContain('notWired');
+  });
+
   it('azaltılmış hareket: kullanıcı seçimi önce, sistem tercihi sonra', () => {
   // ⚠️ `systemPrefersReducedMotion()` yıllardır yazılıydı ama HİÇ ÇAĞRILMIYORDU:
   // localStorage boşken doğrudan `false` dönülüyordu. Yani `prefers-reduced-motion:

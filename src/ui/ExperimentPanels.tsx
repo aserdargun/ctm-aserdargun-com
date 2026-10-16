@@ -23,17 +23,25 @@ import {
 export function ExperimentsPanel({ client }: { client: SimClient }): React.ReactElement {
   const language = useStore((s) => s.language);
   const t = getStrings(language);
-  const [running, setRunning] = useState<string | null>(null);
+  // `running` artık kullanılmıyor: hiçbir şey koşmuyor, ilerleme taklidi yok.
+  const running: string | null = null;
   const [result, setResult] = useState<string | null>(null);
 
+  /**
+   * ⚠️ Bu düğme bir deneyi **ÇALIŞTIRMAZ.**
+   *
+   * Worker'daki `runExperiment` yalnızca `{ queued: true }` yankılar; hiçbir
+   * deneyi başlatmaz ve `experimentResult` mesajının HİÇBİR abonelisi yoktur
+   * (yalnız tip bildirimi ve üretici var). Önceden burada 400 ms'lik sahte bir
+   * "çalışıyor" göstergesi vardı ve sonuç alanına aynı anda hem "çalışıyor"
+   * hem "bu deney henüz çalıştırılmadı" yazılıyordu — kendi kendini çürüten
+   * bir iddia.
+   *
+   * Şimdi ilerleme taklidi yapılmıyor ve dürüst mesaj gösteriliyor. Gerçek
+   * deneyler `npm run experiments` ile Node'da koşar.
+   */
   const run = (name: string, seed: number): void => {
-    setRunning(name);
-    setResult(null);
     client.runExperiment(name, seed);
-    // Worker sonucu döndüğünde sonuç alanına yazılır (aşağıda abone olunur).
-    window.setTimeout(() => {
-      setRunning(null);
-    }, 400);
   };
 
   return (
@@ -61,7 +69,7 @@ export function ExperimentsPanel({ client }: { client: SimClient }): React.React
             disabled={running !== null}
             onClick={() => {
               run('togetherness', 1);
-              setResult(`${t.experiments.running} ${t.experiments.notYetRun}`);
+              setResult(t.experiments.notWired);
             }}
           >
             {running === 'togetherness' ? t.experiments.running : t.experiments.run}
@@ -74,7 +82,7 @@ export function ExperimentsPanel({ client }: { client: SimClient }): React.React
             disabled={running !== null}
             onClick={() => {
               run('adaptation', 1);
-              setResult(`${t.experiments.running} ${t.experiments.notYetRun}`);
+              setResult(t.experiments.notWired);
             }}
           >
             {running === 'adaptation' ? t.experiments.running : t.experiments.run}
@@ -87,7 +95,7 @@ export function ExperimentsPanel({ client }: { client: SimClient }): React.React
             disabled={running !== null}
             onClick={() => {
               run('learning', 1001);
-              setResult(`${t.experiments.running} ${t.experiments.notYetRun}`);
+              setResult(t.experiments.notWired);
             }}
           >
             {running === 'learning' ? t.experiments.running : t.experiments.run}
