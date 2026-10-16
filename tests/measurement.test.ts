@@ -322,6 +322,41 @@ it('bir adı iki modül TANIMLAYAMAZ (ölü beyan sınıfının kapısı)', () =
     expect(defs.size).toBeGreaterThan(50);
   });
 
+  it('HER genom parametresi hesaba katılmış (doğrudan maliyet VEYA belgeli muafiyet)', () => {
+    // ⚠️ MODEL.md "Her parametrenin metabolik maliyeti vardır (basalCostFor)"
+    // diyor — ama `bondAffinity` basalCostFor'da YOK. Doğrulayan biri onu
+    // arar ve bulamaz, sözleşmenin yalan olduğunu sanır.
+    //
+    // Gerçek: bondAffinity'nin maliyeti DOLAYLI — daha çok bağ kuruluyor
+    // (world.ts: `rng.inherit.float() < genome.bondAffinity`) ve bağ BAŞINA
+    // bakım enerjisi ödeniyor. Yani maliyet var, ama kendi parametre terimi
+    // olarak değil. Sözleşme bunu söylemiyordu.
+    //
+    // Bu koruma, ileride eklenebilecek 10. parametrenin hiçbir yerde
+    // hesaba katılmadan geçmesini engeller: ya enerji.ts'te doğrudan maliyet
+    // terimi olur, ya da burada gerekçeli muafiyet listesine girer.
+    const energy = readFileSync(join(ROOT, 'src/sim/biology/energy.ts'), 'utf8');
+    const STRUCTURAL = new Set<string>([
+      // maliyeti kendi terimi değil, ÜRETİTTEN gelir (bağ sayısı → bakım enerjisi)
+      'bondAffinity',
+    ]);
+    const uncosted = GENOME_KEYS.filter((k) => !energy.includes(`genome.${k}`) && !STRUCTURAL.has(k));
+    expect(
+      uncosted,
+      `hiçbir yerde maliyeti olmayan genom parametresi: ${uncosted.join(', ')}`,
+    ).toEqual([]);
+    // Muafiyetler de gerekçesiz bırakılmamalı.
+    for (const k of STRUCTURAL) {
+      expect(GENOME_KEYS, `muafiyet listesinde olmayan parametre: ${k}`).toContain(k);
+    }
+    // MODEL.md muafiyeti de söylemeli.
+    const model = readFileSync(join(ROOT, 'docs/MODEL.md'), 'utf8');
+    expect(
+      model,
+      'MODEL.md bondAffinity maliyetinin dolaylı olduğunu belirtmiyor',
+    ).toMatch(/bondAffinity[\s\S]{0,400}(dolaylı|bağ sayısı|bakım)/);
+  });
+
   it('genom parametresi metabolik maliyetli (proje kuralı)', () => {
     // `cooperation` bedelsiz olsaydı düşük değerli bireyler her zaman kazanırdı
     // ve hileci deneyi anlamsızlaşırdı. Test maliyetin varlığını korur.

@@ -124,8 +124,15 @@ Genom gerçek DNA dizisi değil, **9 kalıtsal parametredir**:
 `bondAffinity`, `bondStrength`, `motility`, `senseRadius`, `shareEfficiency`,
 `toleranceA`, `toleranceB`, `plasticity`, `cooperation`.
 
-Her parametrenin metabolik maliyeti vardır (`basalCostFor`), bu yüzden hiçbir
-özellik bedelsiz avantaj sağlamaz.
+Sekiz parametrenin metabolik maliyeti doğrudan `basalCostFor` içindedir.
+Dokuzuncusu, **`bondAffinity`, istisnadır**: kendi terimi yoktur, maliyeti
+**dolaylı** gelir — daha yüksek değer daha çok bağ kurulması demektir
+(`rng.inherit.float() < genome.bondAffinity`) ve bağ BAŞINA bakım enerjisi
+ödenir. Yani bedeli vardır, ama parametrenin kendi satırında değil.
+
+Böylece hiçbir özellik bedelsiz avantaj sağlamaz. `tests/measurement.test.ts`
+bu kuralı korur: yeni bir parametre eklenirse ya `basalCostFor` içinde
+maliyeti bulunur ya da gerekçesiyle muafiyet listesine girer.
 
 | Parametre | Kazanç | Bedeli |
 |---|---|---|
