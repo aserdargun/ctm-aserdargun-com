@@ -471,10 +471,20 @@ describe('belge tutarlılığı · düzeltme kaydı', () => {
 
   it('kırık ölçümden gelen eski sayı geçersiz olarak işaretli', () => {
     const validation = read('docs/VALIDATION.md');
-    // "%83 tek kutu" ifadesi geçiyorsa, yanlış olduğu da yazılmış olmalı.
-    if (validation.includes('%83')) {
-      expect(validation).toMatch(/geçersiz|yanlış|doğrusu/i);
-    }
+    // ⚠️ Önceden yalnız `validation.includes('%83')` kontrolü vardı ve
+    // Belgede "geçersiz|yanlış|doğrusu" kelimelerinden BİRİ herhangi bir yerde
+    // geçtiği için test HER ZAMAN geçiyordu — yani fiilen hep doğruydu. Kırık
+    // sayının (%83.5, %83.6 gibi MEŞRU ölçümler değil) geçtiği her paragrafın
+    // bir düzeltme işareti taşıması gerekir.
+    const broken = /%83(?!\d)[^\n]{0,40}(organizma|kutuya birik)/;
+    const marker = /geçersiz|yanlış|doğrusu|kullanılamaz|kırık|düzelt/i;
+    const unmarked = validation
+      .split(/\n\s*\n/)
+      .filter((para) => broken.test(para) && !marker.test(para));
+    expect(
+      unmarked,
+      `kırık %83 iddiası geçen ama geçersiz işaretlenmemiş paragraf:\n${unmarked.join('\n---\n')}`,
+    ).toEqual([]);
   });
 
   it('doğrulanmayanlar bölümü ε>0 ve gözlemci eksiklerini listeler', () => {
