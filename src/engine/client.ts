@@ -180,10 +180,6 @@ export class SimClient {
     this.send({ type: 'evolve', organismId, generations, population, offspring, apply });
   }
 
-  runExperiment(experiment: string, seed: number): void {
-    this.send({ type: 'runExperiment', experiment, seed });
-  }
-
   /** Yaşam haritasının (Picbreeder ızgarası) anlık görüntüsünü ister. Yalnız ölçüm. */
   lifeMap(): void {
     this.send({ type: 'lifeMap' });

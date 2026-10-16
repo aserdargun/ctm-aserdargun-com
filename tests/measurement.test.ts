@@ -219,6 +219,32 @@ describe('ölçüm kodu · ölü ölçüm kapsamı koruması', () => {
     expect(unused, `kullanılmayan i18n anahtarı: ${unused.join(', ')}`).toEqual([]);
   });
 
+  it('worker in ürettiği her mesajın bir TÜKETİCİSİ var', () => {
+    // ⚠️ Bu sınıfın iki üyesi vardı ve ikisi de sessizce kaybolmuştu:
+    //   - `events`: yıllardır üretiliyordu, UI hiç dinlemiyordu (listEvents hatası)
+    //   - `experimentResult`: stub üretiyordu, hiç dinleyici yoktu
+    //
+    // DENETİM BOŞ DÖNMEZ: worker'ın ürettiği tüm `post({ type: ... })`
+    // tipleri sayılır ve tüketicisi olmayanlar kırmızıya döner.
+    const worker = readFileSync(join(ROOT, 'src/worker/sim.worker.ts'), 'utf8');
+    const produced = [
+      ...new Set([...worker.matchAll(/post\(\{\s*type:\s*'([A-Za-z]+)'/g)].map((m) => m[1] as string)),
+    ];
+    expect(produced.length, 'worker mesaj türleri taranamadı').toBeGreaterThan(8);
+    const consumerSrc = ['src/engine', 'src/ui', 'src/scene']
+      .flatMap((d) => filesUnder(join(ROOT, d), (p) => /\.tsx?$/.test(p)))
+      .concat([join(ROOT, 'src/App.tsx')])
+      .filter((f) => !f.endsWith('src/worker/sim.worker.ts'))
+      .map((f) => readFileSync(f, 'utf8'))
+      .join('\n');
+    // Kapsanmayan: `ack`/`pong` taşıma protokolü olmayan tek yönlü komutlardır
+    // (istemci `dispatch` ile TÜM mesajları dinleyicilere iletir, ama hiçbir
+    // dinleyici bu ikisini kontrol etmez — işlenmemiş altyapı, yanlış iddia değil).
+    const exempt = new Set(['ack', 'pong']);
+    const orphans = produced.filter((t) => !exempt.has(t) && !consumerSrc.includes(`'${t}'`));
+    expect(orphans, `tüketicisi olmayan worker mesajı: ${orphans.join(', ')}`).toEqual([]);
+  });
+
   it('deney düğmeleri ÇALIŞMADIĞINI iddia etmiyor', () => {
     // ⚠️ Ölü beyanın ÜRÜN yüzeyindeki hâli. Worker'daki `runExperiment`
     // yalnızca `{ queued: true }` yankılıyor; hiçbir deneyi başlatmıyor ve

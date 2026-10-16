@@ -20,7 +20,7 @@ import {
   type SavedRecord,
 } from '../engine/storage.ts';
 
-export function ExperimentsPanel({ client }: { client: SimClient }): React.ReactElement {
+export function ExperimentsPanel(): React.ReactElement {
   const language = useStore((s) => s.language);
   const t = getStrings(language);
   // `running` artık kullanılmıyor: hiçbir şey koşmuyor, ilerleme taklidi yok.
@@ -28,20 +28,18 @@ export function ExperimentsPanel({ client }: { client: SimClient }): React.React
   const [result, setResult] = useState<string | null>(null);
 
   /**
-   * ⚠️ Bu düğme bir deneyi **ÇALIŞTIRMAZ.**
+   * ⚠️ Bu düğme bir deneyi **ÇALIŞTIRMAZ** — ve artık bir şey de GÖNDERMEZ.
    *
-   * Worker'daki `runExperiment` yalnızca `{ queued: true }` yankılar; hiçbir
-   * deneyi başlatmaz ve `experimentResult` mesajının HİÇBİR abonelisi yoktur
-   * (yalnız tip bildirimi ve üretici var). Önceden burada 400 ms'lik sahte bir
-   * "çalışıyor" göstergesi vardı ve sonuç alanına aynı anda hem "çalışıyor"
-   * hem "bu deney henüz çalıştırılmadı" yazılıyordu — kendi kendini çürüten
-   * bir iddia.
+   * Worker'daki sahte `runExperiment` komutu, yalnızca `{ queued: true }`
+   * yankılayıp hiçbir deneyi başlatmayan bir stub'dı; `experimentResult`
+   * mesajının da hiçbir dinleyicisi yoktu. Ölü boru hattının tamamı kaldırıldı
+   * (worker komutu, protokol üyeleri, istemci metodu).
    *
-   * Şimdi ilerleme taklidi yapılmıyor ve dürüst mesaj gösteriliyor. Gerçek
-   * deneyler `npm run experiments` ile Node'da koşar.
+   * Deneyler `npm run experiments` ile Node'da koşar; sonuçları
+   * `docs/EXPERIMENTS.md` içindedir. Düğme yalnız bunu söyler.
    */
-  const run = (name: string, seed: number): void => {
-    client.runExperiment(name, seed);
+  const run = (_name: string, _seed: number): void => {
+    setResult(t.experiments.notWired);
   };
 
   return (

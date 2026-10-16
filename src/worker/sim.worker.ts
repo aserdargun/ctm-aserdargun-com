@@ -507,10 +507,6 @@ function handle(request: WorkerRequest): void {
       }
       break;
     }
-    case 'runExperiment': {
-      post({ type: 'experimentResult', experiment: request.experiment, payload: { queued: true, seed: request.seed } });
-      break;
-    }
     case 'lifeMap':
       // Takipçi her tick ilerletildiği için bu yalnız arşivin anlık görüntüsü.
       post({ type: 'lifeMapResult', snapshot: w ? w.nicheSnapshot() : EMPTY_LIFE_MAP });

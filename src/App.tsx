@@ -228,7 +228,7 @@ export function App(): React.ReactElement {
             {panel === 'inspector' && <InspectorPanel />}
             {panel === 'microscope' && <MicroscopePanel client={client} />}
             {panel === 'lineage' && <LineagePanel client={client} />}
-            {panel === 'experiments' && <ExperimentsPanel client={client} />}
+            {panel === 'experiments' && <ExperimentsPanel />}
             {panel === 'evolution' && <EvolutionPanel client={client} />}
             {panel === 'lifemap' && <LifeMapPanel client={client} />}
             {panel === 'events' && <EventsPanel client={client} />}

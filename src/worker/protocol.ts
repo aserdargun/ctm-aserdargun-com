@@ -103,7 +103,6 @@ export type Command =
   | { type: 'listLineages' }
   | { type: 'listEvents'; count: number }
   | { type: 'evidencePack'; question: string; kind: 'A' | 'B'; organismId: number | null }
-  | { type: 'runExperiment'; experiment: string; seed: number }
   /**
    * Evrim Atölyesi: seçili organizmanın politikasını arena üzerinde (μ+λ)
    * aramayla iyileştirir. Canlı dünyayı **değiştirmez**; arama ayrı arena
@@ -212,7 +211,6 @@ export type WorkerResponse =
   | { type: 'decision'; decision: DecisionSnapshot }
   | { type: 'snapshot'; snapshotJson: string; tick: number; bytes: number }
   | { type: 'evidence'; pack: EvidencePack }
-  | { type: 'experimentResult'; experiment: string; payload: unknown }
   | { type: 'evolutionProgress'; generation: number; total: number; best: number; mean: number }
   /**
    * Yaşam haritası (Picbreeder ızgarası): üç ölçülebilir betimleyici üzerinden
