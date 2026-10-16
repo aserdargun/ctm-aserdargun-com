@@ -117,8 +117,7 @@ export type Command =
       /** true ise kazanan politika organizmanın ağırlıklarına yazılır. */
       apply: boolean;
     }
-  | { type: 'lifeMap' }
-  | { type: 'ping' };
+  | { type: 'lifeMap' };
 
 export interface OrganismSummary {
   id: number;
@@ -233,7 +232,6 @@ export type WorkerResponse =
       spentMs: number;
     }
   | { type: 'ack'; seq: number; command: string }
-  | { type: 'error'; message: string; detail?: string; fatal: boolean }
-  | { type: 'pong'; t: number };
+  | { type: 'error'; message: string; detail?: string; fatal: boolean };
 
 /** Kare paketini okunabilir nesneye çevirir (yalnız seçili organizma için kullanılır). */

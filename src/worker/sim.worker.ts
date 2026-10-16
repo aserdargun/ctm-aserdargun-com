@@ -511,9 +511,6 @@ function handle(request: WorkerRequest): void {
       // Takipçi her tick ilerletildiği için bu yalnız arşivin anlık görüntüsü.
       post({ type: 'lifeMapResult', snapshot: w ? w.nicheSnapshot() : EMPTY_LIFE_MAP });
       break;
-    case 'ping':
-      post({ type: 'pong', t: performance.now() });
-      break;
     default:
       post({ type: 'ack', seq: seqCounter++, command: 'unknown' });
   }

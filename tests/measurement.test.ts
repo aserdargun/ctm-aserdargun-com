@@ -237,10 +237,15 @@ describe('ölçüm kodu · ölü ölçüm kapsamı koruması', () => {
       .filter((f) => !f.endsWith('src/worker/sim.worker.ts'))
       .map((f) => readFileSync(f, 'utf8'))
       .join('\n');
-    // Kapsanmayan: `ack`/`pong` taşıma protokolü olmayan tek yönlü komutlardır
+    // Kapsanmayan: `ack` taşıma protokolü olmayan tek yönlü komut yanıtıdır
     // (istemci `dispatch` ile TÜM mesajları dinleyicilere iletir, ama hiçbir
-    // dinleyici bu ikisini kontrol etmez — işlenmemiş altyapı, yanlış iddia değil).
-    const exempt = new Set(['ack', 'pong']);
+    // dinleyici bunu kontrol etmez — işlenmemiş altyapı, yanlış iddia değil).
+    //
+    // `pong` ÖNCE burada istisnaydı ve kaldırıldı: `ping`'i HİÇBİR yer
+    // göndermiyordu, yani worker'daki işleyici erişilemez ölü koddu.
+    // Gerçek bir gecikme ölçümü istenirse geri eklenmeli — ama o zaman
+    // istisna da kaldırılmalı.
+    const exempt = new Set(['ack']);
     const orphans = produced.filter((t) => !exempt.has(t) && !consumerSrc.includes(`'${t}'`));
     expect(orphans, `tüketicisi olmayan worker mesajı: ${orphans.join(', ')}`).toEqual([]);
   });
