@@ -519,16 +519,16 @@ describe('ölü alet · dışa aktarım gerçekten tüketiliyor mu', () => {
     // iken formülün satır içi kopyası yaşıyordu — kopyalar bağlandı).
     const KNOWN_UNWIRED: Record<string, string> = {
       // Ürün kararı gerektirenler:
-      getRecord: 'IndexedDB tek kayıt okuma — kayıt listesi listRecords() kullanıyor; ÖZELLİK KULLANIMDA',
-      estimateUsage: 'IndexedDB kota ölçümü — kayıt özelliği BAĞLI (listRecords/saveRecord/deleteRecord/downloadJson UI kullanıyor); yalnız bu iki yardımcı boşta',
+      getRecord: 'ARAŞTIRILDI: kayıt özelliği BAĞLI (listRecords/saveRecord/deleteRecord/downloadJson UI kullanıyor); yalnız bu tek kayıt okuma yardımcısı boşta',
+      estimateUsage: 'ARAŞTIRILDI: IndexedDB kota ölçümü; kayıt özelliği bağlı, yalnız bu yardımcı boşta',
       // Saf temizlik borcu — etkileri bu turda ARAŞTIRILMADI:
-      ACTIONS: 'ARAŞTIRILDI: sayısal takma ad. ACTION_NAMES (4) ve MLP_SHAPE.OUTPUTS: 4 zaten eylem uzayını tanımlıyor; satır içi kopya YOK. Zararsız',
-      sweepShareThreshold: 'deney yardımcısı; bu turda ürün etkisi araştırılmadı',
-      formatShareThreshold: 'deney biçimlendiricisi; bu turda ürün etkisi araştırılmadı',
-      experimentInWorldEvolution: 'deney kaydı; bu turda ürün etkisi araştırılmadı',
-      formatInWorldEvolution: 'deney biçimlendiricisi; bu turda ürün etkisi araştırılmadı',
-      assertPolicyShape: 'deney doğrulaması; bu turda ürün etkisi araştırılmadı',
-      lifeMapOf: 'yaşam haritası yardımcısı; bu turda ürün etkisi araştırılmadı',
+      ACTIONS: 'ARAŞTIRILDI: sayısal takma ad; ACTION_NAMES (4) ve MLP_SHAPE.OUTPUTS: 4 zaten eylem uzayını tanımlıyor. Zararsız',
+      sweepShareThreshold: 'ARAŞTIRILDI: üç ölçüm hata sınıfının (sentinel / maksimum−ortalama / RNG akışı) HİÇBİRİNE girmiyor — eşleştirilmiş tasarım, her noktada new World({ seed: 3001 + i })',
+      formatShareThreshold: 'sweepShareThreshold için biçimlendirici; işlevi ölü, zararsız',
+      experimentInWorldEvolution: 'ARAŞTIRILDI ve DÜZELTİLDİ: üç ölçüm hatası bulundu (sentinel artefaktı, maksimum−ortalama, RNG akışı). Artık sonlu değilse hüküm vermiyor ve taban maksimumdan bağımsız akıştan geliyor',
+      formatInWorldEvolution: 'experimentInWorldEvolution için biçimlendirici; işlevi ölü, zararsız',
+      assertPolicyShape: 'ARAŞTIRILDI: mlp.ts içindeki aynı boyut kontrolünün ölü kopyası; asıl koruma orada çalışıyor. Zararsız',
+      lifeMapOf: 'ARAŞTIRILDI: world.nicheSnapshot() için tek satırlık takma ad; canlı yol doğrudan nicheSnapshot() çağırıyor. Zararsız',
       RESOURCE_KINDS: "ARAŞTIRILDI: ['A','B'] dizisi ölü; asıl güvence ResourceKind TİPİ. Üçüncü tür eklenirse tip zaten derleme hatası verir. Zararsız",
       zeroTheta: 'ARAŞTIRILDI: createTheta() için takma ad, satır içi kopya yok. Zararsız',
       MLP_PARAMS: 'ARAŞTIRILDI: MLP_SHAPE.PARAM_COUNT için takma ad; asıl sabit mlp.ts içinde kullanılıyor. Zararsız',
