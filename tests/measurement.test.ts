@@ -197,6 +197,28 @@ describe('ölçüm kodu · ölü ölçüm kapsamı koruması', () => {
     expect(i18n).not.toMatch(/GENOME_LABELS_\w+: Record<string, string>/);
   });
 
+  it('i18n sözlüğünde kullanılmayan anahtar/sözlük kalmıyor', () => {
+    // Tarama sonucu (temiz negatif): 23 üst düzey anahtardan yalnız `units`
+    // (enerji birimi sözlüğü) hiçbir dosyada geçmiyordu; silindi.
+    // Bu denetim yeni bir anahtar eklenip unutulduğunda yakalar.
+    //
+    // ⚠️ Önce DİNAMİK erişim olmadığı doğrulandı: `strings[x]` / `t[x]` gibi
+    // desenler `getStrings(...)` sonucunu indekslemiyor. Aksi hâlde bu test
+    // YANLIŞ POZİTİF üretirdi.
+    const i18n = readFileSync(join(ROOT, 'src/i18n/index.ts'), 'utf8');
+    const consumers = ['src', 'tests', 'e2e', 'scripts']
+      .flatMap((d) => filesUnder(join(ROOT, d), (p) => /\.tsx?$/.test(p)))
+      .filter((f) => !f.endsWith('src/i18n/index.ts'))
+      .map((f) => readFileSync(f, 'utf8'))
+      .join('\n');
+    const keys = [
+      ...new Set([...i18n.matchAll(/^  ([a-zA-Z][A-Za-z0-9_]*):/gm)].map((m) => m[1] as string)),
+    ];
+    expect(keys.length, 'hiçbir i18n anahtarı bulunamadı — tarama boş döndü').toBeGreaterThan(10);
+    const unused = keys.filter((k) => !new RegExp(`\\b${k}\\b`).test(consumers));
+    expect(unused, `kullanılmayan i18n anahtarı: ${unused.join(', ')}`).toEqual([]);
+  });
+
   it('bir adı iki modül TANIMLAYAMAZ (ölü beyan sınıfının kapısı)', () => {
     // "genomeDistance" üç modülde üç farklı hesap olarak yaşıyordu; iki modül
     // aynı adı **tanımlıyordu** (üçüncüsü satır içi bir ifadeydi). Aynı adlı
