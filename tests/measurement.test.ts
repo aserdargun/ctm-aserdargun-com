@@ -461,8 +461,8 @@ describe('ölü alet · dışa aktarım gerçekten tüketiliyor mu', () => {
     // iken formülün satır içi kopyası yaşıyordu — kopyalar bağlandı).
     const KNOWN_UNWIRED: Record<string, string> = {
       // Ürün kararı gerektirenler:
-      getRecord: 'IndexedDB kayıt okuma — UI düğmesi yok; PROGRESS.md "tarayıcıda test edilmemiş" diye kayıtlı',
-      estimateUsage: 'IndexedDB kota ölçümü — getRecord ile aynı bağlanmamış yüzey',
+      getRecord: 'IndexedDB tek kayıt okuma — kayıt listesi listRecords() kullanıyor; ÖZELLİK KULLANIMDA',
+      estimateUsage: 'IndexedDB kota ölçümü — kayıt özelliği BAĞLI (listRecords/saveRecord/deleteRecord/downloadJson UI kullanıyor); yalnız bu iki yardımcı boşta',
       // Saf temizlik borcu — etkileri bu turda ARAŞTIRILMADI:
       ACTIONS: 'ARAŞTIRILDI: sayısal takma ad. ACTION_NAMES (4) ve MLP_SHAPE.OUTPUTS: 4 zaten eylem uzayını tanımlıyor; satır içi kopya YOK. Zararsız',
       sweepShareThreshold: 'deney yardımcısı; bu turda ürün etkisi araştırılmadı',
