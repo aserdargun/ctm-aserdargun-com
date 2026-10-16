@@ -546,7 +546,6 @@ function main(): void {
       'yapıları geri getirdiğinin **ölçüldüğünü** ve ölçütü karşıladığını yazar.',
       'Bu tarama aynı ayarları 40.000 tick boyunca sınar: kalibrasyon sönümlenmeyi',
       'erteliyor mu, yoksa uzun vadeli çöküşü gerçekten önlüyor mu?',
-      'uzun vadeli çöküşü gerçekten önlüyor mu?',
       '',
       '```',
       formatLongRun(longRun),

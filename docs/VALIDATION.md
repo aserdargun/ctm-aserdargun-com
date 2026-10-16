@@ -975,15 +975,23 @@ demektir. İki ölçüm birlikte okunmalıydı.
 | Tick | Pop | Org | Küm. doğum | Bud | Frag | Kol. nesil | Küme |
 |---|---|---|---|---|---|---|---|
 | 0 | 48 | 48 | 48 | 0 | 0 | 0 | 0 |
-| 16.000 | **106** | 103 | 240 | 108 | 9 | 57 | 2 |
-| 32.000 | 56 | 56 | 246 | 110 | 1 | 27 | 1 |
-| **40.000** | **41** | 41 | **246** | 110 | 0 | 18 | **1** |
+| 16.000 | **98** | 95 | 228 | 96 | 7 | 60 | 2 |
+| 32.000 | 32 | 32 | 235 | 98 | 1 | 27 | 1 |
+| **40.000** | **29** | 28 | **235** | 98 | 0 | 25 | **2** |
 
-**Doğum hızı çöktü:** ilk çeyrekte **144**, **son çeyrekte 1** doğum. Tomurcuklama
-toplam **110** kez gerçekleşti; koloni üreme nesli örneklenen satırlarda 57'den
-18'e düştü. Yani üreme bir süre çalışıyor, sonra tümüyle duruyor.
+**Doğum hızı çöktü:** ilk çeyrekte **120**, **son çeyrekte 1** doğum. Tomurcuklama
+toplam **98** kez gerçekleşti; koloni üreme nesli örneklenen satırlarda 60'den
+25'e düştü. Yani üreme bir süre çalışıyor, sonra tümüyle duruyor.
 
-Popülasyon durağan değil: **çöküyor.** 166 → 41.
+Popülasyon durağan değil: **çöküyor.** Zirve **213** (tick 4.000) → 29, yani
+zirvenin **%14'üne**.
+
+> ⚠️ **Bu tablo 14 Ekim'de bayattı ve sessizce düzeldi.** `EXPERIMENTS-DEEP.md`
+> 14 Ekim'de yeniden üretildiğinde bu sayılar 41/246/110/18'den
+> **29/235/98/25'e** değişti; bölüm güncellenmedi. Denetim, DEEP'in yalnız
+> *genom şeklini* izlediği için bunu yakalayamamıştı. Aynı bölümün metni
+> ayrıca kendi tablosuyla çelişiyordu: "4+ hücreli yapılar yine sıfır"
+> deniyordu, kendi tablosu 13 yazıyordu (§5.13).
 
 ### 5.12 40.000 tick'e uzun bakış: ekosistem sönüyor
 
@@ -991,20 +999,20 @@ Varsayılan ayarlarda 40.000 tick (tohum 11):
 
 | Tick | Pop | Küme | Bağ | Rezerv% | Sistem enerjisi | Açlık ölümü | Avcı ölümü |
 |---|---|---|---|---|---|---|---|
-| 4.000 | **254** | 8 | 56 | 74.9 | 90.161 | 3 | 2 |
-| 8.000 | 163 | 2 | 1 | 55.6 | 64.176 | 78 | 19 |
-| 12.000 | 130 | 2 | 1 | 46.5 | 53.355 | 95 | 40 |
-| 20.000 | 89 | 2 | 1 | 35.7 | 41.100 | 114 | 69 |
-| 24.000 | 74 | 1 | **0** | 32.8 | 37.137 | 119 | 80 |
-| 32.000 | 44 | 1 | 0 | 29.0 | 32.024 | 127 | 102 |
-| **40.000** | **36** | 1 | **0** | **26.7** | 29.333 | 131 | 107 |
+| 4.000 | **213** | 4 | 44 | 77.8 | 91.357 | 5 | 2 |
+| 8.000 | 153 | 2 | 6 | 59.8 | 68.183 | 53 | 27 |
+| 12.000 | 115 | 2 | 3 | 50.7 | 57.715 | 78 | 48 |
+| 20.000 | 82 | 2 | 1 | 39.8 | 45.171 | 92 | 76 |
+| 24.000 | 64 | 1 | **0** | 36.9 | 41.113 | 101 | 85 |
+| 32.000 | 39 | 1 | 2 | 32.8 | 35.913 | 112 | 104 |
+| **40.000** | **33** | 1 | **0** | **30.2** | 33.031 | 116 | 105 |
 
 Zincir tam: bağlar 24.000 tick'te **tamamen yok** → çok hücrelilik bitmiş →
-hücreler paylaşamıyor → tek tek açlık → popülasyon zirvenin **%14'üne** düşüyor.
+hücreler paylaşamıyor → tek tek açlık → popülasyon zirvenin **%15'ine** düşüyor.
 
-Avcı ölümleri 2'den 107'ye çıkıyor: uzun vadede avcı ikinci sıradaki katil
-hâline geliyor (%45). Kaynak **bitmiyor** (%26.7) — yani kaynak tükenmesi uzun
-vadede de açıklama değil.
+Avcı ölümleri 2'den 105'e çıkıyor: uzun vadede avcı ikinci sıradaki katil
+hâline geliyor (ölümlerin **%48'i**). Kaynak **bitmiyor** (%30.2) — yani kaynak
+tükenmesi uzun vadede de açıklama değil.
 
 ### 5.13 §5.4'ün genellenip genellenmediği — **genellenmiyor**
 
@@ -1013,29 +1021,38 @@ vadede de açıklama değil.
 
 | strainK | Bağ ömrü | Son pop | Çöküş oranı | Son çeyrek ort. küme | Son 4+ yapı | Son bağ | Son rezerv | **Geç açlık %** | **Geç avcı %** |
 |---|---|---|---|---|---|---|---|---|---|
-| **0.020 (varsayılan)** | 2.083 | 36 | 7.1× | 1.20 | 0 | 0 | %26.7 | 37.5 | **62.5** |
-| 0.005 | 8.333 | 35 | 7.4× | 1.00 | 0 | 0 | %26.6 | 45.5 | **54.5** |
-| **0.002** | 21.277 | **52** | 4.9× | **4.08** | 0 | **13** | %22.9 | **100.0** | **0.0** |
+| **0.020 (varsayılan)** | 2.083 | **33** | **6.5×** | 1.39 | 0 | 0 | %30.2 | 50.0 | **50.0** |
+| 0.005 | 8.333 | 25 | 9.1× | **2.10** | 0 | **1** | %25.6 | 75.0 | **25.0** |
+| **0.002** | 21.277 | 26 | 8.8× | 1.00 | 0 | 0 | %26.4 | 64.7 | 35.3 |
+
+> ⚠️ **Bu bölümün hükmü tersine döndü.** Tablo 14 Ekim'den beri bayattı ve o
+> gün **ters yönü** gösteriyordu: 10× dayanıklı bağlar son popülasyonu 36'dan
+> **52'ye çıkarıyor** (+%44) ve 4+ yapı **13** bulunuyordu. Güncel ölçümde
+> 10× dayanıklılık son popülasyonu 33 → **26** düşürüyor (−%21), 4+ yapı **0**,
+> son çeyrek kümesi 1.39 → **1.00**. Yani "kısmi hafifletme" değil, **hafif
+> zarar**. Aynı şekilde "geç dönem avcı ölümleri sıfırlanıyor" iddiası da
+> düştü: en dayanıklı bağda avcı payı artık **%35.3**, sıfır değil.
 
 **İki ayrı sonuç var ve ikisi de doğru:**
 
-**1. Kalibrasyon çöküşü engellemiyor.** 10× dayanıklılık son popülasyonu
-36'dan 52'ye çıkarıyor (+%44) ve son çeyrek kümesi 1.20 → 4.08 oluyor — **kısmi
-hafifletme.** Ama 4+ hücreli yapılar yine sıfır ve popülasyon hâlâ zirvenin
-beşte biri.
+**1. Kalibrasyon çöküşü engellemiyor — hatta hafifçe kötüleştiriyor.** 10×
+dayanıklılık son popülasyonu 33'den 26'ya düşürüyor (−%21) ve son çeyrek kümesi
+1.39 → 1.00 oluyor. 4+ hücreli yapılar **hiçbir kademede** geri gelmiyor. Yani
+bağ ömrünü 10 kat artırmak uzun vadeli çöküşü geciktirmiyor; en iyi ihtimalle
+etkisiz, bu ölçümde **zararlı**.
 
-**2. Kalibrasyon ölüm rejimini değiştiriyor.** Son çeyrek ölüm payları:
+**2. Ölüm rejimi bağ ömrüyle monoton değişmiyor.** Son çeyrek ölüm payları:
 
 | Bağ ömrü | Baskın ölüm nedeni |
 |---|---|
-| 2.083 (varsayılan) | **avcı %62.5** |
-| 8.333 | avcı %54.5 |
-| 21.277 | **avcı %0.0** — tamamen açlık |
+| 2.083 (varsayılan) | avcı %50.0 |
+| 8.333 | **avcı %25.0** — en düşük |
+| 21.277 | avcı %35.3 |
 
-10× dayanıklı bağlarla **geç dönem avcı ölümleri sıfırlanıyor.** Bu, "yalnız
-geciktirme" değil, **mekanizma değişimi:** koloniler ayakta kaldığında avcı artık
-ölümcül değil. Bu gözlem §5.12'deki "avcı ölümleri 2 → 107" satırının nedenini
-açıklıyor — avcı baskısı, çok hücrelilik dağıldıktan sonra devreye giriyor.
+En dayanıklı bağ **en düşük avcı payını** taşımıyor; en düşük payı orta kademe
+(8.333) taşıyor. Yani "dayanıklılık → avcı ölümünün sıfırlanması" gibi düzgün
+bir ilişki **bu ölçümde yok**. Rastgele salınım olabilir; ayırt etmek için
+tohum tekrarları gerekir — **yapılmadı**.
 
 > **Mekanizma yorumu (ölçülmüş, spekülasyon değil ama henüz kanıtlanmamış):**
 > avcının yakalama mantığı bireysel hücreler üzerinde çalışıyor. Bağlı bir
@@ -1056,8 +1073,8 @@ açıklıyor — avcı baskısı, çok hücrelilik dağıldıktan sonra devreye 
 | **Açık:** 40.000 tick'te sınırlayıcı olan ne? | ⬜ ölçülmedi |
 
 Açık sorunun adayları (üçü de test edilmemiş):
-1. **Avcı dinamiği** — avcı ölümleri 2 → 107; avcının kendi dengesi yok mu?
-2. **Enerji muhasebesi** — sistem enerjisi 108.763 → 29.333; bu düşüşün
+1. **Avcı dinamiği** — avcı ölümleri 2 → 105; avcının kendi dengesi yok mu?
+2. **Enerji muhasebesi** — sistem enerjisi 108.763 → 33.031; bu düşüşün
    bileşenleri (bazal + hareket + avcı hasarı) ölçülmedi.
 3. **Doğum/ölüm dengesi** — son çeyrekte 1 doğum; neden üreme tamamen duruyor?
 
@@ -1073,45 +1090,66 @@ Dayanıklı bağlarla (strainK 0.002), 40.000 tick:
 
 | Tick | Pop | Ort. hücre enerjisi | Açlık % | Medyan kaynak uzaklığı | Yakın % | Rezerv % | **Avcı enerjisi** |
 |---|---|---|---|---|---|---|---|
-| 0 | 48 | 55.0 | 0.0 | 1.73 | 39.6 | 100.0 | 4.4 |
-| 4.000 | 248 | 40.0 | 1.2 | 1.17 | 71.4 | 76.2 | 21.9 |
-| 8.000 | 165 | 32.5 | 7.9 | 1.30 | 58.2 | 55.0 | 25.6 |
-| 16.000 | 103 | 29.6 | 12.6 | 1.57 | 46.6 | 38.9 | 16.3 |
-| 24.000 | 81 | 30.7 | 13.6 | 1.45 | 50.6 | 31.3 | **0.0** |
-| 40.000 | 52 | 26.7 | 13.5 | 1.78 | 40.4 | 22.9 | **0.0** |
+| 0 | 48 | 55.0 | 0.0 | 1.90 | 31.3 | 100.0 | 4.4 |
+| 4.000 | 226 | 39.7 | 4.0 | 1.22 | 67.3 | 76.1 | 16.3 |
+| 8.000 | 156 | 35.1 | 5.8 | 1.34 | 55.1 | 56.1 | 32.4 |
+| 16.000 | 101 | 27.3 | 16.8 | 1.76 | 43.6 | 40.0 | 11.0 |
+| 24.000 | 66 | 25.9 | 15.2 | 1.95 | 40.9 | 32.2 | 9.4 |
+| 40.000 | **26** | 26.9 | 15.4 | 1.57 | 42.3 | **26.4** | **0.0** |
 
 **İki gözlem, ikisi de çürütücü:**
 
-1. **Avcı ~24.000 tick'te açlıktan ölüyor** (enerji 0'a düşüyor ve kalıcı olarak
-   orada kalıyor). Yani geç dönemde avcı yok; §5.13'teki "geç avcı ölümü %0"
-   bunun sonucu.
-2. **Hücreler ploya yapıyor, ölmüyor:** enerji 55 → 26.7 e'de kararlı kalıyor,
-   açlıktaki hücre payı ~%13. Yani "kaynak erişilemiyor" teşhisi de **tam
-   değil** — geç dönemde hücrelerin ~%40'ı kaynağa 1.5 mb içinde.
+1. **Avcı ~35.000 tick'te açlıktan ölüyor** (enerji 32.000'de 4.4, 36.000'de 0.0
+   ve orada kalıyor). Yani geç dönemde avcı yok. Bu §5.13'teki geç dönem avcı
+   ölüm paylarının **düşük** (25–50%) kalmasıyla tutarlı — ama §5.13'teki
+   "en dayanıklı bağda avcı %0" ifadesi bu ölçümle **çelişiyor** ve düzeltildi.
+2. **Hücreler ploya yapıyor, ölmüyor:** enerji 55.0 → 26.9 e'de kararlı kalıyor,
+   açlıktaki hücre payı ~%15. Yani "kaynak erişilemiyor" teşhisi de **tam
+   değil** — geç dönemde hücrelerin ~%42'si kaynağa 1.6 mb içinde.
+
+> ⚠️ **Bu yorum DEEP'in kendi hüküm satırıyla çelişiyor ve not düşüldü.**
+> `EXPERIMENTS-DEEP.md` bu taramanın hükmünü **"sınırlayıcı: kaynak
+> erişilebilirliği"** olarak veriyor (yakınlık 1.48 → 2.16 mb, 1.46× büyüme;
+> rezerv %26.4'te kalıyor). Yukarıdaki 2. gözlem ise erişilebilirliğin
+> **tam açıklama olmadığını** söylüyor. İkisi aynı veriye bakıyor; ayrışma
+> yorum katmanında. Hangisinin doğru olduğu **ayrı bir ölçümle** sınanmadı —
+> erişilebilirliği tek başına değiştiren bir deney yok.
 
 ### 5.16 Kaynak rejenerasyonu A/B — ve bir muhasebe hatasının bulunması
 
 > Derin profil (`--deep`).
 
 `C.DEFAULT_REGEN = 0`: kaynak **hiç yenilenmiyor.** Kapalı enerji sistemi
-40.000 tick'te rezervini %100 → %23'e tüketiyor. Soru: bu tükenme mi sınırlıyor?
+40.000 tick'te rezervini %100 → %26.4'e tüketiyor. Soru: bu tükenme mi sınırlıyor?
 
 | regen | Zirve pop | Son pop | Son çeyrek pop | Son rezerv | Ort. enerji | Açlık öl. | Avcı öl. | **Avcı öldü (tick)** |
 |---|---|---|---|---|---|---|---|---|
-| 0 | 248 | 52 | 58.0 | %22.9 | 26.7 | 169 | 25 | 23.406 |
-| 0.002 | 252 | **35** | 37.3 | %28.0 | 19.3 | 134 | 54 | 33.970 |
-| 0.01 | 245 | 42 | 46.3 | %34.1 | 35.8 | 123 | **54** | 38.931 |
+| 0 | 226 | 26 | 29.0 | %26.4 | 26.9 | 157 | 37 | 33.424 |
+| 0.002 | 207 | 38 | 35.7 | %32.0 | 36.9 | 110 | 56 | 33.893 |
+| 0.01 | 215 | **55** | 52.3 | %35.4 | 32.8 | 98 | 50 | 33.254 |
 
-**Sonuç: rejenerasyon popülasyonu kurtarmıyor** — hatta orta değerde kötüleştiriyor.
-Ama **mekanizmayı değiştiriyor:** enerji arttıkça avcı daha uzun yaşıyor
-(23.406 → 38.931) ve avcı kaynaklı ölümler 25 → 54'e çıkıyor.
+> ⚠️ **Bu bölümün hükmü de tersine döndü.** 14 Ekim'den beri bayat olan tablo
+> "**rejenerasyon popülasyonu kurtarmıyor**" diyordu: regen 0 → son pop 52,
+> regen 0.01 → 42, yani daha fazla enerji **daha az** popülasyon. Güncel
+> ölçümde bunun **tam tersi**: regen 0 → son pop 26, regen 0.01 → **55**, yani
+> **+%112**. Açlık ölümleri de 157 → 98 ile tutarlı biçimde azalıyor.
 
-**Yani kümülatif kaynak tükenmesi sınırlayıcı değil.** Rezerv %23'te kalırken
-popülasyon düşüyor; enerji artırılınca avcı canlanıyor ve avcı daha çok öldürüyor.
+**Sonuç: rejenerasyon popülasyonu kurtarıyor.** Kaynak tükenmesi **kısmen
+sınırlayıcıdır** — kapatıldığında son popülasyon 26'ya düşüyor, açıldığında 55'e
+çıkıyor. Ancak **zamanlama değişmiyor:** avcı her üç koşuluda da ~33.300'de
+ölüyor (33.424 / 33.893 / 33.254) ve avcı kaynaklı ölümler monoton değil
+(37 → 56 → 50). Yani enerji **kurtarıcı**, ama avcı dinamiğini değiştirmiyor.
 
-> **Bu, §5.13'teki avcı yorumunu güçlendiriyor:** avcı enerji yetersizliği
-> nedeniyle erken ölüyordu. Enerji verildiğinde devreye giriyor ve avcı baskısı
-> **uzun vadeli sınırlayıcı** oluyor.
+**Avcı yorumu zayıfladı.** Önceki metin "avcı enerji verildiğinde daha uzun
+yaşıyor (23.406 → 38.931)" diyordu; bu ölçümde avcı ölüm tick'i üç koşuluda da
+**aynı**. Önceki fark, enerjinin verildiği koşulda avcının geç değil **erken**
+öldüğünü gösteriyordu — yani "enerji verilince avcı canlanır" yorumu bu veriyle
+**desteklenmiyor**.
+
+> ⛔ **Bu vurgu blokta geri çekildi.** "Avcı enerji verildiğinde devreye girer
+> ve baskısı hızlanır" iddiası güncel veriyle **desteklenmiyor**: avcı ölüm
+> tick'i üç rejenerasyon koşulunda da ~33.300'de sabit. Blok, 14 Ekim'den
+> önce ölçülmüş bayat bir tabloya dayanıyordu.
 
 ### 5.17 Bulunan muhasebe ölçüm hatası — kendi kodumda
 
@@ -1146,17 +1184,20 @@ uygulandı; regresyon koruması testi eklendi.
 
 | Soru | Cevap | Kanıt |
 |---|---|---|
-| Kaynak erişilebilirliği mi? | Kısmen — uzaklık 1.4→2.0, ama hücrelerin yarısı kaynağa yakın | §5.15 |
-| Avcı dinamiği mi? | **Evet, enerji yeterli olduğunda** — avcı daha uzun yaşıyor ve daha çok öldürüyor | §5.16 |
-| Kümülatif kaynak tükenmesi mi? | **Hayır** — rejenerasyon popülasyonu kurtarmıyor | §5.16 |
+| Kaynak erişilebilirliği mi? | Kısmen — uzaklık 1.48→2.16 mb (1.46×), ama hücrelerin %42'si kaynağa 1.6 mb içinde | §5.15 |
+| Avcı dinamiği mi? | **Hayır** — enerji verilse de avcı ölüm tick'i ~33.300'de **değişmiyor**; avcı kaynaklı ölümler monoton değil | §5.16 |
+| Kümülatif kaynak tükenmesi mi? | **Evet, kısmen** — rejenerasyon son popülasyonu 26 → 55 yapıyor (**+%112**) | §5.16 |
 
-**Sistemin uzun vadeli düzenleyicisi avcıdır.** Ama avcının kendisi enerji
-kısıtıyla sınırlı: kapalı sistemde erken ölür, enerji verilirse devreye girer ve
-avcı baskısı hızlanır. Bu, sistemde **çift yönlü** bir düzenleme üretir ve
-kolonilerin kalıcılığı ile avcı baskısı arasındaki dengeye bağlıdır.
+**Sistemin uzun vadeli düzenleyicisi avcı değil, kaynak erişimi.** ⚠️ Bu cevap
+**tersine döndü**: önceki metin avcıyı düzenleyici ilan ediyordu ve bunu
+"kapalı sistemde avcı erken ölür, enerji verilirse devreye girer" ile
+gerekçelendiriyordu. Güncel ölçümde avcı ölüm zamanı enerji koşulundan
+**bağımsız**; buna karşılık kaynak rejenerasyonu popülasyonu iki katından fazla
+artırıyor. "Çift yönlü düzenleme" anlatısı da bu veriyle kurulmuyor.
 
 B3 (somatik mutasyon) için önkoşul hâlâ: yeterli üreme çevrimi. Ancak bu kez
-sebep "nesil derinliği yok" değil, **avcının popülasyonu düzenlemesi**.
+sebep "nesil derinliği yok" değil, **kaynak erişilebilirliği ve üreme
+dengesinin kaynakla birlikte çözülmemesi**.
 
 
 ## 6. Deney günlüğü — **tarihsel kayıt**
@@ -2973,12 +3014,15 @@ Bunlar testlerin bulduğu, düzeltildiği ve **yeniden test edildiği** hatalard
 | 24 | `sim/genome.ts` başlığı **"Sekiz kalıtsal parametredir"** diyordu | Genom dokuz parametreye çıktığında güncellenmemişti; modül kanonik tanımın evi olduğu için buradaki yanlış sayı özellikle yanıltıcıydı | "Dokuz" olarak düzeltildi; kaynak dokümanındaki parametre sayısı artık testle korunuyor |
 | 25 | Rapor tazelik denetimi **commit edilmemiş** değişiklikleri görmüyordu | `colony.ts` değiştirilip rapor üretilmeden koşan `npm run check` **yeşil** geçti; aynı commit CI'da **kırmızı** oldu. Yerel kapı, tam da uyarması gerektiği yerde sessizdi — çünkü tarihi `git log`'dan okuyor | Denetim artık **değiştirilmiş** dosyada dosya mtime'ını esas alıyor. Yalnız *değiştirilmiş* dosyada: `actions/checkout` her dosyaya taze mtime verdiği için, mtime her zaman esas alınsa temiz bir CI klonunda denetim **daima** kırmızı olurdu |
 | 26 | **Anlatı belgeleri dokuz parametre öncesinden** sayılar taşıyordu | `766e0b9` tüm ölçümleri geçersiz kıldı ve kabul edilen riskti; ama `VALIDATION.md` §4.2–4.5 ve `PROGRESS.md` deney tablosu eski koşuların sayılarını taşımaya devam ediyordu, **hiçbir denetim bakmıyordu**. En ciddisi: `PROGRESS.md` öğrenmeyi "❌ **negatif**" diye etiketliyordu ama kendi alıntıladığı `+0.020` fark ve `%83` iyileşme **pozitif** yöndeydi — etiket kendi kanıtıyla çelişiyordu. Taze ölçüm: fark **+0.001**, p **0,9764**, iyileşme **%51,8** = etki yok | Üç deneyin tablosu ve §4.2 habitat tablosu `EXPERIMENTS.md`'den yeniden yazıldı; kaynak ve pencere notları eklendi. Değerler artık **rapordan türetilen**, bölüm kapsamlı bir denetimle korunuyor |
-| 27 | `EXPERIMENTS-DEEP.md` **2,9 gün** bayattı | Son üretim `1791719188`, dokuz parametreli genom ise `1791967248`'de geldi. Raporda "cooperation"/"işbirliği" geçişi **0** kez — yani **var olmayan bir genomu** raporluyordu. Tazelik denetimi yalnız `EXPERIMENTS.md`'yi izliyordu | Derin paket yeniden üretildi (2.072 koşu, 912 sn). Denetim, **genom tanımı** (`types.ts` + `genome.ts`) değiştiyse DEEP'i bayat sayacak biçimde eklendi — 40 dk'lık üretimin her kod değişikliğinde istenmesi denetimi işe yaramaz hâle getirirdi |
+| 27 | `EXPERIMENTS-DEEP.md` **2,9 gün** bayattı | Son üretim `1791719188`, dokuz parametreli genom ise `1791967248`'de geldi. Raporda "cooperation"/"işbirliği" geçişi **0** kez — yani **var olmayan bir genomu** raporluyordu. Tazelik denetimi yalnız `EXPERIMENTS.md`'yi izliyordu | Derin paket yeniden üretildi (2.072 koşu, 912 sn). Denetim eklendi — **ancak yanlış kapsamda:** genom **şeklini** izleyecek biçimde. O gerekçe ("40 dk'lık üretimin her kod değişikliğinde istenmesi denetimi işe yaramaz hâle getirirdi") **bu satırda da geçersizdir ve 43. satırda düzeltildi**: gerekli olan "her değişiklik" değil, "rapora giren değişiklik" idi |
 | 28 | Telemetri alanı `resourcesLeft` **ölü ve yanlış**ydı | Her kare `Math.max(0, cellCount)` ile yazılıyordu — yani alan "kalan kaynak" adını taşıyordu ama **hücre sayısı** tutuyordu. Üstelik **hiçbir panelde okunmuyordu** (telemetrinin sıfır tüketiciye sahip tek alanı). Gerçek kaynak alanları `H.RESOURCE_COUNT`/`H.ROCK_COUNT` ve yalnız çizimde kullanılıyor | Alan kaldırıldı. `tsc` kullanılmayan `cellCount` yerelini de yakaladı — sıkı tip burada işe yaradı |
 | 30 | Bir deney **ölçümü olmadan** "işe yarıyor" diyordu | `experimentInWorldEvolution` rapora **hiç bağlı değil** (ölü). Koşturulunca `forkScore`'un sentinel davranışı ortaya çıktı: organizma yoksa `-Infinity` dönüyor. Rastgele tabanda **tek bir** ölüm yeter → ortalama `-Infinity`, kazanç `+Infinity`, `Infinity > 0` **doğru** → deney "canlı dünyanın dalında da işe yarıyor" diyordu. **ÖLÇÜLDÜ** (tohum 11, `generations: 0`): taban `-Infinity`, kazanç `+Infinity`, hüküm **olumlu** — ölçümün kendisi yoktu | Hüküm saf bir fonksiyona çıkarıldı (`readInWorldEvolution`) ve sonlu olmayan değerde **hüküm vermeyi reddediyor**. Aynı yapılandırma sonrası: "ÖLÇÜLEMEDİ ... aritmetik artefakttır, kanıt değildir". 3 test (NaN / ±Infinity / sonlu-pozitif / sonlu-negatif) |
 | 34 | Erişilebilirlik tercihi **sessizce yok sayılıyordu** | `systemPrefersReducedMotion()` yazılıydı ama **hiç çağrılmıyordu**: `localStorage` boşken doğrudan `false` dönülüyordu. Yani `prefers-reduced-motion: reduce` ayarlı kullanıcı **tam animasyonlu** sahneyi görüyordu. Özelliğin kendisi (ayarlar düğmesi, shader 0,15× yavaşlatma, efekt kapısı) çalışıyordu — yalnız başlangıç değeri sistemden gelmiyordu | `loadReducedMotion()` artık öncelik sırasını uyguluyor: **kullanıcının kayıtlı seçimi → sistem tercihi → kapalı.** Kullanıcı bir kez dokunduysa seçimi kalıcıdır ve sistem tercihi onu **ezmemeli**. Koruma testi eklendi ve bozularak doğrulandı |
 | 37 | Deney düğmeleri **çalıştırmıyor** ama çalışıyormuş gibi gösteriyordu | Worker'daki `runExperiment` yalnızca `{ queued: true }` yankılıyor; hiçbir deneyi başlatmıyor ve `experimentResult` mesajının **hiçbir abonelisi yok**. Buna rağmen panel "Üç deney uygulamada çalışır" diyordu, düğme 400 ms sahte "Çalışıyor…" gösteriyordu ve sonuç alanına aynı anda **"Çalışıyor… Bu deney henüz çalıştırılmadı."** yazılıyordu — kendi kendini çürüten bir iddia | İlerleme taklidi kaldırıldı, `hint` ve yeni `notWired` metni gerçeği söylüyor: deneyler `npm run experiments` ile Node'da koşar. Koruma **koşulsuz**; worker'ı bağlayan kişi onu bilerek güncellemek zorunda |
 | 42 | **Sözleşme doğrulanamıyordu:** "her parametre bedeli var" | `MODEL.md` "Her parametrenin metabolik maliyeti vardır (`basalCostFor`)" diyor — ama `bondAffinity` `basalCostFor` içinde **YOK**. Doğrulayan biri onu arar ve bulamaz, sözleşmenin yalan olduğunu sanır. Gerçek: maliyeti **dolaylı** — daha çok bağ kuruluyor (`rng.float() < genome.bondAffinity`) ve bağ başına bakım enerjisi ödeniyor. Yani bedeli var, ama kendi satırında değil | İfade düzeltildi ve kural **korundu**: her genom parametresi ya `basalCostFor` içinde doğrudan maliyetli olmalı ya da gerekçeli muafiyet listesinde (şu an yalnız `bondAffinity`) bulunmalı. Mutasyonla doğrulandı: sahte bir 10. parametre eklendi → "hiçbir yerde maliyeti olmayan genom parametresi: denemeParametresi" |
+| 43 | `EXPERIMENTS-DEEP.md` tazelik denetimi **yanlış bağımlılığı** izliyordu | Denetim, genom **şeklini** izliyordu (`types.ts` + `genome.ts`) ve **yeşildi** (1791967248 / 1791990294 < DEEP 1791993714). Gerçek bayatlık ise ölçüm kodundaydı: `scripts/run-experiments.ts` ve `src/sim/experiments/*`, DEEP üretiminden 2 gün sonra değişmişti. Sonuç: DEEP, bu oturumda **iki kez yanlışlanmış** bir kazancı (**0.215**) yayımlıyordu; güncel değer 0.032. Gerekçe "40 dk'da her kod değişikliğinde yeniden üret" idi — bu, **ölçüm kapsamı ile kod kapsamını karıştırmaktı** | Denetim artık **türetilmiş ölçüm kümesini** izliyor (`reportInputFiles()` — `src/ui/`, `src/scene/`, `src/engine/`, `src/worker/` dışarıda). Mutasyonla doğrulandı: eski küçük küme yeşil, yeni küme kırmızı |
+| 44 | §5.11–§5.16 **iki gündür** DEEP'ten ayrılmıştı; **iki hüküm ters döndü** | 14 Ekim'de DEEP yeniden üretildi, §5.11–§5.16 **güncellenmedi**. §5.11 tablosu hiçbir sütunda uyuşmuyordu (40k: 41/246/110/18 ↔ 29/235/98/25). **§5.13** "10× dayanıklılık son popülasyonu 36→52 yapıyor (+%44)" diyordu, gerçek **33→26 (−%21)**. **§5.16** "rejenerasyon popülasyonu kurtarmıyor" diyordu, gerçek **26→55 (+%112)**. §5.13 metni ayrıca **kendi tablosuyla çelişiyordu** ("4+ yapılar sıfır" ↔ tablo 13). §5.14'ün "güncel cevabı" tablosundaki üç satırın üçü de yanlıştı | Dördü de yeniden ölçüme göre yazıldı ve **ters dönen hükümler açıkça geri çekildi**. Bağ için koruma: §5.11 tam tablo eşlemesiyle, §5.12/§5.13/§5.15/§5.16 nüfus sütunuyla DEEP'e bağlandı. Dördü de mutasyonla doğrulandı (dört sayı `99` yapıldı → dört kırmızı) |
+| 45 | Üretilmiş raporda **aynı cümle iki kez** geçiyordu | `run-experiments.ts`in "Uzun vadeli dayanıklılık" metin dizisinde 548. ve 549. satır aynı cümleydi; dizi boşlukla birleştirildiği için **her iki raporda** cümle iki kez çıktı. Sayısal hata değil — üretilmiş belgenin kendisi çürüktü | Satır silindi. Koruma: raporun anlatı satırlarında **önceki satırın sonu** olan bir satır varsa denetim kırmızı. Korumanın **kendisi de** boştu: `expect` döngü içindeydi, ilk raporda fırlatıp DEEP'e bakmayı kesiyordu; iki rapor birden toplanıp tek seferde doğrulanıyor |
 | 41 | **Eksik kapı:** değişmez kontroller kırıkken 22 deney yine koşuyordu | `runInvariants()` "sayılar bu kontrollerden biri kırıkken **geçerli sayılmaz**" diyor; pipeline ise yalnızca **yazdırıyor**, `passed` alanına bakmıyordu. Kırık bir değişmez olsa süreç sıfırla çıkıp 22 deneyin sayıları rapora giriyordu. ✗ raporda görünür olsa da **kapı yoktu** — görünürlük kötülük değil, kapı eksikliğiydi. Üstelik onu koruyan test de BOŞTU: `expect(`${c.name}: ${c.detail}`).toBe(`${c.name}: ${c.detail}`)` — aynı ifadeyi kendisiyle karşılaştırıyordu | Pipeline artık kırık değişmezde **çıkış 1** ile duruyor ve hangi kontrolün kırık olduğunu stderr'e yazıyor. Teşhis için `--allow-invariant-failure` kaçışı var; o zaman da gürültülü uyarıyla devam ediyor. Test artık `passed` alanını gerçekten kontrol ediyor. İkisi de mutasyonla doğrulandı |
 | 40 | **Boş koruma:** "halka tamponu sınırsız büyümüyor" **kıramıyordu** | Ölçüldü: 3.000 tick sonrası olay sayısı **728**, kapasite **2000**. Tampon sınırına hiç ulaşmıyor; sınırsız büyüseydi bile 728 < 2000 olurdu. Dahası `RingBuffer.count` zaten kapasitede sınırlı olduğu için o doğrulama **sınıfın kendisi tarafından garanti** ediliyordu. Test yorumu "3000 tick kapasiteyi aşar" diye yazılmıştı; bu varsayım yanlıştı | Koruma yeniden yazıldı: doğrudan `RingBuffer` üzerinde **hangi** öğelerin tutulduğu sınanıyor (kapasite 3'e 5 öğe → `[3,4,5]`, en eski düşer), ayrıca dolmadan sıra korunumu ve geçersiz kapasite reddi. Dünya düzeyindeki bağlantı sınaması ayrı ve dürüst adıyla tutuldu. Mutasyonla doğrulandı |
 | 39 | Ölü deney boru hattının **tamamı** kaldırıldı | Sahte `runExperiment` komutu, `experimentResult` mesajı, protokol üyeleri ve istemci metodu — dördü de hiçbir işe yaramıyordu. Worker artık "sıraya alındı" yalanını hiç söylemiyor; düğme yalnız gerçeği söylüyor | Yeni koruma: **worker'ın ürettiği her mesajın bir tüketicisi olmalı** (bu sınıfın iki üyesi vardı: `events` ve `experimentResult`). `ack`/`pong` işlenmemiş altyapı olduğu için gerekçeyle istisna. Mutasyonla doğrulandı |

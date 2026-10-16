@@ -292,31 +292,42 @@ describe('belge tutarlılığı · üretilmiş rapor', () => {
     );
   });
 
-  it('derin rapor, genomun tanımından eski değil', () => {
-    // ⚠️ Asimetri **bilinçlidir**, gözden kaçmışlık değil.
+  it('derin rapor, ÖLÇÜM boru hattından eski değil', () => {
+    // ⚠️⚠️ Bu denetim **yanlış bağımlılığı** izliyordu ve sessizce geçiyordu.
     //
-    // `EXPERIMENTS.md` (12.000 tick, ~13 dk) sık yeniden üretilir; yukarıdaki
-    // kesin denetim ona uygulanır. `EXPERIMENTS-DEEP.md` 40.000 tick'tir ve
-    // ~40 dk sürer; HER kod değişikliğinde yeniden üretmek uygulanamaz ve
-    // denetimi işe yaramaz hâle getirirdi (insanlar atlama eğilimi).
+    // Önceden yalnız genomun **şekli** izleniyordu (`types.ts` + `genome.ts`).
+    // Gerekçesi: "40 dk'lık üretim her kod değişikliğinde istenemez." Bu
+    // gerekçe **ölçüm kapsamı ile kod kapsamını karıştırıyordu**. Yeniden
+    // üretimi gerektiren şey kodun kendisi değil, **rapora giren** kod.
+    // `reportInputFiles()` tam olarak o kümedir: `src/ui/`, `src/scene/`,
+    // `src/engine/`, `src/worker/` dışarıda kalır, yani 3B ve arayüz işi
+    // raporu bozmaz. "Her değişiklik" ile "raporu etkileyen değişiklik"
+    // arasındaki farkı bu küme kapatır.
     //
-    // Asgari gereken koşul: genomun **şekli** değiştiyse (parametre eklendi/
-    // çıkarıldı, sınır değişti) DEEP bayat sayılır. Aksi hâlde bir belge
-    // **var olmayan bir genomu** raporlar.
+    // ÖLÇÜLEN SONUÇ (14 Ekim 2026): DEEP o gün yeniden üretildi ve "Üreme
+    // tıkanması" tablosu 41/246/110/18'den **29/235/98/25'e** değişti.
+    // `VALIDATION.md` §5.11 bu tabloyu **kopyası** olarak taşıyordu ve 41'i
+    // vermeye devam etti. 11 Ekim'de ikisi birebir aynıydı; sessizce
+    // ayrıldılar ve **hiçbir denetim bakmadı** — çünkü genomun şekli
+    // değişmemişti, sadece ölçüm kodu değişmişti.
     //
-    // ÖLÇÜLEN: DEEP en son 1791719188'de üretilmişti; dokuz parametreli genom
-    // ise 1791967248'de geldi — 2,9 gün sonra. DEEP'te "cooperation" ya da
-    // "işbirliği" geçişi **0** kez. Yani gerçekten eski bir dünyayı anlatıyordu
-    // ve hiçbir denetim buna bakmıyordu.
-    const genomeShapeTime = Math.max(
-      effectiveCodeTime('src/sim/types.ts'),
-      effectiveCodeTime('src/sim/genome.ts'),
-    );
+    // DEEP'i bayat sayan başka bir kanıt: evrimsel aramanın "DEĞERLENDİRME"
+    // satırı pencereye **bağlı değil**. `evolvePolicy` çağrı yerinde
+    // `trainTicks`/`evalTicks` sabit yazılıdır ve `args.deep`'i hiç okumaz.
+    // Bu yüzden 40k ile 12k arasındaki o satır farkı pencere etkisi **olamaz**,
+    // bayatlıktır. DEEP'te iki kez yanlışlanmış kazancı (0.215) taşıyordu.
+    //
+    // Kapsam genişletildi: DEEP aynı betikten, aynı girdi kümesiyle üretilir;
+    // **ölçüm kodu değiştiyse DEEP'in sayıları eskidir**, genom şekli
+    // değişmiş olsun olmasın.
+    const codeTime = Math.max(...reportInputFiles().map(effectiveCodeTime));
     const deepTime = effectiveCodeTime('docs/EXPERIMENTS-DEEP.md');
+    expect(deepTime).toBeGreaterThan(0);
     expect(
       deepTime,
-      'EXPERIMENTS-DEEP.md genom tanımından eski — `npm run experiments -- --deep` ile yeniden üret',
-    ).toBeGreaterThanOrEqual(genomeShapeTime);
+      'EXPERIMENTS-DEEP.md ölçüm boru hattından eski — ' +
+        '`npm run experiments -- --deep --out docs/EXPERIMENTS-DEEP.md` ile yeniden üret',
+    ).toBeGreaterThanOrEqual(codeTime);
   });
 
   it('raporun bağımlılık kümesi boş değil (koruma türetmeyi başardı mı)', () => {
@@ -507,5 +518,254 @@ describe('belge tutarlılığı · düzeltme kaydı', () => {
     expect(i).toBeGreaterThan(0);
     const around = progress.slice(i, i + 260);
     expect(around).toMatch(/başarısız|denendi/i);
+  });
+});
+
+/**
+ * Üretilmiş raporların **anlatı katmanı**. Buradaki iki koruma bu oturumda
+ * bulunan iki sessiz hatayı kapatır; ikisi de ölçüm kodundan değil,
+ * metnin kendisinden geliyordu.
+ */
+describe('üretilmiş rapor · metin bütünlüğü', () => {
+  const REPORTS = ['docs/EXPERIMENTS.md', 'docs/EXPERIMENTS-DEEP.md'];
+
+  /** Kod blokları ve tablo satırları hariç, boş olmayan anlatı satırları. */
+  function proseLines(markdown: string): { line: number; text: string }[] {
+    const out: { line: number; text: string }[] = [];
+    let fence = false;
+    markdown.split('\n').forEach((raw, i) => {
+      const t = raw.trim();
+      if (t.startsWith('```')) {
+        fence = !fence;
+        return;
+      }
+      if (fence || t === '' || t.startsWith('|')) return;
+      out.push({ line: i + 1, text: t });
+    });
+    return out;
+  }
+
+  it('hiçbir raporda tekrar eden cümle yok', () => {
+    // ⚠️ ÖLÇÜLEN: `run-experiments.ts`in "Uzun vadeli dayanıklılık" bölümünde
+    // metin dizisinde **aynı cümle iki kez** sayılıydı — 548. ve 549. satır.
+    // Dizi boşlukla birleştirildiği için rapor şu haliyle yayımlanıyordu:
+    //   "…uzun vadeli çöküşü gerçekten önlüyor mu?"
+    //   "uzun vadeli çöküşü gerçekten önlüyor mu?"
+    // Yani **her iki** raporda da cümle iki kez geçiyordu. Sayısal bir hata
+    // değildi; üretilmiş belgenin kendisi çürük çıktı.
+    //
+    // Bu yüzden denetim satırın tamamen aynı olmasına değil, **önceki satırın
+    // sonu** olmasına bakar — ekleme hatası satırı yinelemeden üretir.
+    // ⚠️ Denetim **tüm raporları gezdikten sonra** bir kez doğrular.
+    // İlk sürümde `expect` döngünün içindeydi: EXPERIMENTS.md'de hata bulunca
+    // **fırlatıp döngüyü kesiyordu**, DEEP hiç denetlenmiyordu — yani
+    // "DEEP temiz" değil, "DEEP'e bakılmadı". Aynı sınıf hata: rapor
+    // denetimlerinin çoğu tek örneğe bakıp geçiyor.
+    const bad: string[] = [];
+    for (const rel of REPORTS) {
+      const lines = proseLines(read(rel));
+      for (let i = 1; i < lines.length; i++) {
+        const prev = (lines[i - 1] as { line: number; text: string }).text;
+        const cur = lines[i] as { line: number; text: string };
+        // Kısa satırlar yanlış pozitif üretir (ör. "—" veya "```" izleri).
+        if (cur.text.length < 12) continue;
+        if (prev.endsWith(cur.text) || cur.text.endsWith(prev)) {
+          bad.push(`${rel}:${cur.line}  …${prev.slice(-60)} ⏎ ${cur.text}`);
+        }
+      }
+    }
+    expect(bad, `tekrar eden cümle:\n${bad.join('\n')}`).toEqual([]);
+  });
+});
+
+describe('derin profil anlatısı üretilmiş rapora bağlı', () => {
+  it('§5.11 üreme tıkanması tablosu DEEP ile AYNI', () => {
+    // ⚠️⚠️ ÖLÇÜLEN: `VALIDATION.md` §5.11, `docs/EXPERIMENTS-DEEP.md`nin
+    // "Üreme tıkanması teşhisi" tablosunun **kopyasıdır** ve §10'daki kayıt
+    // "tümü DEEP'e hizalandı" der. 11 Ekim'de doğruydu (41/246/110/18).
+    // 14 Ekim'de DEEP yeniden üretilince tablo **29/235/98/25**'e değişti;
+    // §5.11 sessizce eski kaldı. Satır satır **hiçbir sütunda uyuşmuyordu**.
+    //
+    // Sebep: DEEP'in tazelik denetimi yalnız *genom şeklini* izliyordu;
+    // sayıları değiştiren şey ise ölçüm kodu idi.
+    const deep = section(read('docs/EXPERIMENTS-DEEP.md'), [
+      '## Üreme tıkanması teşhisi',
+      '\n## ',
+    ]);
+    expect(deep, 'DEEP içinde "Üreme tıkanması teşhisi" bölümü bulunamadı').not.toBe('');
+
+    // Sütun düzeni **sabit** olmalı; başlık tutmazsa eşleme sessizce kayar.
+    const header =
+      /tick\s+pop\s+org\s+küm\.dğ\s+bud\s+frag\s+kurucu soy\s+kurucu hücre\s+soy hücre\s+kol\.nesil\s+küme/.test(
+        deep,
+      );
+    expect(
+      header,
+      'DEEP "Üreme tıkanması" tablosunun sütun düzeni değişti — eşleme güncellenmeli',
+    ).toBe(true);
+
+    // DEEP satırları: `tick pop org küm.dğ bud frag kurucu soy kurucu hücre soy hücre kol.nesil küme`
+    // §5.11 bunun **alt kümesi**: kurucu soy / kurucu hücre / soy hücre sütunları yok.
+    const WANTED = ['pop', 'org', 'küm.dğ', 'bud', 'frag', 'kol.nesil', 'küme'] as const;
+    const DEEP_IDX = [0, 1, 2, 3, 4, 8, 9];
+
+    const deepRows = new Map<number, string[]>();
+    for (const raw of deep.split('\n')) {
+      const t = raw.trim();
+      if (!/^\d/.test(t)) continue;
+      const cells = t.split(/\s+/);
+      if (cells.length !== 11) continue;
+      deepRows.set(Number(cells[0]), cells.slice(1));
+    }
+    expect(deepRows.size, 'DEEP tablosundan tick satırı okunamadı').toBeGreaterThanOrEqual(4);
+
+    const sec = section(read('docs/VALIDATION.md'), ['### 5.11 ', '### 5.12 ']);
+    expect(sec, 'VALIDATION §5.11 bulunamadı').not.toBe('');
+    const valRows = new Map<number, string[]>();
+    for (const raw of sec.split('\n')) {
+      if (!raw.trim().startsWith('|')) continue;
+      const cells = raw
+        .split('|')
+        .slice(1, -1)
+        .map((c) => c.replace(/\*\*/g, '').trim());
+      if (cells.length !== WANTED.length + 1) continue;
+      const tick = Number((cells[0] as string).replace(/\./g, ''));
+      if (!Number.isFinite(tick)) continue;
+      valRows.set(tick, cells.slice(1));
+    }
+    expect(valRows.size, '§5.11 tablosundan tick satırı okunamadı').toBeGreaterThanOrEqual(4);
+
+    const mismatch: string[] = [];
+    for (const [tick, want] of valRows) {
+      const have = deepRows.get(tick);
+      if (!have) {
+        mismatch.push(`tick ${tick}: DEEP'te yok`);
+        continue;
+      }
+      WANTED.forEach((name, i) => {
+        const a = have[DEEP_IDX[i] as number] as string;
+        const b = want[i] as string;
+        if (a !== b) mismatch.push(`tick ${tick} ${name}: §5.11=${b} DEEP=${a}`);
+      });
+    }
+    expect(mismatch, `§5.11 DEEP'ten ayrışmış:\n${mismatch.join('\n')}`).toEqual([]);
+  });
+
+  // §5.12–§5.16'da tüm sütunları eşlemek **biçim belirsizliği** yaratıyor:
+  // DEEP `26.3975427799%` yazarken belge `%26.4`, bağ ömrünü `2083` yerine
+  // `2.083`, çöküş oranını `6.45454545` yerine `6.5×` yazıyor. Ondalık
+  // basamağı farklı olan sayıları güvenilir biçimde eşlemek, korumanın
+  // **yanlış negatif** üretmesine yol açar. Oysa bu bölümlerin bilimsel
+  // iddiası tamamen **nüfus sayılarına** dayanıyor: §5.13 "52", §5.16 "55"
+  // diyor. Nüfus tam sayıdır, biçimi tartışmasızdır — ve ters dönen iki hüküm
+  // de tam olarak bu sütundan geliyordu. Koruma bu yüzden **nüfus sütununu**
+  // bağlar.
+  /**
+   * Tablo anahtarını kanonik sayıya çevirir.
+   *
+   * ⚠️ **İki biçim çatışıyor.** Belge tick'i Türkçe binlik ayracıyla yazıyor
+   * (`16.000` = on altı bin), strainK'yı ondalıklı yazıyor (`0.020` = 0,02).
+   * Noktayı her yerde silmek `16.000 → 16`, her yerde bırakmak da `16.000 → 16`
+   * demek; ikisi de yanlış. Bu yüzden mod açıkça seçiliyor. İlk denemede mod
+   * yoktu ve §5.12/§5.15 "DEEP'te yok" diye kırıldı — anahtarlar 4/8/12/20
+   * olarak karşılaştırılıyordu.
+   */
+  type KeyMode = 'int' | 'float';
+  const keyOf = (raw: string, mode: KeyMode): number => {
+    const lead = raw.match(/\d[\d.]*/)?.[0] ?? '';
+    return mode === 'int' ? Number(lead.replace(/\./g, '')) : Number(lead);
+  };
+
+  function deepByKey(
+    sec: string,
+    width: number,
+    popIdx: number,
+    mode: KeyMode,
+  ): Map<string, string> {
+    const m = new Map<string, string>();
+    for (const raw of sec.split('\n')) {
+      const t = raw.trim();
+      if (!/^[\d.]/.test(t)) continue;
+      const c = t.split(/\s+/);
+      if (c.length !== width) continue;
+      m.set(String(keyOf(c[0] as string, mode)), c[popIdx] as string);
+    }
+    return m;
+  }
+
+  function validByKey(
+    sec: string,
+    width: number,
+    popIdx: number,
+    mode: KeyMode,
+  ): Map<string, string> {
+    const m = new Map<string, string>();
+    for (const raw of sec.split('\n')) {
+      if (!raw.trim().startsWith('|')) continue;
+      const c = raw.split('|').slice(1, -1).map((x) => x.replace(/\*\*/g, '').trim());
+      if (c.length !== width) continue;
+      // Başlık satırı ("Tick", "strainK", "regen") ve ayırıcı satır (`|---|`)
+      // sayı değildir. ⚠️ Ayırıcı satırın ilk hücresi `"---"`: içinde digit
+      // yoksa `Number("") → 0` dönüyor ve koruma **0. satırı veri sanıyordu**.
+      if (!/\d/.test(c[0] as string)) continue;
+      const key = keyOf(c[0] as string, mode);
+      if (!Number.isFinite(key)) continue;
+      m.set(String(key), c[popIdx] as string);
+    }
+    return m;
+  }
+
+  /**
+   * Bir anlatı tablosunun nüfus sütununu DEEP'in karşılığına bağlar.
+   *
+   * ⚠️ Boş dönerse **her şey geçer** — bu yüzden iki kümenin de dolu olduğu
+   * ayrıca doğrulanır. Sıfır satır okuyan bir koruma, olmayan korumadan
+   * daha kötüdür (yanlış güvence üretir).
+   */
+  function bindPopulation(
+    label: string,
+    deepHeading: string,
+    deepWidth: number,
+    popIdx: number,
+    mode: KeyMode,
+    validMark: [string, string],
+    validWidth: number,
+  ): void {
+    const deep = section(read('docs/EXPERIMENTS-DEEP.md'), [deepHeading, '\n## ']);
+    const val = section(read('docs/VALIDATION.md'), validMark);
+    expect(deep, `${label}: DEEP bölümü bulunamadı`).not.toBe('');
+    expect(val, `${label}: VALIDATION bölümü bulunamadı`).not.toBe('');
+    const a = deepByKey(deep, deepWidth, popIdx, mode);
+    const b = validByKey(val, validWidth, popIdx, mode);
+    expect(a.size, `${label}: DEEP tablosu okunamadı (sütun düzeni değişmiş olabilir)`).toBeGreaterThan(2);
+    expect(b.size, `${label}: VALIDATION tablosu okunamadı`).toBeGreaterThan(2);
+    const bad: string[] = [];
+    for (const [k, want] of b) {
+      const have = a.get(k);
+      if (have === undefined) bad.push(`anahtar ${k}: DEEP'te yok`);
+      else if (have !== want) bad.push(`anahtar ${k}: belge=${want} DEEP=${have}`);
+    }
+    expect(bad, `${label} nüfus sütunu DEEP'ten ayrışmış:\n${bad.join('\n')}`).toEqual([]);
+  }
+
+  // ⚠️ `popIdx` bölümden bölüme değişir ve **elle** verilir: DEEP'in Faz B1
+  // tablosunda `pop` ile `org` ayrı sütun olduğu için nüfus 1. sütundadır;
+  // "Uzun vadeli dayanıklılık" tablosunda ise 2. sütundadır. Bunu sezgisel
+  // bir kurala bağlamak (sütun sayısına bakmak) iki bölümü yanlış sütuna
+  // bağlardı — ilk denemede tam olarak bu oldu.
+  it('§5.12 nüfus sütunu Faz B1 tablosuyla AYNI', () => {
+    bindPopulation('§5.12', '## Faz B1 · Ekolojik sönümlenme teşhisi', 12, 1, 'int', ['### 5.12 ', '### 5.13 '], 8);
+  });
+
+  it('§5.13 son popülasyonu uzun vadeli dayanıklılık tablosuyla AYNI', () => {
+    bindPopulation('§5.13', '## Uzun vadeli dayanıklılık', 10, 2, 'float', ['### 5.13 ', '### 5.14 '], 10);
+  });
+
+  it('§5.15 popülasyonu 40.000 tick sınırı tablosuyla AYNI', () => {
+    bindPopulation('§5.15', '## 40.000 tick sınırı', 10, 1, 'int', ['### 5.15 ', '### 5.16 '], 8);
+  });
+
+  it('§5.16 son popülasyonu kaynak rejenerasyonu tablosuyla AYNI', () => {
+    bindPopulation('§5.16', '## Kaynak rejenerasyonu A/B', 11, 2, 'float', ['### 5.16 ', '### 5.17 '], 9);
   });
 });

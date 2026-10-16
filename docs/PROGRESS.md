@@ -1,6 +1,17 @@
 # Cell to Mind — Geliştirme Durumu
 
-**Son güncelleme:** 14 Ekim 2026
+**Son güncelleme:** 16 Ekim 2026
+
+> ⚠️ **Bu belgede ve `VALIDATION.md` §5.11–§5.16'da iki gündür (14 Ekim)
+> sessizce bayat sayılar vardı.** `EXPERIMENTS-DEEP.md` 14 Ekim'de yeniden
+> üretildiğinde derin profilin bulguları değişti, anlatı belgeleri
+> güncellenmedi. Bunun sonucu iki **hüküm ters döndü**:
+> `VALIDATION.md` §5.13 "10× dayanıklılık son popülasyonu 36→52 yapıyor"
+> derken gerçek **33→26 (−%21)**; §5.16 "rejenerasyon popülasyonu
+> kurtarmıyor" derken gerçek **26→55 (+%112)**. Sebep, DEEP'in tazelik
+> denetiminin ölçüm kodunu değil yalnız *genom şeklini* izlemesiydi.
+> Denetim artık raporun gerçek girdi kümesini izliyor ve §5.11–§5.16
+> DEEP'e bağlandı. Ayrıntı: `VALIDATION.md` §10, 43–45. satırlar.
 
 Bu belge, görev sınırına yaklaşıldığı noktada **çalışan kodun** durumunu,
 kalan somut eksikleri ve sonraki adımı yazar. Kodun ortasında kullanılamaz taslak
@@ -13,7 +24,7 @@ doğrulanmıştır.
 
 | Alan | Durum | Kanıt |
 |---|---|---|
-| Saf TS simülasyon çekirdeği | ✅ | 253 test, 9 dosya, ~95 sn |
+| Saf TS simülasyon çekirdeği | ✅ | 259 test, 9 dosya, ~95 sn |
 | Enerji korunumu (kapalı sistem) | ✅ | rezidüel = **0.0000** (arena'da 0.0 e, kolonide 1.7e-8 e) |
 | Bölünme / parçalanma / paylaşım muhasebesi | ✅ | testler |
 | Bağ grafiği → gerçek çok hücrelilik | ✅ | 4+ hücreli yapılar test edildi |
