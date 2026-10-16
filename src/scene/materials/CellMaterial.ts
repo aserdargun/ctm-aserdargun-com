@@ -13,11 +13,11 @@
  */
 
 import {
-  AdditiveBlending,
+
   Color,
   DoubleSide,
   MeshStandardMaterial,
-  Object3D,
+
   type IUniform,
 } from 'three';
 
@@ -199,34 +199,4 @@ export function createCellMaterial(): CellMaterialHandle {
 }
 
 /** Işık huzmesi (god ray) için additive malzeme. */
-export function createShaftMaterial(color: Color, opacity: number): MeshStandardMaterial {
-  const material = new MeshStandardMaterial({
-    color,
-    transparent: true,
-    opacity,
-    depthWrite: false,
-    blending: AdditiveBlending,
-    side: DoubleSide,
-  });
-  material.onBeforeCompile = (shader) => {
-    shader.uniforms.uTime = { value: 0 };
-    (material.userData as { timeUniform?: IUniform }).timeUniform = shader.uniforms.uTime;
-    shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying float vY;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvY = position.y;');
-    shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nuniform float uTime;\nvarying float vY;')
-      .replace(
-        '#include <dithering_fragment>',
-        /* glsl */ `
-        #include <dithering_fragment>
-        float flicker = 0.75 + 0.25 * sin(uTime * 0.7 + vY * 2.0);
-        gl_FragColor.a *= flicker;
-        `,
-      );
-  };
-  material.customProgramCacheKey = () => 'ctm-shaft-v1';
-  return material;
-}
 
-export const scratchObject = new Object3D();

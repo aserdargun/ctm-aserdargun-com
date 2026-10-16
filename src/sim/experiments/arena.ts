@@ -286,32 +286,3 @@ export function runTrial(options: TrialOptions): TrialResult {
  * Bir koşu dizisini özetler. **Hiçbir koşu düşürülmez** — koşu sayısı
  * `outcomes.length` olarak raporlanır (JMLR 2024, "hiçbir koşu atılmaz").
  */
-export function summarizeTrials(results: readonly TrialResult[]): {
-  n: number;
-  meanEnergyNorm: number;
-  survived: number;
-  meanLearningUpdates: number;
-  worstResidual: number;
-} {
-  if (results.length === 0) {
-    return { n: 0, meanEnergyNorm: Number.NaN, survived: 0, meanLearningUpdates: 0, worstResidual: 0 };
-  }
-  let sum = 0;
-  let survived = 0;
-  let updates = 0;
-  let worstResidual = 0;
-  for (const r of results) {
-    sum += r.meanEnergyNorm;
-    if (r.survivedToEnd) survived++;
-    updates += r.learningUpdates;
-    const abs = Math.abs(r.ledgerResidual);
-    if (abs > Math.abs(worstResidual)) worstResidual = r.ledgerResidual;
-  }
-  return {
-    n: results.length,
-    meanEnergyNorm: sum / results.length,
-    survived,
-    meanLearningUpdates: updates / results.length,
-    worstResidual,
-  };
-}

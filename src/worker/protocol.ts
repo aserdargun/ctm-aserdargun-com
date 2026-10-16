@@ -239,37 +239,3 @@ export type WorkerResponse =
   | { type: 'pong'; t: number };
 
 /** Kare paketini okunabilir nesneye çevirir (yalnız seçili organizma için kullanılır). */
-export function readFrame(data: Float32Array): {
-  tick: number;
-  simTime: number;
-  population: number;
-  systemEnergy: number;
-  externalInput: number;
-  dissipated: number;
-  initialEnergy: number;
-  largestColony: number;
-  coloniesFour: number;
-  bondCount: number;
-  light: number;
-  predator: { active: boolean; pos: Vec3; radius: number; energy: number };
-} {
-  return {
-    tick: data[H.TICK] as number,
-    simTime: data[H.SIM_TIME] as number,
-    population: data[H.POPULATION] as number,
-    systemEnergy: data[H.SYSTEM_ENERGY] as number,
-    externalInput: data[H.EXTERNAL_INPUT] as number,
-    dissipated: data[H.DISSIPATED] as number,
-    initialEnergy: data[H.INITIAL_ENERGY] as number,
-    largestColony: data[H.LARGEST_COLONY] as number,
-    coloniesFour: data[H.COLONIES_FOUR] as number,
-    bondCount: data[H.BOND_COUNT] as number,
-    light: data[H.LIGHT] as number,
-    predator: {
-      active: (data[H.PREDATOR_ACTIVE] as number) > 0.5,
-      pos: { x: data[H.PREDATOR_X] as number, y: data[H.PREDATOR_Y] as number, z: data[H.PREDATOR_Z] as number },
-      radius: data[H.PREDATOR_RADIUS] as number,
-      energy: data[H.PREDATOR_ENERGY] as number,
-    },
-  };
-}
