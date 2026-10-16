@@ -87,20 +87,27 @@ interface Args {
   quick: boolean;
   /** `--deep`: 40.000 tick'lik uzun pencereler (yavaş, ama ekolojik çöküşü görür). */
   deep: boolean;
+  /**
+   * `--allow-invariant-failure`: kırık değişmez kontrol olsa bile devam et.
+   * Teşhis amaçlı; sonuçlar geçerli sayılmaz.
+   */
+  allowInvariantFailure: boolean;
   out: string | null;
 }
 
 function parseArgs(argv: readonly string[]): Args {
   let quick = false;
   let deep = false;
+  let allowInvariantFailure = false;
   let out: string | null = null;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--quick') quick = true;
     else if (a === '--deep') deep = true;
+    else if (a === '--allow-invariant-failure') allowInvariantFailure = true;
     else if (a === '--out') out = argv[++i] ?? null;
   }
-  return { quick, deep, out };
+  return { quick, deep, allowInvariantFailure, out };
 }
 
 function reportBlock(report: ExperimentReport, rawValues: boolean): string {
@@ -125,6 +132,23 @@ function main(): void {
   process.stdout.write(`1/22  değişmez kontroller…\n`);
   const invariants = runInvariants();
   process.stdout.write(`${formatInvariant(invariants)}\n\n`);
+  // ⚠️ Dürüstlük sözleşmesinin KAPISI. Proje "sayılar bu kontrollerden biri
+  // kırıkken geçerli sayılmaz" diyor; önceden yalnızca yazdırılıyordu ve
+  // 22 deney kırık bir zeminde koşmaya devam ediyordu. ✗ raporda görünür
+  // olsa da süreç sıfırla çıkıyordu — yani "görünür" kötülük değil, kapı
+  // eksikliğiydi. Teşhis için `--allow-invariant-failure` ile geçilebilir.
+  const broken = invariants.filter((c) => !c.passed);
+  if (broken.length > 0) {
+    const msg = broken.map((c) => `  ✗ ${c.name} — ${c.detail}`).join('\n');
+    if (!args.allowInvariantFailure) {
+      process.stderr.write(
+        `\nDeğişmez kontroller KIRIK; sonuçlar geçerli sayılmaz:\n${msg}\n` +
+          'Teşhis için: --allow-invariant-failure\n',
+      );
+      process.exit(1);
+    }
+    process.stderr.write(`\nUYARI: kırık değişmez kontroller (--allow-invariant-failure):\n${msg}\n`);
+  }
 
   process.stdout.write(`2/22  arena zorluk kalibrasyonu…\n`);
   const difficulty = calibrateArena({

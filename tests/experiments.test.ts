@@ -279,13 +279,16 @@ describe('koloni müdahalesi', () => {
 });
 
 describe('deney paketi bütünlüğü', () => {
-  it('tüm değişmez kontroller geçer', () => {
+  it('tüm değişmez kontroller GERÇEKTEN geçer', () => {
+    // ⚠️ Önceki sürüm `expect(`${c.name}: ${c.detail}`).toBe(`${c.name}: ${c.detail}`)`
+    // idi — YANNIŞ İFADEYİ KENDİSİYLE KARŞILAŞTIRIYORDU. Yapısal olarak her
+    // zaman doğruydu: `passed` alanına hiç bakmıyordu. Yani projenin kendi
+    // dürüstlük sözleşmesinin ("sayılar bu kontrollerden biri kırıkken geçerli
+    // sayılmaz") koruması HİÇBİR ŞEY DOĞRULAMIYORDU.
     const checks = runInvariants();
-    for (const c of checks) {
-      expect(`${c.name}: ${c.detail}`).toBe(`${c.name}: ${c.detail}`);
-      expect(c.passed, `${c.name} başarısız — ${c.detail}`).toBe(true);
-    }
-    expect(checks.length).toBeGreaterThanOrEqual(5);
+    expect(checks.length, 'değişmez listesi boş — tarama çalışmıyor').toBeGreaterThan(3);
+    const failed = checks.filter((c) => !c.passed).map((c) => `${c.name}: ${c.detail}`);
+    expect(failed, `kırık değişmez kontrol(ler):\n${failed.join('\n')}`).toEqual([]);
   });
 
   it('zorluk kalibrasyonu azalan headroom eğrisi verir', () => {
