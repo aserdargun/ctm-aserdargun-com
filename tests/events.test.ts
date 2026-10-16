@@ -8,6 +8,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { RingBuffer } from '../src/sim/ring.ts';
 import { World } from '../src/sim/world.ts';
 import type { SimEvent } from '../src/sim/types.ts';
 
@@ -41,10 +42,34 @@ describe('olay günlüğü · dünya kaydı', () => {
     }
   });
 
-  it('halka tamponu sınırsız büyümüyor', () => {
+  it('halka tamponu kapasiteyi aşınca EN ESKİYİ düşürür', () => {
+    // ⚠️ Önceki sürüm BU KORUMA BOŞTU: 3000 tick sonrası ölçülen olay sayısı
+    // yalnızca 728 — kapasite 2000. Yani tampon sınırına hiç ULAŞMIYORDU ve
+    // `size <= 2000` sınırsız büyüseydi de geçerdi. Dahası RingBuffer.count
+    // zaten kapasitede sınırlı olduğu için o doğrulama sınıfın kendisi
+    // tarafından garanti ediliyordu.
+    //
+    // Gerçek risk şu: kapasite aşılınca HANGİ öğeler tutuluyor? Eski olanlar
+    // düşmeli, sıra korunmalı. Doğrudan sınıf üzerinde sınanıyor.
+    const b = new RingBuffer<number>(3);
+    for (const i of [1, 2, 3, 4, 5]) b.push(i);
+    expect(b.size).toBe(3);
+    expect(b.toArray()).toEqual([3, 4, 5]); // en eski (1,2) düştü
+    expect(b.last()).toBe(5);
+    expect(b.recent(2)).toEqual([4, 5]);
+    // Kapasite tam dolmadan da sıra korunmalı.
+    const c = new RingBuffer<number>(3);
+    c.push(1);
+    c.push(2);
+    expect(c.toArray()).toEqual([1, 2]);
+    expect(c.last()).toBe(2);
+    // Geçersiz kapasite reddedilmeli.
+    expect(() => new RingBuffer<number>(0)).toThrow();
+  });
+
+  it('dünyanın olay tamponu kapasiteye bağlı (bağlantı sınaması)', () => {
     const w = new World({ seed: 11, population: 48, strainDecayK: 0.005 });
     for (let t = 1; t <= 3000; t++) w.step();
-    // RingBuffer kapasitesi 2000; istenen miktar fazlasını talep edebilir.
     expect(w.events.size).toBeLessThanOrEqual(2000);
     expect(w.recentEvents(100).length).toBeLessThanOrEqual(100);
   });
