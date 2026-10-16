@@ -219,7 +219,26 @@ describe('ölçüm kodu · ölü ölçüm kapsamı koruması', () => {
     expect(unused, `kullanılmayan i18n anahtarı: ${unused.join(', ')}`).toEqual([]);
   });
 
-  it('bir adı iki modül TANIMLAYAMAZ (ölü beyan sınıfının kapısı)', () => {
+  it('azaltılmış hareket: kullanıcı seçimi önce, sistem tercihi sonra', () => {
+  // ⚠️ `systemPrefersReducedMotion()` yıllardır yazılıydı ama HİÇ ÇAĞRILMIYORDU:
+  // localStorage boşken doğrudan `false` dönülüyordu. Yani `prefers-reduced-motion:
+  // reduce` ayarlı kullanıcı tam animasyonlu sahneyi görüyordu — erişilebilirlik
+  // tercihi sessizce yok sayılıyordu.
+  const store = readFileSync(join(ROOT, 'src/engine/store.ts'), 'utf8');
+  const fn = store.match(/function loadReducedMotion\(\): boolean \{[\s\S]*?\n\}/)?.[0] ?? '';
+  expect(fn, 'loadReducedMotion bulunamadı').not.toBe('');
+  // Önce KAYITLI KULLANICI SEÇİMİ: "1"→true, "0"→false, ikisi de sistem
+  // tercihine düşmemeli.
+  const stored = fn.indexOf('stored');
+  const system = fn.indexOf('systemPrefersReducedMotion');
+  expect(stored, 'kullanıcının localStorage seçimi okunmuyor').toBeGreaterThan(-1);
+  expect(system, 'sistem tercihi hiç sorgulanmıyor').toBeGreaterThan(-1);
+  expect(stored, 'sistem tercihi kullanıcı seçiminden ÖNCE gelmemeli').toBeLessThan(system);
+  // Artık çağrılıyor olmalı — önceden ölüydü.
+  expect(store.match(/systemPrefersReducedMotion\(\)/g)?.length ?? 0).toBeGreaterThanOrEqual(1);
+});
+
+it('bir adı iki modül TANIMLAYAMAZ (ölü beyan sınıfının kapısı)', () => {
     // "genomeDistance" üç modülde üç farklı hesap olarak yaşıyordu; iki modül
     // aynı adı **tanımlıyordu** (üçüncüsü satır içi bir ifadeydi). Aynı adlı
     // iki tanım = içe aktarma yoluna göre farklı sayı üreten sessiz bir kova.
@@ -442,9 +461,6 @@ describe('ölü alet · dışa aktarım gerçekten tüketiliyor mu', () => {
     // iken formülün satır içi kopyası yaşıyordu — kopyalar bağlandı).
     const KNOWN_UNWIRED: Record<string, string> = {
       // Ürün kararı gerektirenler:
-      systemPrefersReducedMotion:
-        'prefers-reduced-motion erişilebilirliği. Bağlamak ÜRÜN KARARIDIR: ' +
-        'simülasyonun sürekli hareketi ürünün kendisi (6 useFrame), basit aç/kapa değil',
       getRecord: 'IndexedDB kayıt okuma — UI düğmesi yok; PROGRESS.md "tarayıcıda test edilmemiş" diye kayıtlı',
       estimateUsage: 'IndexedDB kota ölçümü — getRecord ile aynı bağlanmamış yüzey',
       // Saf temizlik borcu — etkileri bu turda ARAŞTIRILMADI:

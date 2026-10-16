@@ -193,12 +193,30 @@ function loadLanguage(): Language {
   return 'tr'; // Türkçe varsayılan
 }
 
+/**
+ * Azaltılmış hareket başlangıç değeri.
+ *
+ * Öncelik sırası: **kullanıcının kendi seçimi → işletim sistemi tercihi →
+ * kapalı.** Kullanıcı düğmeye bir kez dokunduysa seçimi kalıcıdır ve sistem
+ * tercihi onu EZMEMEZ — aksi hâlde her açılışta ayar kullanıcının kararını
+ * geçersiz kılardı.
+ *
+ * ⚠️ Bu satır önceden yoktu: `localStorage` boşken doğrudan `false`
+ * dönülüyordu, yani `prefers-reduced-motion: reduce` ayarlı bir kullanıcı
+ * tam animasyonlu sahneyi görüyordu. `systemPrefersReducedMotion()` zaten
+ * yazılıydı ama HİÇ ÇAĞRILMIYORDU — erişilebilirlik tercihi sessizce yok
+ * sayılıyordu.
+ */
 function loadReducedMotion(): boolean {
+  let stored: string | null = null;
   try {
-    return localStorage.getItem('ctm.reducedMotion') === '1';
+    stored = localStorage.getItem('ctm.reducedMotion');
   } catch {
-    return false;
+    stored = null;
   }
+  if (stored === '1') return true;
+  if (stored === '0') return false;
+  return systemPrefersReducedMotion();
 }
 
 export const useStore = create<StoreState>((set, get) => ({
