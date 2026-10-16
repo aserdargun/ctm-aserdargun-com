@@ -146,6 +146,12 @@ function reportInputFiles(): string[] {
   return [...seen];
 }
 
+function section(text: string, marks: [string, string]): string {
+  const i = text.indexOf(marks[0]);
+  const j = text.indexOf(marks[1], i + 1);
+  return i === -1 ? '' : text.slice(i, j === -1 ? text.length : j);
+}
+
 describe('belge tutarlılığı · üretilmiş rapor', () => {
   it('EXPERIMENTS.md var ve boş değil', () => {
     expect(read('docs/EXPERIMENTS.md').length).toBeGreaterThan(5000);
@@ -232,10 +238,20 @@ describe('belge tutarlılığı · üretilmiş rapor', () => {
     expect(strain, 'raporda kopma anı medyan uzaması yok').toBeTruthy();
     expect(strength, 'raporda kopma anı medyan dayanımı yok').toBeTruthy();
     expect(broken, 'raporda kopan bağ sayısı yok').toBeTruthy();
-    const validation = read('docs/VALIDATION.md');
-    expect(validation, `§5.3 medyan uzaması (${strain}) uyuşmuyor`).toContain(strain as string);
-    expect(validation, `§5.3 medyan dayanımı (${strength}) uyuşmuyor`).toContain(strength as string);
-    expect(validation, `§5.3 kopan bağ sayısı (${broken}) uyuşmuyor`).toContain(broken as string);
+    // Bölüm kapsamlı — belge geneli araması düzeltme notundaki değeri
+    // "bulunmuş" sayar (mutasyonla sınandı, önce yanlış negatif verdi).
+    const sec = section(read('docs/VALIDATION.md'), ['### 5.3 ', '### 5.4 ']);
+    const rowFor = (label: string): string | undefined =>
+      sec.split('\n').find((l) => l.startsWith(`| ${label}`));
+    const strainRow = rowFor('Koptukları andaki medyan uzama');
+    expect(strainRow, '§5.3 medyan uzama satırı bulunamadı').toBeTruthy();
+    expect(strainRow, `§5.3 medyan uzaması (${strain}) uyuşmuyor`).toContain(strain as string);
+    const strengthRow = rowFor('Koptukları andaki medyan dayanım');
+    expect(strengthRow, '§5.3 medyan dayanımı satırı bulunamadı').toBeTruthy();
+    expect(strengthRow, `§5.3 medyan dayanımı (${strength}) uyuşmuyor`).toContain(strength as string);
+    const brokenRow = rowFor('Kopan bağ sayısı');
+    expect(brokenRow, '§5.3 kopan bağ satırı bulunamadı').toBeTruthy();
+    expect(brokenRow, `§5.3 kopan bağ sayısı (${broken}) uyuşmuyor`).toContain(broken as string);
   });
 
   it('VALIDATION §4.9 evrimsel arama sayıları raporla AYNI', () => {
@@ -248,12 +264,20 @@ describe('belge tutarlılığı · üretilmiş rapor', () => {
     const line = report.match(/DEĞERLENDİRME[^\n]*kazanç\s+(-?\d+\.\d+)/)?.[1];
     expect(line, 'raporda "DEĞERLENDİRME … kazanç" satırı bulunamadı').toBeTruthy();
     const gain = line as string;
-    const validation = read('docs/VALIDATION.md');
-    expect(validation, `VALIDATION §4.9 raporun kazancını (${gain}) taşımıyor`).toContain(`+${gain}`);
-    // Aynı satırdaki taban da taşınmalı.
+    // ⚠️ BÖLÜM KAPSAMLI ARIAMA. Belge GENELİ alt dizge araması YANLIŞ
+    // NEGATİF üretir: düzeltme notunda geçen değer, tablodaki bayat değeri
+    // "bulunmuş" sayar. Sınandı — §5.3'te aynı hata vardı ve ikisi de düzeltildi.
+    const sec = section(read('docs/VALIDATION.md'), ['### 4.9 ', '### 4.10 ']);
+    // Bölüm yetmiyor: bölüm içinde aynı değer BAŞKA satırlarda da geçiyordu ve
+    // mutasyon sınandı — yanlış negatif verdi. SPESİFİK TABLO SATIRI şart.
+    const gainRow = sec.split('\n').find((l) => l.startsWith('| **Kazanım**'));
+    expect(gainRow, '§4.9 kazanım satırı bulunamadı').toBeTruthy();
+    expect(gainRow, `§4.9 kazanım satırı ${gain} taşımıyor`).toContain(`+${gain}`);
     const base = report.match(/DEĞERLENDİRME[^\n]*rastgele taban\(en iyi\)\s+(-?\d+\.\d+)/)?.[1];
     expect(base, 'raporda değerlendirme tabanı bulunamadı').toBeTruthy();
-    expect(validation, `VALIDATION §4.9 raporun tabanını (${base}) taşımıyor`).toContain(base as string);
+    const baseRow = sec.split('\n').find((l) => l.startsWith('| **Değerlendirme'));
+    expect(baseRow, '§4.9 değerlendirme satırı bulunamadı').toBeTruthy();
+    expect(baseRow, `§4.9 değerlendirme tabanı ${base} taşımıyor`).toContain(base as string);
   });
 
   it('anlatı belgeleri bayat test sayısı taşımıyor', () => {

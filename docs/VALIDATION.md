@@ -505,10 +505,8 @@ yöntemi.**
 | 4 | 0.935 | 0.928 |
 | 9 | 0.937 | 0.930 |
 
-| | Skor | Rastgele taban |
-|---|---|---|
 | | Skor | Rastgele taban (en iyi) | Ortalama |
-|---|---|---|---|
+|---|---|---|---|---|
 | Eğitim tohumları — bulunan | 0.937 | 0.892 | 0.859 |
 | **Değerlendirme (görülmemiş) — bulunan** | **0.926** | **0.894** | 0.855 |
 | **Kazanım** | **+0.032** | — | — |
