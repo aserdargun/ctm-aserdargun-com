@@ -937,6 +937,20 @@ describe('README iddia tablosu rapora bağlı', () => {
    */
   const NARRATIVE_PS_DOCS = ['README.md', 'docs/PROGRESS.md', 'docs/ROADMAP.md'] as const;
 
+  /**
+   * `VALIDATION.md` §4.6–§4.12 — pipeline'ın ürettiği, henüz bölüm bazlı
+   * bağı olmayan tek aralık. §4.3–4.5 ve §4.9 zaten ayrı ayrı bağlı; §6
+   * (deney günlüğü) ve §10 (hata kaydı) tasarım gereği tarihsel.
+   *
+   * ⚠️ Bu aralıktaki tek izlenemeyen değer **kabul edilmiş bir istisnadır**:
+   * "Yaşam içi REINFORCE (75 güncelleme)" satırı pipeline'ın **dışında**,
+   * elle ad-hoc ölçülmüş bir değerdir ve belgede öyle işaretlidir. Denetim
+   * "açıklanmamış kaynak" ile "belgelenmiş istisna" ayrımını yapabilsin diye
+   * `pipeline dışı ölçüm` işaretini tanır — böylece muafiyet **görünür**
+   * kalır ve kazara kaybolmaz.
+   */
+  const OFF_PIPELINE = /pipeline dışı ölçüm/i;
+
   it('§5.8 Y-2 derin ölçümü DEEP ile AYNI (pencere bağımlı)', () => {
     // ⚠️ ÖLÇÜLEN: §5.8 40.000 tick'lik ölçümü anlatıyor ama yalnız **standart**
     // rapora (12.000 tick) bakıyordu — derin ölçüm `EXPERIMENTS-DEEP.md`'de
@@ -1000,7 +1014,24 @@ describe('README iddia tablosu rapora bağlı', () => {
       });
       if (orphans.length > 0) summary.push(`${rel}: ${orphans.join(', ')}`);
     }
-    // ⚠️ Tüm belgeler **tek seferde** toplanıp doğrulanıyor: `expect` döngünün
+
+    // §4.6–§4.12 aralığı: §6 ve §10 zaten dışarıda olduğu için doğrudan
+    // bölüm aralığı alınır.
+    const vsec = section(read('docs/VALIDATION.md'), ['### 4.6 ', '\n## 5']);
+    expect(vsec, 'VALIDATION §4.6–§4.12 bulunamadı').not.toBe('');
+    const vLive = vsec
+      .split(/\n\s*\n/)
+      .filter((para) => !refuted.test(para) && !OFF_PIPELINE.test(para))
+      .join('\n');
+    const vPs = [...norm(vLive).matchAll(/p\s*=\s*(\d+\.\d+)/g)].map((m) => m[1] as string);
+    const vOrph = vPs.filter((raw) => {
+      const decimals = (raw.split('.')[1] ?? '').length;
+      const want = Number(raw);
+      return !reportPs.some((rp) => Number(rp.toFixed(decimals)) === want);
+    });
+    if (vOrph.length > 0) summary.push(`VALIDATION §4.6–4.12: ${vOrph.join(', ')}`);
+
+    // ⚠️ Tüm kapsam **tek seferde** toplanıp doğrulanıyor: `expect` döngünün
     // içindeyken ilk hata fırlatıp kalan belgeleri denetlemeyi kesiyordu
     // (aynı sınıf hata, bu dosyada ikinci kez).
     expect(
