@@ -5,7 +5,7 @@
  *
  * **Neden arena?** `docs/VALIDATION.md` §4.9'da ölçüldü: arena (tek birey,
  * kaynak kısıtlı, hücre başına normalize edilmiş uygunluk, ayrık eğitim ve
- * değerlendirme tohumları) **+0.161** kazanç veriyor. Aynı arama canlı
+ * değerlendirme tohumları) **+0.032** kazanç veriyor (+0.161 daha önce yanlışlandı). Aynı arama canlı
  * dünyanın dalında denendi ve **reddedildi** (§6.14–6.15): ~250 birey
  * birbirini doyurduğu için politikanın davranışı sonucu belirlemiyor,
  * uygunluk da hücre sayısıyla şişiyor.

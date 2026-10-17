@@ -1577,7 +1577,7 @@ export interface InWorldEvolutionReport {
 /**
  * **S-3 · Çevrimiçi (μ+λ) aramanın canlı dünyanın bir dalında çalıştığı.**
  *
- * Arena deneyi +0.161 bulmuştu (§4.9). Bu ölçüm, aynı yöntemin **canlı dünyanın
+ * Arena deneyi +0.032 bulmuştu (§4.9; daha önce yanlışlanan +0.161). Bu ölçüm, aynı yöntemin **canlı dünyanın
  * anlık görüntüsünden açılan bir dalda** da işe yarayıp yaramadığını sorar.
  * İkisi arasındaki fark: arena tek bireyli ve kaynak kısıtlıydı; canlı dünya
  * kalabalık. S-3'ü ürüne almadan önce bu farkın sonucu değiştirip

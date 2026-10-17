@@ -34,7 +34,7 @@ Anahtar yoksa uygulama **çalışır** ve gözlemci panelinde dürüstçe
 | `npm run dev` | Geliştirme sunucusu (port 5183) |
 | `npm run build` | Tip denetimi + üretim derlemesi |
 | `npm run preview` | Üretim çıktısını sunar (port 4173) |
-| `npm test` | Vitest — 271 test |
+| `npm test` | Vitest — 273 test |
 | `npm run e2e` | Playwright — 6 tarayıcı testi (üretim yapısı üzerinden) |
 | `npm run check` | Tip denetimi + birim + uçtan uca (dağıtım öncesi kapı) |
 | `npm run typecheck` | `tsc --noEmit` |
@@ -104,27 +104,35 @@ durur.
 
 | Deney | Sonuç |
 |---|---|
-| Bağ gücü → koloni büyüklüğü | ✅ **2.33 → 21.25**, p < 0.0001, %100 iyileşme |
-| Mutasyon + seçilim → uyarlanma | ⚪ sonuçsuz (p = 0.097), 3 nesle yetmiyor |
-| Yaşam içi öğrenme → davranış | ❌ **etki yok** (p = 0.333) |
-| Popülasyon-ES (yaşam içi) | ❌ etkisiz — anti-drift, arama değil (p = 0.80) |
-| Evrimsel politika araması (kontrol) | ✅ **+0.161** görülmemiş dünyalarda |
+| Bağ gücü → koloni büyüklüğü | ✅ **2.08 → 19.17** (nokta tahminleri; aralık üst sınırları 2.25 / 21.33), fark 17.08, p = 0.0001 |
+| Mutasyon + seçilim → uyarlanma | ⚪ sonuçsuz (fark −0.008 [−0.024, +0.008], p = 0.3035), 3 nesle yetmiyor |
+| Yaşam içi öğrenme → davranış | ❌ **etki yok** (fark +0.001 [−0.037, +0.037], p = 0.9764) |
+| Popülasyon-ES (yaşam içi) | ❌ etkisiz — anti-drift, arama değil (fark −0.00244, p = 0.1288) |
+| Evrimsel politika araması (kontrol) | ✅ **+0.032** görülmemiş dünyalarda |
 | **Evrim Atölyesi** (ürün özelliği, tarayıcıda doğrulandı) | ✅ görülmemiş tohumlarda **+0.035…+0.072**, 0.4–0.6 sn |
-| MODES açık uçluluk metrikleri (Faz C1) | ⚪ **yakınsama**: yenilik %37 → %0,9, çeşitlilik daralıyor |
-| **Yaşam haritası** (Faz D, ürün özelliği) | ⚪ **çukur ölçüldü:** 7/27 kutu, en yoğun kutuda %52 |
+| MODES açık uçluluk metrikleri (Faz C1) | ⚪ **yakınsama**: yenilik %40 → %4,6, değişim ~0'a düştü, çeşitlilik daralıyor |
+| **Yaşam haritası** (Faz D, ürün özelliği) | ⚪ **çukur ölçüldü:** 8/27 kutu, en yoğun kutuda %50 |
 | Arşivin seçilime katılması (Faz D, ε > 0) | ❌ **işe yaramadı** — doluluk değişmedi (p = 1,00); boyut ekseni kalıtsal değil |
 | Koloni sönümlenmesi (Faz B1) | ⚪ **teşhis edildi:** kaynak/avcı elendi, sınırlayıcı **bağ ömrü** (~2.100 tick) |
-| Bağ ömrü duyarlılığı (Faz B1b) | ✅ ölçüt karşılandı: ömür ×4 → 4+ hücreli yapılar 0 → 0.25 |
-| Y-2 bağ ömrünü seçilime açma | ❌ başarısız — kayma −0.006 [−0.014, +0.002], p = 0.343 |
-| Üreme tıkanması | ❌ değil tıkanma, **çöküş**: son çeyrekte 1 doğum, pop 166 → 41 |
-| Uzun vadeli dayanıklılık | ❌ §5.4 40.000 tick'e **genellenmiyor** — kalibrasyon kısmi hafifletiyor |
+| Bağ ömrü duyarlılığı (Faz B1b) | ⚪ **ölçüt karşılanmadı:** ömür 2.083 → 21.277 iken de "son 4+ yapı" dört kademede de **0.000**, kalıcılık **HAYIR** |
+| Y-2 bağ ömrünü seçilime açma | ❌ başarısız — seçilim kayması sıfırdan ayrışmadı: **−0.0006** [−0.0042, +0.0019] |
+| Üreme tıkanması | ❌ değil tıkanma, **çöküş**: son çeyrekte 1 doğum, pop 213 → 29 |
+| Uzun vadeli dayanıklılık | ❌ §5.4 40.000 tick'e **genellenmiyor** — kalibrasyon hafifçe **kötüleştiriyor** (son pop 33 → 26) |
 | **Bağ enerji paylaşımı** (varsayılan ayar) | ⚪ **etkisiz**: paylaşmanın matematiksel olarak imkânsız olduğu dünyayla tepe küme **birebir aynı** (fark [0,0], 12 tohum) |
-| **İşbirliği aktı** (varsayılan **kapalı**) | ⚪ bağları sona kadar yaşatıyor (son bağ +11,4) ama **zirvede hiç fark yok** (tepe bağ +0,6) |
-| `genome.cooperation` (maliyetli, 9. parametre) | ⚪ **seçilim yön vermiyor**: 16.000 tick'te kayma −0,007 (ak açık) / −0,008 (kapalı) |
+| **İşbirliği aktı** (varsayılan **kapalı**) | ⚪ bağları sona kadar yaşatıyor (son bağ +10.9) ama **zirvede hiç fark yok** (tepe bağ +0,1) |
+| `genome.cooperation` (maliyetli, 9. parametre) | ⚪ **seçilim yön vermiyor**: 16.000 tick'te kayma −0,0063 (ak açık) / −0,0072 (kapalı) |
 
-Son satır önemli: aynı ölçümde evrimsel arama +0.161 kazancı bulurken
-REINFORCE +0.020 (gürültü) buluyor. Darboğaz görevde değil, **öğrenme
+Son satır önemli: aynı ölçümde evrimsel arama **+0.032** kazanç bulurken
+REINFORCE **+0.001** (gürültü) buluyor. Darboğaz görevde değil, **öğrenme
 algoritmasında.** Tam teşhis zinciri: `docs/VALIDATION.md` §4.5–4.9.
+
+> ⚠️ Bu tablo 16 Ekim'de **bayattı** ve sessizce düzeltildi. Önceden evrimsel
+> arama **+0.161**, yaşam haritası **7/27 kutu ve %52**, üreme çöküşü
+> **pop 166 → 41** ve uzun vadeli kalibrasyon **"kısmi hafifletiyor"** diyordu.
+> Hepsi dokuz parametreli genom öncesinden ve iki kez düzeltilmiş ölçümlerden
+> geliyordu; **hiçbir denetim README'nin bu sütununu rapora bağlamıyordu.**
+> REINFORCE tarafındaki `+0.020` de yanlışlanmıştı; güncel değer **+0.001**.
+> Yön değişti: 10× dayanıklı bağlar artık son popülasyonu *düşürüyor*.
 
 Ayrıntı ve sonraki seçenekler: `docs/PROGRESS.md` §3.
 
@@ -140,7 +148,7 @@ Ayrıntı ve sonraki seçenekler: `docs/PROGRESS.md` §3.
   gradyanı doğrulanmış, ama ölçülebilir bir davranış etkisi **bulunamadı**
   (`VALIDATION.md` §4.5). Nedeni dört bağımsız ölçümle saptandı (§4.5–4.9):
   ne güncelleme sıklığı, ne habitat zorluğu, ne politika sınıfı — aynı ölçümde
-  evrimsel arama +0.161 kazandığı için darboğaz REINFORCE'un kendisinde.
+  evrimsel arama +0.032 kazandığı için darboğaz REINFORCE'un kendisinde.
 - **Canlı LLM/VLM çağrısı yapılmadı** (anahtar yoktu). Uyarlayıcı yapılandırılmış
   bir varsayımdır.
 

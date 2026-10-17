@@ -215,7 +215,7 @@ export interface WorldOptions {
    * olmasının nedeni ödül değil **kredi ataması**: epimizik toplam performansla
    * güçlü biçimde korele (r = 0.70) ama bu toplamı 64 adımlık yörüngeye yayarken
    * bilgi kayboluyor. Evrimsel arama ise yalnızca epimizik toplamı kullandığı
-   * için aynı görevde +0.161 buldu.
+   * için aynı görevde +0.032 buldu (+0.161 daha önce yanlışlandı).
    *
    * Popülasyon-ES aynı ilkeyi **yaşam içinde** uygular: birey kendi ağırlıklarını
    * doğrudan değiştirmez; onun yerine, *son dönem getiri hızı* popülasyondaki

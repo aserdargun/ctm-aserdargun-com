@@ -871,3 +871,98 @@ describe('MODEL.md formül tablosu koda bağlı', () => {
     expect(cap).toBeGreaterThan(0);
   });
 });
+
+/** README'nin iddia tablosu — projenin en görünür sayı kaynağı. */
+describe('README iddia tablosu rapora bağlı', () => {
+  it('README iddia tablosu üretilmiş raporla AYNI', () => {
+    // ⚠️ Bu tablo **hiçbir denetime bağlı değildi** ve iki gündür bayattı.
+    // Ölçülen sapma:
+    //   evrimsel arama   README +0.161 ↔ rapor **+0.032**  (5 kat)
+    //   yaşam haritası   README 7/27, %52 ↔ rapor **8/27, %50**
+    //   üreme çöküşü     README "pop 166 → 41" ↔ DEEP **213 → 29**
+    //   uzun vadeli      README "kısmi hafifletiyor" ↔ ölçüm **hafifçe
+    //                    kötüleştiriyor** (33 → 26) — yön bile değişmişti
+    // Yani README, iki kez düzeltilmiş ölçümleri hâlâ manşet olarak
+    // gösteriyordu. Koruma değerleri **rapordan türetir**.
+    const report = read('docs/EXPERIMENTS.md');
+    const deep = read('docs/EXPERIMENTS-DEEP.md');
+    const readme = read('README.md');
+
+    // 1) Evrimsel arama kazancı
+    const gain = report.match(/DEĞERLENDİRME[^\n]*kazanç\s+(-?\d+\.\d+)/)?.[1];
+    expect(gain, 'raporda DEĞERLENDİRME kazancı okunamadı').toBeTruthy();
+    const gainRow = readme
+      .split('\n')
+      .find((l) => l.startsWith('| Evrimsel politika araması'));
+    expect(gainRow, 'README evrimsel arama satırı yok').toBeTruthy();
+    expect(gainRow, `README evrimsel arama satırı +${gain} taşımıyor`).toContain(`**+${gain}**`);
+
+    // 2) Yaşam haritası doluluk kutusu
+    const boxes = report.match(/→\s*(\d+)\/(\d+)\s+kutu dolu/)?.[0];
+    expect(boxes, 'raporda yaşam haritası doluluk satırı okunamadı').toBeTruthy();
+    const mapRow = readme.split('\n').find((l) => l.startsWith('| **Yaşam haritası**'));
+    expect(mapRow, 'README yaşam haritası satırı yok').toBeTruthy();
+    expect(mapRow, `README ${boxes} taşımıyor`).toContain(
+      (boxes as string).match(/\d+\/\d+/)?.[0] as string,
+    );
+
+    // 3) Üreme çöküşünün son popülasyonu — DEEP'in üreme tablosundan
+    const finalRow = deep
+      .split('\n')
+      .find((l) => l.trim().startsWith('40000') && l.trim().split(/\s+/).length === 11);
+    expect(finalRow, 'DEEP üreme tablosunda 40000 satırı bulunamadı').toBeTruthy();
+    const finalPop = (finalRow as string).trim().split(/\s+/)[1];
+    const reproRow = readme
+      .split('\n')
+      .find((l) => l.startsWith('| Üreme tıkanması'));
+    expect(reproRow, 'README üreme tıkanması satırı yok').toBeTruthy();
+    expect(reproRow, `README son popülasyonu ${finalPop} taşımıyor`).toContain(`→ ${finalPop} |`);
+  });
+
+  it('README iddia tablosundaki her p-değeri bir raporda izlenebilir', () => {
+    // ⚠️ Denetim genişletildi çünkü tablo satır satır taranmış ve **sekiz**
+    // bayat sayı çıkmıştı. Bunlardan üçü "p-değeri"ydi ve **hiçbir raporda
+    // bulunmuyordu** — yani ilk denemelerden kalan, artık geçersiz ölçümlerdi:
+    //   README p = 0.097 (mutasyon) ↔ rapor p = 0.3035
+    //   README p = 0.80   (pop-ES)   ↔ rapor p = 0.1288
+    //   README p = 0.333  (öğrenme)  ↔ rapor p = 0.9764
+    // Rapor üretilmiş bir sayıdır; belgede geçen ama raporda **izlenemeyen**
+    // bir p-değeri, kaynağı olmayan bir sayıdır.
+    const readme = read('README.md');
+    const sources = read('docs/EXPERIMENTS.md') + read('docs/EXPERIMENTS-DEEP.md');
+    // Belge ondalık ayracı olarak virgül kullanıyor; rapor nokta.
+    const norm = (s: string): string => s.replace(/,/g, '.');
+
+    // ⚠️ İlk sürüm `| ⚪ |` diye arıyordu ve **0 satır** buldu — README'de rozet
+    // hücrenin **içinde** (`| satır | ⚪ sonuçsuz … |`), ayrı bir sütun değil.
+    // Denetim kendi boşluğuyla geçiyordu; "0 >= 5" uyarısı olmadan sessizce
+    // anlamsız olurdu.
+    const table = readme
+      .split('\n')
+      .filter((l) => l.startsWith('| ') && /[✅❌⚪]/.test(l))
+      .join('\n');
+    expect(table.length, 'README iddia tablosu satırları bulunamadı').toBeGreaterThan(50);
+
+    const ps = [...norm(table).matchAll(/p\s*=\s*(\d+\.\d+)/g)].map((m) => m[1] as string);
+    expect(ps.length, 'README iddia tablosunda p-değeri bulunamadı').toBeGreaterThanOrEqual(5);
+
+    // ⚠️ Belge **yuvarlar**, rapor daha çok basamak basıyor: README `p = 1,00`
+    // ↔ rapor `p = 1.0000`; README `p = 0.343` ↔ rapor `0.3435`. Dize eşleştirme
+    // ikisini de "izlenemeyen" sayıyordu. Doğrusu **sayısal** karşılaştırma:
+    // rapor değerleri, README'nin basamak sayısına yuvarlanınca eşitleniyor mu?
+    const reportPs = [...norm(sources).matchAll(/p\s*=\s*(\d+\.\d+)/g)].map((m) =>
+      Number(m[1]),
+    );
+    expect(reportPs.length, 'raporlarda p-değeri okunamadı').toBeGreaterThanOrEqual(5);
+
+    const orphans = ps.filter((raw) => {
+      const decimals = (raw.split('.')[1] ?? '').length;
+      const want = Number(raw);
+      return !reportPs.some((rp) => Number(rp.toFixed(decimals)) === want);
+    });
+    expect(
+      orphans,
+      `README'de var ama raporda izlenemeyen p-değerleri: ${orphans.join(', ')}`,
+    ).toEqual([]);
+  });
+});
