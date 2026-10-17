@@ -117,6 +117,10 @@ export function DataPanel({ client }: { client: SimClient }): React.ReactElement
   const notify = useStore((s) => s.notify);
   const t = getStrings(language);
   const [records, setRecords] = useState<SavedRecord[]>([]);
+  // Kaydetme panel dışında, asenkron tamamlanıyor. `recordVersion` her
+  // başarılı kayıtta artar; bağımlılık dizisi boş bırakılırsa liste hiç
+  // tazelenmiyor ve "Kaydet" düğmesi görünür bir iz bırakmıyor.
+  const recordVersion = useStore((s) => s.recordVersion);
 
   const refresh = (): void => {
     listRecords()
@@ -124,7 +128,7 @@ export function DataPanel({ client }: { client: SimClient }): React.ReactElement
       .catch(() => setRecords([]));
   };
 
-  useEffect(refresh, []);
+  useEffect(refresh, [recordVersion]);
 
   const doSave = (): void => {
     client.snapshot('manual');

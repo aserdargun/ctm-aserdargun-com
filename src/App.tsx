@@ -170,6 +170,9 @@ export function App(): React.ReactElement {
         snapshotJson: json,
       });
       s.notify('success', t.data.saved);
+      // Kayıt **panel dışında** tamamlandı; panelin listeyi tazelemesi için
+      // sinyal yayınlanıyor (aksi hâlde "Kaydet" düğmesi hiçbir iz bırakmıyor).
+      s.bumpRecordVersion();
     } catch (err) {
       s.notify('error', err instanceof StorageError ? err.message : t.data.storageError);
     }

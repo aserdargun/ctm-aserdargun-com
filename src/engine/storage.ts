@@ -54,10 +54,21 @@ function tx<T>(mode: IDBTransactionMode, run: (store: IDBObjectStore) => IDBRequ
       new Promise<T>((resolve, reject) => {
         const transaction = db.transaction(STORE, mode);
         const request = run(transaction.objectStore(STORE));
+        // ⚠️ Bağlantı **her** yolda kapatılmalı. Önceden yalnız `oncomplete`
+        // vardı; ama bir işlem **iptal** edildiğinde (kota doldu, kısıt ihlali)
+        // `oncomplete` hiç tetiklenmez — `db.close()` çağrılmaz ve bağlantı
+        // **sızıntı** olur. Tekrarlayan başarısız yazmalar bağlantı havuzunu
+        // tüketip deponun tamamen çalışmaz hâle gelmesine yol açar.
+        // IDB kuralı: bir işlem tam olarak biri — complete, abort, error.
+        const closeOnce = (): void => db.close();
         request.onsuccess = () => resolve(request.result);
-        request.onerror = () =>
+        request.onerror = () => {
+          closeOnce();
           reject(new StorageError('Depolama işlemi başarısız', request.error?.message ?? 'bilinmeyen hata'));
-        transaction.oncomplete = () => db.close();
+        };
+        transaction.oncomplete = closeOnce;
+        transaction.onabort = closeOnce;
+        transaction.onerror = closeOnce;
       }),
   );
 }
@@ -111,6 +122,11 @@ export function pickJsonFile(): Promise<string | null> {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'application/json,.json';
+    // ⚠️ Kullanıcı pencereyi **iptal** ederse `change` hiç tetiklenmez ve
+    // önceki sürümde bu söz **hiç çözülmüyordu** — `await pickJsonFile()` sonsuza
+    // dek asılı kalıyor, çağıranın geri kalanı hiç çalışmıyordu. `oncancel`
+    // bu yolu kapatır (tarayıcı desteği: Chrome 113+, Firefox 91+, Safari 16.4+).
+    input.oncancel = () => resolve(null);
     input.onchange = () => {
       const file = input.files?.[0];
       if (!file) {

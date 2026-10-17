@@ -179,6 +179,20 @@ interface StoreState {
   notify: (kind: Notice['kind'], message: string) => void;
   dismissNotice: (id: number) => void;
   setBranch: (name: string | null) => void;
+  /**
+   * Her başarılı kayıttan sonra artar.
+   *
+   * ⚠️ Neden var: kaydetme işlemi **asenkron ve panel dışında** tamamlanıyor
+   * (`client.snapshot` worker'a mesaj atar, yanıt `App.tsx`te işlenir ve
+   * orada `saveRecord` çağrılır). Bu yüzden "Kayıt" paneli kaydetme
+   * düğmesine basıldığını öğrenemiyordu ve `useEffect(refresh, [])`
+   * yalnız bir kez çalıştığı için **kayıt listesi hiç tazelenmiyordu** —
+   * kullanıcı kaydediyor, listede hiçbir şey görünmüyordu. Silme düğmesi
+   * `.then(refresh)` çağırdığı için bu asimetri sessizce geçiyordu.
+   * Yoklama yerine kaydedilen olayın kendisi sinyaldir.
+   */
+  recordVersion: number;
+  bumpRecordVersion: () => void;
 }
 
 let noticeId = 0;
@@ -361,6 +375,8 @@ export const useStore = create<StoreState>((set, get) => ({
     set({ notices: [...get().notices.slice(-4), { id: ++noticeId, kind, message, at: Date.now() }] }),
   dismissNotice: (id) => set({ notices: get().notices.filter((n) => n.id !== id) }),
   setBranch: (activeBranch) => set({ activeBranch }),
+  recordVersion: 0,
+  bumpRecordVersion: () => set((s) => ({ recordVersion: s.recordVersion + 1 })),
 }));
 
 /** Sistem hareket azaltma tercihi (kullanıcı ayarı ile birleştirilir). */
