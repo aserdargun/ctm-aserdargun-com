@@ -121,7 +121,7 @@ test.describe('IndexedDB kayıt deposu', () => {
     expect((await rawIds(page)).ids).toEqual([])
   })
 
-  test('ardışık kayıtlar sıralı çalışır ve her biri diske yazılır', async ({ page }) => {
+  test('liste birden çok kez tazeleniyor ve kayıtlar diske yazılıyor', async ({ page }) => {
     // ⚠️ **KAPSAM SINIRI — dürüst olmak için açıkça yazılıyor.**
     // Bu test, `tx()` bağlantı sızıntısı düzeltmesini **kanıtlamaz**.
     // Başarılı işlemlerde `oncomplete` de ateşlediği için düzeltme geri
@@ -134,12 +134,17 @@ test.describe('IndexedDB kayıt deposu', () => {
     await page.goto('/')
     await openDataPanel(page)
 
-    for (let i = 0; i < 6; i++) {
+    // ⚠️ **İki** kayıt, altı değil. İlk sürümde altı kayıt vardı ve CI'da
+    // 90 saniyelik zaman aşımına takıldı: her kayıt worker'dan tam bir
+    // snapshot turu bekliyor ve koşucu yerelden ~3,5× yavaş (yerelde 6 kayıt
+    // 13,9 sn, CI'da 2 dakika). Değerini koruyan asıl nokta "liste birden çok
+    // kez tazeleniyor" — iki kayıt bunu kanıtlar, altısı fazladan.
+    for (let i = 0; i < 2; i++) {
       await page.getByRole('button', { name: SAVE, exact: true }).click()
-      await expect(recordRows(page)).toHaveCount(i + 1, { timeout: 15_000 })
+      await expect(recordRows(page)).toHaveCount(i + 1, { timeout: 30_000 })
     }
     const stored = await rawIds(page)
-    expect(stored.ids.length).toBe(6)
+    expect(stored.ids.length).toBe(2)
   })
 
   test('dosya seçme iptal yolu bağlı: pickJsonFile bir `oncancel` dinleyicisi kurar', async ({ page }) => {
