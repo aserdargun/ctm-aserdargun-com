@@ -965,4 +965,46 @@ describe('README iddia tablosu rapora bağlı', () => {
       `README'de var ama raporda izlenemeyen p-değerleri: ${orphans.join(', ')}`,
     ).toEqual([]);
   });
+
+  it('PROGRESS.md anlatısındaki her p-değeri bir raporda izlenebilir', () => {
+    // ⚠️ README için yazılan denetimin aynısı, **PROGRESS.md** için.
+    // Ölçülen: PROGRESS da denetimden yoksundu ve **yedi** bayat sayı
+    // taşıyordu (p = 0.097, p = 0.80, p = 0.343, işbirliği kaymaları,
+    // yaşam haritası 7/27–%52, üreme 166 → 41, pop-ES farkı). İki anlatı
+    // belgesi aynı hastalığı taşıyordu; birine koruma yazıp diğerini
+    // bırakmak, hastalığı yalnızca bir yerde tedavi etmek demek.
+    const progress = read('docs/PROGRESS.md');
+    const sources = read('docs/EXPERIMENTS.md') + read('docs/EXPERIMENTS-DEEP.md');
+    const norm = (s: string): string => s.replace(/,/g, '.');
+
+    // ⚠️ **Düzeltme notları hariç.** Depodaki kırık "%83" korumasının çözümü
+    // aynı sorunu çözüyor: geçersiz sayıyı kayda geçiren paragraf da o sayıyı
+    // içerir, ve genel arama onu "izlenemeyen" sayardı. Burada ilk denemede
+    // denetim **kendi yazdığım** "önceden … p = 0,59 yazıyordu" notunu
+    // yakaladı — yani düzelttiğim hatayı geri getirmiş gibi gördü.
+    const refuted = /önceden|bayatt?ı|geçersiz|düzelt|yanlışlan|eskiden/i;
+    const live = progress
+      .split(/\n\s*\n/)
+      .filter((para) => !refuted.test(para))
+      .join('\n');
+    expect(live.length, 'PROGRESS anlatısı okunamadı').toBeGreaterThan(500);
+
+    const ps = [...norm(live).matchAll(/p\s*=\s*(\d+\.\d+)/g)].map((m) => m[1] as string);
+    expect(ps.length, 'PROGRESS anlatısında p-değeri bulunamadı').toBeGreaterThanOrEqual(3);
+
+    const reportPs = [...norm(sources).matchAll(/p\s*=\s*(\d+\.\d+)/g)].map((m) =>
+      Number(m[1]),
+    );
+    expect(reportPs.length, 'raporlarda p-değeri okunamadı').toBeGreaterThanOrEqual(5);
+
+    const orphans = ps.filter((raw) => {
+      const decimals = (raw.split('.')[1] ?? '').length;
+      const want = Number(raw);
+      return !reportPs.some((rp) => Number(rp.toFixed(decimals)) === want);
+    });
+    expect(
+      orphans,
+      `PROGRESS'ta var ama raporda izlenemeyen p-değerleri: ${orphans.join(', ')}`,
+    ).toEqual([]);
+  });
 });

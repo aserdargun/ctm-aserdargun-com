@@ -24,7 +24,7 @@ doğrulanmıştır.
 
 | Alan | Durum | Kanıt |
 |---|---|---|
-| Saf TS simülasyon çekirdeği | ✅ | 273 test, 10 dosya, ~95 sn |
+| Saf TS simülasyon çekirdeği | ✅ | 274 test, 10 dosya, ~95 sn |
 | Enerji korunumu (kapalı sistem) | ✅ | rezidüel = **0.0000** (arena'da 0.0 e, kolonide 1.7e-8 e) |
 | Bölünme / parçalanma / paylaşım muhasebesi | ✅ | testler |
 | Bağ grafiği → gerçek çok hücrelilik | ✅ | 4+ hücreli yapılar test edildi |
@@ -159,13 +159,14 @@ değişmiyor — etki özgül olarak koloni kalıcılığında.
 
 **Y-2 denendi ve BAŞARISIZ oldu** (`VALIDATION.md` §5.6–5.10). Bağ yorgunluğunu
 genoma bağlayan kanca eklendi (varsayılan **kapalı**, ürün davranışı aynı),
-ancak seçilim `bondStrength` yükseltmedi: kayma −0.0056 [−0.0140, +0.0021],
-p = 0.343.
+ancak seçilim `bondStrength` yükseltmedi: kayma −0.0006 [−0.0042, +0.0019].
+Geçerli rapor bu ölçüm için **p-değeri üretmiyor** — aralık sıfırı içeriyor,
+yani kayma sıfırdan ayrışmıyor.
 
 Sınırlama ölçüldü ve **pencere artefaktı değil** — ama sebebi sandığımdan farklı.
 Pencereyi 4 katına çıkarmak çevrimi 5.46'dan yalnız 5.85'e çıkarıyor;
 kümülatif doğumun yataylaması **doygunluk değil, doğumların bitmesi**
-(§5.11: son çeyrekte 1 doğum, popülasyon 166 → 41).
+(§5.11: son çeyrekte 1 doğum, popülasyon 213 → 29).
 
 **En derin yapısal kısıt adayı (düzeltilmiş):** evrimsel süreçler yetersiz
 nesil derinliğine ulaşamıyor — ama **sebebi pencere değil, popülasyonun
@@ -281,12 +282,12 @@ betimleyici (hız, boyut, duyu menzili) üzerine 3×3×3 ızgara kuruldu.
 
 Hiçbiri kendini belli etmiyordu; üçü de makul görünen sayılar üretti.
 
-Düzeltilmiş ölçüm (tohum 11, 12.000 tick): **7/27 kutu dolu**, en yoğun kutuda
-**%52** organizma (kutu 2/0/1 — hızlı, tek hücreli, orta menzilli), dolu kutu
-5.3 → 4.3.
+Düzeltilmiş ölçüm (tohum 11, 12.000 tick): **8/27 kutu dolu**, en yoğun kutuda
+**%50** organizma (kutu 2/0/1 — hızlı, tek hücreli, orta menzilli), dolu kutu
+5.0 → 3.5.
 
 > **Düzeltme kaydı:** önceki "%83 tek kutuya birikmiş" sayısı kırık bir aletle
-> alınmıştı ve **geçersizdir**. Yön değişmedi — yakınsama gerçek — sayı %52'dir.
+> alınmıştı ve **geçersizdir**. Yön değişmedi — yakınsama gerçek — sayı %50'dir.
 
 **Kalıcı değişiklik:** `NicheReport` artık her koşuda **eksen sağlığını**
 raporluyor (kaç gözlem tavana kırpıldı, kaç kutu doldu). Çökme kuralı yalnız
@@ -388,10 +389,16 @@ enerji harcayarak bağı yeniler. Bedel **ortak** olduğu için ödemeyen hücre
 yararlanır — yani hileci **kavramsal olarak** tanımlanır. Varsayılan **kapalı**;
 kapalıyken ürün davranışı bit düzeyinde aynı (ölçüldü).
 
-| ölçüm (12 tohum, 8000 tick, eşleştirilmiş) | sonuç |
+| ölçüm (12 tohum, eşleştirilmiş) | sonuç |
 |---|---|
-| bağ sayısı farkı | ort **+12,5** [9,0; 16,1], **p = 0,0001** → mekanizma çalışıyor |
-| tepe küme farkı | ort **−0,67** [−3,08; +1,50], **p = 0,59** → **koloni kazancı yok** |
+| bağ sayısı farkı | ort **+10,9** [6,3; 15,5], **p = 0,0001** → mekanizma çalışıyor |
+| tepe küme farkı | ort **0,00** [0,00; 0,00], **p = 1,0000** → **koloni kazancı yok** |
+
+> ⚠️ Bu tablo da bayattı ve yeniden ölçüldü. Önceden bağ farkı **+12,5**
+> [9,0; 16,1], tepe küme farkı **−0,67** [−3,08; +1,50] `p = 0,59` yazıyordu —
+> bu üç sayının hiçbiri güncel raporda **bulunmuyordu**, yani ölçüm artık
+> üretilmeyen bir deneydi. Güncel ölçüm tepe küme farkını tam olarak sıfır
+> buluyor: tek bir tohumda bile artış yok.
 
 ⚠️ Bu turun kendi kendini çürüten ölçümü: ilk ölçüm ortalamada "+%11" kazanç
 bildirdi ve "başarılı" yazıldı; eşleştirilmiş ölçüm bunu çürüttü (farklar
@@ -417,10 +424,10 @@ ortak olduğu için yenilenen bağlardan aynı ölçüde yararlanır.
 
 | | ak açık | ak kapalı |
 |---|---|---|
-| kayma (işbirliği) | **−0,007** | **−0,008** |
+| kayma (işbirliği) | **−0,0063** | **−0,0072** |
 
 Çeşitlilik korunuyor (min 0,26 · maks 0,60–0,69) ama yön yok. Bu, evrimsel
-değişimin 3 nesle yetmediği eski bulgusuyla (p = 0,097) tutarlı.
+değişimin 3 nesle yetmediği eski bulgusuyla (p = 0,3035) tutarlı.
 
 **Kabul edilen bedel:** metabolik bütçe değiştiği için **tüm deney ölçümleri
 geçersizleşti** ve baştan koşuldu. Yenileme kancası hâlâ **kapalı** ve
@@ -518,7 +525,7 @@ tarayıcı içinden tetiklenen deneyler **bağlanmadı** — panel düğmeleri h
 ## 3. Sonraki adım
 
 **Seçilen öğrenme yönü (popülasyon-ES) uygulandı ve BAŞARISIZ oldu**
-(`VALIDATION.md` §6). Fark −0.00065 [−0.00429, +0.00423], p = 0.80.
+(`VALIDATION.md` §6). Fark −0.00244 [−0.00563, +0.00066], p = 0.1288.
 
 **Ölçülen sebep formülasyonun kendisiydi:** Uyguladığım güncelleme bir
 **anti-drift** mekanizmasıdır (kötü bireyi iyiye çeker), bir **arama**
@@ -602,7 +609,7 @@ Atölyesi olarak çalışıyor.
 ## 5. Bilinen riskler
 
 1. **Koloni kalıcılığı ve ekosistem çöküşü:** ~6.000 tick sonrası bağlı yapılar
-   dağılıyor, ~8.000 tick sonrası popülasyon **çöküyor** (166 → 41 @ 40.000).
+   dağılıyor, ~8.000 tick sonrası popülasyon **çöküyor** (213 → 29 @ 40.000).
    **Teşhis edildi ve ölçüldü** (`VALIDATION.md` §5): kısa vadede sınırlayıcı
    **bağ ömrüdür** (~2.100 tick); uzun vadede sınırlayıcı **henüz belirlenmemiştir**.
    Kalibrasyon kısmi hafifletiyor, çöküşü engellemiyor.
