@@ -817,3 +817,57 @@ describe('derin profil anlatısı üretilmiş rapora bağlı', () => {
     expect(Number(head), `§1.4 ${head} diyor, dosyada ${actual} test var`).toBe(actual);
   });
 });
+
+/**
+ * `docs/MODEL.md`'nin **formül tablosu** kodun adlandırılmış sabitlerini
+ * anlatıyor. Anlatı belgeleri §5.x'te olduğu gibi sessizce bayatlayabiliyor;
+ * bu tablo bağımsız bir sözleşme ve bağımsız bir koruma gerektiriyordu.
+ */
+describe('MODEL.md formül tablosu koda bağlı', () => {
+  /** `energy.ts` içindeki `C` nesnesinden sayısal sabit. */
+  const constOf = (name: string): number => {
+    const src = read('src/sim/biology/energy.ts');
+    const m = src.match(new RegExp(`\\b${name}:\\s*([0-9.]+)`));
+    expect(m, `energy.ts içinde ${name} bulunamadı`).toBeTruthy();
+    return Number((m as RegExpMatchArray)[1]);
+  };
+
+  it('yoğunluk çarpanının bölücüsü STANDARD_CAPACITY ile AYNI', () => {
+    // MODEL.md: `1 + DENSITY_COST_K · (popülasyon / 256)²`
+    // energy.ts: `1 + C.DENSITY_COST_K * ratio * ratio`, ratio = pop / STANDARD_CAPACITY
+    const model = read('docs/MODEL.md');
+    const cap = model.match(/\(popülasyon \/ (\d+)\)/)?.[1];
+    expect(cap, 'MODEL.md yoğunluk satırında kapasite sayısı bulunamadı').toBeTruthy();
+    const actual = constOf('STANDARD_CAPACITY');
+    expect(Number(cap), `MODEL.md bölücü ${cap}, kod STANDARD_CAPACITY=${actual}`).toBe(actual);
+  });
+
+  it('paylaşma verim çarpanı TRANSPORT_EFFICIENCY ile AYNI', () => {
+    // MODEL.md: `min(fazla, açık) · SHARE_RATE · (0.25 + paylaşmaVerimi) · 0.72`
+    // energy.ts: `... * C.SHARE_RATE * (0.25 + genome.shareEfficiency)` ve
+    //            `TRANSPORT_EFFICIENCY: 0.72`
+    const model = read('docs/MODEL.md');
+    const eff = model.match(/paylaşmaVerimi\) · (0\.\d+)/)?.[1];
+    expect(eff, 'MODEL.md paylaşma satırında taşıma verimi bulunamadı').toBeTruthy();
+    const actual = constOf('TRANSPORT_EFFICIENCY');
+    expect(Number(eff), `MODEL.md ${eff}, kod TRANSPORT_EFFICIENCY=${actual}`).toBe(actual);
+  });
+
+  it('yoğunluk maliyeti bazalı çarpar, hücre silmez (iddia kodda öyle)', () => {
+    // MODEL.md: "**Yoğunluk maliyeti bir performans kırpması DEĞİLDİR** ve
+    // hücre silmez." Bu iddia yalnız bir açıklama değil, kodda da doğrulanır:
+    // çarpan `basalCostFor`'un **dönüş değerini** çarpar, ayrıca hiçbir yerde
+    // hücre silme çağrısı yok.
+    const energy = read('src/sim/biology/energy.ts');
+    expect(
+      energy,
+      'basalCostFor yoğunluk çarpanını uygulamıyor — MODEL.md iddiası yanlış',
+    ).toMatch(/\* densityFactor\s*;?\s*$/m);
+    const cap = constOf('STANDARD_CAPACITY');
+    expect(
+      energy,
+      'energy.ts hücre silen bir çağrı içeriyor; yoğunluk maliyeti iddiası geçersiz olurdu',
+    ).not.toMatch(/cells\.delete\(|killCell|removeCell/);
+    expect(cap).toBeGreaterThan(0);
+  });
+});
