@@ -23,6 +23,16 @@ import { buildLocalSummary, verifyNumericClaims } from './worker/evidence.ts';
 
 const ORGANISM_REFRESH_MS = 900;
 
+/**
+ * Uygulanmış son olay yanıtının sırası.
+ *
+ * Modül düzeyinde tutuluyor (React state değil) çünkü mesaj işleyicisi her
+ * render'da yeniden kuruluyor; state'e yazmak yarışı yeniden üretirdi.
+ * `0` başlangıcı, damgasız (seq'siz) yanıtların her zaman uygulanmasına izin
+ * verir — eski protokol kalıcılığı.
+ */
+let lastEventsSeq = 0;
+
 export function App(): React.ReactElement {
   const client = useMemo(() => new SimClient(), []);
   const store = useStore();
@@ -89,6 +99,13 @@ export function App(): React.ReactElement {
           s.setLifeMap(message.snapshot);
           break;
         case 'events':
+          // ⚠️ Temizleme yarışı: temizlemeden **önce** gönderilmiş bir yoklama
+          // yanıtı, temizleme yanıtından sonra ulaşıp listeyi yeniden
+          // doldurabilirdi. Monoton `seq` ile eski yanıtlar yok sayılır.
+          if (typeof message.seq === 'number') {
+            if (message.seq < lastEventsSeq) break;
+            lastEventsSeq = message.seq;
+          }
           s.setEvents(message.events, message.totalKnown);
           break;
         case 'evolutionResult':

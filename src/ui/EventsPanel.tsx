@@ -75,7 +75,11 @@ export function EventsPanel({ client }: { client: SimClient }): React.ReactEleme
         <button
           type="button"
           onClick={() => {
+            // Depo **ve** worker temizleniyor. Yalnız depo sıfırlamak
+            // yetmezdi: 1.200 ms'lik yoklama worker'ın günlüğünü geri
+            // getiriyor ve düğme yalan söylüyordu.
             clearEvents();
+            client.clearEvents();
             notify('info', tr ? 'Olay listesi temizlendi' : 'Event list cleared');
           }}
         >

@@ -102,6 +102,15 @@ export type Command =
   | { type: 'listOrganisms' }
   | { type: 'listLineages' }
   | { type: 'listEvents'; count: number }
+  /**
+   * Olay günlüğünü **worker tarafında** siler.
+   *
+   * ⚠️ Düğme önceden yalnız istemci deposunu sıfırlıyordu; worker'ın
+   * `w.events` günlüğü sağlam kaldığı için 1.200 ms'deki yoklama listeyi
+   * **geri getiriyordu**. Kullanıcı "temizlendi" görüyor, bir saniye sonra
+   * dolu liste dönüyordu — düğmenin söylediği şeyi yapmadığı bir durum.
+   */
+  | { type: 'clearEvents' }
   | { type: 'evidencePack'; question: string; kind: 'A' | 'B'; organismId: number | null }
   /**
    * Evrim Atölyesi: seçili organizmanın politikasını arena üzerinde (μ+λ)
@@ -206,7 +215,7 @@ export type WorkerResponse =
   | { type: 'frame'; buffer: ArrayBuffer; seq: number; measuredSpeed: number; running: boolean }
   | { type: 'organisms'; organisms: OrganismSummary[]; tick: number }
   | { type: 'lineages'; lineages: LineageSummary[] }
-  | { type: 'events'; events: SimEvent[]; totalKnown: number }
+  | { type: 'events'; events: SimEvent[]; totalKnown: number; seq?: number }
   | { type: 'decision'; decision: DecisionSnapshot }
   | { type: 'snapshot'; snapshotJson: string; tick: number; bytes: number }
   | { type: 'evidence'; pack: EvidencePack }

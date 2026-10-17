@@ -24,6 +24,8 @@ type StatusListener = (status: ClientStatus, error?: string) => void;
 
 export class SimClient {
   private worker: Worker | null = null;
+  /** Olay istek/yanıt sırası — temizleme yarışını çözer (bkz. clearEvents). */
+  private eventsSeq = 0;
   private listeners = new Set<Listener>();
   private frameListeners = new Set<FrameListener>();
   private statusListeners = new Set<StatusListener>();
@@ -166,7 +168,22 @@ export class SimClient {
     this.send({ type: 'listLineages' });
   }
   listEvents(count = 120): void {
-    this.send({ type: 'listEvents', count });
+    this.send({ type: 'listEvents', count, seq: ++this.eventsSeq });
+  }
+  /**
+   * Olay günlüğünü worker'da siler.
+   *
+   * ⚠️ Yalnız istemci deposunu sıfırlamak **yetmez**: panel 1.200 ms'de bir
+   * yoklama yapar ve worker'ın günlüğü doluysa liste geri gelir.
+   *
+   * ⚠️ İkinci tuzak: temizlemeden **önce** gönderilmiş bir yoklama, temizleme
+   * yanıtından **sonra** ulaşabilir ve listeyi yeniden doldurur. Kullanıcı
+   * düğmeye basar, ~1,2 sn içinde dolu liste geri belirir. Bunu önlemek için
+   * her olay isteği/yanıtı monoton bir `seq` ile damgalanır ve uygulamada
+   * **eski** yanıtlar yok sayılır.
+   */
+  clearEvents(): void {
+    this.send({ type: 'clearEvents', seq: ++this.eventsSeq });
   }
   evidencePack(question: string, kind: 'A' | 'B', organismId: number | null): void {
     this.send({ type: 'evidencePack', question, kind, organismId });
