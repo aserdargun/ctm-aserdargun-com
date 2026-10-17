@@ -768,4 +768,52 @@ describe('derin profil anlatısı üretilmiş rapora bağlı', () => {
   it('§5.16 son popülasyonu kaynak rejenerasyonu tablosuyla AYNI', () => {
     bindPopulation('§5.16', '## Kaynak rejenerasyonu A/B', 11, 2, 'float', ['### 5.16 ', '### 5.17 '], 9);
   });
+
+  it('§4.2 arena headroom tablosu raporla AYNI', () => {
+    // ⚠️ Bu tablo `EXPERIMENTS.md`nin "Arena zorluk kalibrasyonu (headroom)"
+    // bölümünün **elle kopyasıydı** ve hiçbir denetimi yoktu. Aynı sınıf:
+    // §5.11–§5.16'nın DEEP'ten ayrılması gibi, üretilmiş çıktı yeniden
+    // üretildiğinde kopya sessizce eski kalıyor.
+    const report = read('docs/EXPERIMENTS.md');
+    const rows = [...report.matchAll(/kaynak=\s*(\d+) → kontrol (\d+\.\d+) · headroom (\d+\.\d+) · hayatta kalma (\d+)%/g)];
+    expect(rows.length, 'rapordan arena headroom satırı okunamadı').toBeGreaterThanOrEqual(4);
+
+    const sec = section(read('docs/VALIDATION.md'), ['### 4.2 ', '### 4.3 ']);
+    expect(sec, '§4.2 bulunamadı').not.toBe('');
+    const bad: string[] = [];
+    for (const [, n, kontrol, headroom, hayatta] of rows) {
+      // Belge satırı: `| 14 | 0.753 | 0.247 | %100 |` ya da
+      // `| 34 (oyun varsayılanı) | 0.922 | ... |` — anahtar hücrede etiket olabilir.
+      const row = sec
+        .split('\n')
+        .find((l) => new RegExp(`^\\|\\s*\\**${n}\\b`).test(l.replace(/\*\*/g, '')));
+      if (!row) {
+        bad.push(`kaynak ${n}: §4.2'de satır yok`);
+        continue;
+      }
+      const cells = row
+        .split('|')
+        .slice(1, -1)
+        .map((c) => c.replace(/\*\*/g, '').trim());
+      if (cells[1] !== kontrol) bad.push(`kaynak ${n} kontrol: §4.2=${cells[1]} rapor=${kontrol}`);
+      if (cells[2] !== headroom) bad.push(`kaynak ${n} headroom: §4.2=${cells[2]} rapor=${headroom}`);
+      if (cells[3] !== `%${hayatta}`) bad.push(`kaynak ${n} hayatta: §4.2=${cells[3]} rapor=%${hayatta}`);
+    }
+    expect(bad, `§4.2 rapordan ayrışmış:\n${bad.join('\n')}`).toEqual([]);
+  });
+
+  it('§1.4 deney testi sayısı kaynaktan gelir', () => {
+    // ⚠️ Bölüm "71 test" diyordu; dosyada **94** vardı — 23 test eksik sayılmıştı.
+    // Bölümün konusu zaten "deney yükünün doğruluğu"nu doğrulamak olduğuna
+    // göre kendi test sayısının bayat kalması tam da bu bölümün konusunu
+    // yanlış gösteriyordu. `it(` sayımı koşucuyla birebir aynı (ölçüldü: 94).
+    const src = read('tests/experiments.test.ts');
+    const actual = (src.match(/^\s*it\(/gm) ?? []).length;
+    expect(actual, 'tests/experiments.test.ts içinde `it(` sayılamadı').toBeGreaterThan(10);
+    const head = read('docs/VALIDATION.md').match(
+      /^### 1\.4 Deney altyapısı \(`tests\/experiments\.test\.ts`, (\d+) test\)/m,
+    )?.[1];
+    expect(head, '§1.4 başlığında test sayısı bulunamadı').toBeTruthy();
+    expect(Number(head), `§1.4 ${head} diyor, dosyada ${actual} test var`).toBe(actual);
+  });
 });
