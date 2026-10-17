@@ -919,92 +919,63 @@ describe('README iddia tablosu rapora bağlı', () => {
     expect(reproRow, `README son popülasyonu ${finalPop} taşımıyor`).toContain(`→ ${finalPop} |`);
   });
 
-  it('README iddia tablosundaki her p-değeri bir raporda izlenebilir', () => {
-    // ⚠️ Denetim genişletildi çünkü tablo satır satır taranmış ve **sekiz**
-    // bayat sayı çıkmıştı. Bunlardan üçü "p-değeri"ydi ve **hiçbir raporda
-    // bulunmuyordu** — yani ilk denemelerden kalan, artık geçersiz ölçümlerdi:
-    //   README p = 0.097 (mutasyon) ↔ rapor p = 0.3035
-    //   README p = 0.80   (pop-ES)   ↔ rapor p = 0.1288
-    //   README p = 0.333  (öğrenme)  ↔ rapor p = 0.9764
-    // Rapor üretilmiş bir sayıdır; belgede geçen ama raporda **izlenemeyen**
-    // bir p-değeri, kaynağı olmayan bir sayıdır.
-    const readme = read('README.md');
+  /**
+   * Anlatı belgelerindeki **her p-değeri** üretilmiş bir rapordan
+   * izlenebilmelidir.
+   *
+   * ⚠️ Bu, iki ayrı denetimin tek hâlidir ve **neden buraya geldiği**
+   * ölçülmüştür: README'de dokuz, PROGRESS'ta yedi bayat sayı çıktı ve
+   * belgelerin hiçbiri denetime bağlı değildi. "Biri düzeldi" diye durup
+   * diğerini bırakmak hastalığı tek yerde tedavi etmek olurdu; tarama
+   * ikisini birden buldu.
+   *
+   * ⚠️ `VALIDATION.md` **kasıtlı olarak listede değil**: 170 KB'lık belge
+   * §6 deney günlüğü olarak tarihsel kayıt taşıyor ve eski ölçümleri
+   * *tarihsel* olarak aktarmak zorunda (bkz. 4e3abdd, §6 tarihsel günlük
+   * olarak çerçevelendi). Onun yerine bölüm bazlı, rapora bağlı
+   * korumalar var (§4.2–4.5, §4.9, §5.3, §5.11–5.16).
+   */
+  const NARRATIVE_PS_DOCS = ['README.md', 'docs/PROGRESS.md', 'docs/ROADMAP.md'] as const;
+
+  it('anlatı belgelerindeki her p-değeri bir raporda izlenebilir', () => {
     const sources = read('docs/EXPERIMENTS.md') + read('docs/EXPERIMENTS-DEEP.md');
     // Belge ondalık ayracı olarak virgül kullanıyor; rapor nokta.
     const norm = (s: string): string => s.replace(/,/g, '.');
 
-    // ⚠️ İlk sürüm `| ⚪ |` diye arıyordu ve **0 satır** buldu — README'de rozet
-    // hücrenin **içinde** (`| satır | ⚪ sonuçsuz … |`), ayrı bir sütun değil.
-    // Denetim kendi boşluğuyla geçiyordu; "0 >= 5" uyarısı olmadan sessizce
-    // anlamsız olurdu.
-    const table = readme
-      .split('\n')
-      .filter((l) => l.startsWith('| ') && /[✅❌⚪]/.test(l))
-      .join('\n');
-    expect(table.length, 'README iddia tablosu satırları bulunamadı').toBeGreaterThan(50);
-
-    const ps = [...norm(table).matchAll(/p\s*=\s*(\d+\.\d+)/g)].map((m) => m[1] as string);
-    expect(ps.length, 'README iddia tablosunda p-değeri bulunamadı').toBeGreaterThanOrEqual(5);
-
-    // ⚠️ Belge **yuvarlar**, rapor daha çok basamak basıyor: README `p = 1,00`
-    // ↔ rapor `p = 1.0000`; README `p = 0.343` ↔ rapor `0.3435`. Dize eşleştirme
-    // ikisini de "izlenemeyen" sayıyordu. Doğrusu **sayısal** karşılaştırma:
-    // rapor değerleri, README'nin basamak sayısına yuvarlanınca eşitleniyor mu?
+    // ⚠️ Belge **yuvarlar**, rapor daha çok basamak basıyor: `p = 1,00`
+    // ↔ rapor `p = 1.0000`; `p = 0.343` ↔ rapor `0.3435`. Dize eşleştirme
+    // ikisini de "izlenemeyen" sayıyordu; doğrusu **sayısal** karşılaştırma.
     const reportPs = [...norm(sources).matchAll(/p\s*=\s*(\d+\.\d+)/g)].map((m) =>
       Number(m[1]),
     );
     expect(reportPs.length, 'raporlarda p-değeri okunamadı').toBeGreaterThanOrEqual(5);
-
-    const orphans = ps.filter((raw) => {
-      const decimals = (raw.split('.')[1] ?? '').length;
-      const want = Number(raw);
-      return !reportPs.some((rp) => Number(rp.toFixed(decimals)) === want);
-    });
-    expect(
-      orphans,
-      `README'de var ama raporda izlenemeyen p-değerleri: ${orphans.join(', ')}`,
-    ).toEqual([]);
-  });
-
-  it('PROGRESS.md anlatısındaki her p-değeri bir raporda izlenebilir', () => {
-    // ⚠️ README için yazılan denetimin aynısı, **PROGRESS.md** için.
-    // Ölçülen: PROGRESS da denetimden yoksundu ve **yedi** bayat sayı
-    // taşıyordu (p = 0.097, p = 0.80, p = 0.343, işbirliği kaymaları,
-    // yaşam haritası 7/27–%52, üreme 166 → 41, pop-ES farkı). İki anlatı
-    // belgesi aynı hastalığı taşıyordu; birine koruma yazıp diğerini
-    // bırakmak, hastalığı yalnızca bir yerde tedavi etmek demek.
-    const progress = read('docs/PROGRESS.md');
-    const sources = read('docs/EXPERIMENTS.md') + read('docs/EXPERIMENTS-DEEP.md');
-    const norm = (s: string): string => s.replace(/,/g, '.');
 
     // ⚠️ **Düzeltme notları hariç.** Depodaki kırık "%83" korumasının çözümü
     // aynı sorunu çözüyor: geçersiz sayıyı kayda geçiren paragraf da o sayıyı
-    // içerir, ve genel arama onu "izlenemeyen" sayardı. Burada ilk denemede
-    // denetim **kendi yazdığım** "önceden … p = 0,59 yazıyordu" notunu
-    // yakaladı — yani düzelttiğim hatayı geri getirmiş gibi gördü.
+    // içerir. İlk denemede denetim **kendi yazdığı** "önceden … p = 0,59
+    // yazıyordu" notunu yakaladı — düzelttiğim hatayı geri getirmiş gibi gördü.
     const refuted = /önceden|bayatt?ı|geçersiz|düzelt|yanlışlan|eskiden/i;
-    const live = progress
-      .split(/\n\s*\n/)
-      .filter((para) => !refuted.test(para))
-      .join('\n');
-    expect(live.length, 'PROGRESS anlatısı okunamadı').toBeGreaterThan(500);
 
-    const ps = [...norm(live).matchAll(/p\s*=\s*(\d+\.\d+)/g)].map((m) => m[1] as string);
-    expect(ps.length, 'PROGRESS anlatısında p-değeri bulunamadı').toBeGreaterThanOrEqual(3);
-
-    const reportPs = [...norm(sources).matchAll(/p\s*=\s*(\d+\.\d+)/g)].map((m) =>
-      Number(m[1]),
-    );
-    expect(reportPs.length, 'raporlarda p-değeri okunamadı').toBeGreaterThanOrEqual(5);
-
-    const orphans = ps.filter((raw) => {
-      const decimals = (raw.split('.')[1] ?? '').length;
-      const want = Number(raw);
-      return !reportPs.some((rp) => Number(rp.toFixed(decimals)) === want);
-    });
+    const summary: string[] = [];
+    for (const rel of NARRATIVE_PS_DOCS) {
+      const live = read(rel)
+        .split(/\n\s*\n/)
+        .filter((para) => !refuted.test(para))
+        .join('\n');
+      const ps = [...norm(live).matchAll(/p\s*=\s*(\d+\.\d+)/g)].map((m) => m[1] as string);
+      const orphans = ps.filter((raw) => {
+        const decimals = (raw.split('.')[1] ?? '').length;
+        const want = Number(raw);
+        return !reportPs.some((rp) => Number(rp.toFixed(decimals)) === want);
+      });
+      if (orphans.length > 0) summary.push(`${rel}: ${orphans.join(', ')}`);
+    }
+    // ⚠️ Tüm belgeler **tek seferde** toplanıp doğrulanıyor: `expect` döngünün
+    // içindeyken ilk hata fırlatıp kalan belgeleri denetlemeyi kesiyordu
+    // (aynı sınıf hata, bu dosyada ikinci kez).
     expect(
-      orphans,
-      `PROGRESS'ta var ama raporda izlenemeyen p-değerleri: ${orphans.join(', ')}`,
+      summary,
+      `anlatı belgelerinde var ama raporda izlenemeyen p-değerleri:\n${summary.join('\n')}`,
     ).toEqual([]);
   });
 });
