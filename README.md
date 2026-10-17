@@ -43,6 +43,7 @@ Anahtar yoksa uygulama **çalışır** ve gözlemci panelinde dürüstçe
 | `npm run experiments:quick` | Deney paketinin duman testi (~40 sn) |
 | `npm run assets:build` | Blender 5.1.1 ile varlıkları yeniden üretir |
 | `npm run server` | Gözlemci sunucu rotası |
+| `npm run calibrate` | Niş ekseni tavanlarını ölçüp **geçerliliğini denetler** (kapının parçası) |
 
 ### Sürekli doğrulama
 
