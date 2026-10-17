@@ -182,7 +182,13 @@ const server = createServer((req, res) => {
       const text = await callProvider(question, evidenceText);
       sendJson(res, 200, {
         text,
-        sourceMode: PROVIDER === 'local' ? 'local-summary' : 'language-model',
+        // ⚠️ `PROVIDER === 'local'` dalı **kaldırıldı**: o dal
+        // `sourceMode: 'local-summary'` diyordu ama `callProvider` yukarıda
+        // **koşuldu** — yani sunucu dil modelini çağırıp yanıtı yerel özet
+        // diye etiketliyordu. Yani etiket ölçülen şeyi değil, istenen şeyi
+        // anlatıyordu. `CTM_PROVIDER` belgelerde hiç geçmiyor ve yalnızca
+        // etiket olarak kullanılıyor; doğru olan gerçeği söylemek.
+        sourceMode: 'language-model',
         provider: PROVIDER,
         model: MODEL,
         // Kanıt paketi eklenir; istemci sayıları bununla doğrular.
@@ -198,7 +204,15 @@ const server = createServer((req, res) => {
   })();
 });
 
-server.listen(PORT, () => {
+// ⚠️ **Dongu arayüzüne bağlı.** `server.listen(PORT)` çağrısı host vermezse
+// Node tüm arayüzlere (`::` / `0.0.0.0`) bağlanır; oysa hem README hem
+// başlangıç günlüğü `http://127.0.0.1:8787` diyor ve `vite.config.ts` proxy'si
+// de 127.0.0.1'i hedefliyor. Yani niyet açıkça "yalnız yerel" idi ve kod
+// bunu **yapmıyordu**: aynı ağdaki herhangi biri `/api/observer`'a istek atıp
+// bu dosyanın en üstünde "bypass edilemez" dediği API anahtarını
+// **kullandırabiliyordu**. Vite proxy aynı makineden bağlandığı için döngüye
+// sabitlemek hiçbir şeyi bozmuyor.
+server.listen(PORT, '127.0.0.1', () => {
   console.log(`Cell to Mind gözlemci sunucusu: http://127.0.0.1:${PORT}`);
   console.log(`  sağlayıcı: ${PROVIDER} · model: ${MODEL}`);
   console.log(`  api anahtarı: ${API_KEY ? 'sunucu ortamında VAR' : 'YOK (yerel kural özeti kullanılır)'}`);

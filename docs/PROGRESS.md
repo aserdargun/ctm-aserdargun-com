@@ -24,7 +24,7 @@ doğrulanmıştır.
 
 | Alan | Durum | Kanıt |
 |---|---|---|
-| Saf TS simülasyon çekirdeği | ✅ | 261 test, 9 dosya, ~95 sn |
+| Saf TS simülasyon çekirdeği | ✅ | 268 test, 10 dosya, ~95 sn |
 | Enerji korunumu (kapalı sistem) | ✅ | rezidüel = **0.0000** (arena'da 0.0 e, kolonide 1.7e-8 e) |
 | Bölünme / parçalanma / paylaşım muhasebesi | ✅ | testler |
 | Bağ grafiği → gerçek çok hücrelilik | ✅ | 4+ hücreli yapılar test edildi |
@@ -41,7 +41,7 @@ doğrulanmıştır.
 | 3B sahne (shader'lar, GLB varlıklar, kamera) | ✅ | tarayıcıda |
 | TR/EN arayüz | ✅ | tarayıcıda (TR) |
 | Gözlemci kanıt paketi + yerel kural özeti | ✅ | tarayıcıda |
-| Gözlemci sunucu rotası (anahtar sunucuda) | ✅ (503 doğrulandı) | curl |
+| Gözlemci sunucu rotası (anahtar sunucuda) | ✅ (7 otomatik test) | `tests/server.test.ts` |
 | Prodüksiyon derlemesi | ✅ | `vite build` başarılı |
 | **Deney motoru (arena + koloni koşucuları)** | ✅ | 48 test |
 | **İstatistik katmanı (bootstrap CI, IQM, bootstrap test)** | ✅ | 24 test |
