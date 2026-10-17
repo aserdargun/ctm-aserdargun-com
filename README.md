@@ -34,7 +34,7 @@ Anahtar yoksa uygulama **çalışır** ve gözlemci panelinde dürüstçe
 | `npm run dev` | Geliştirme sunucusu (port 5183) |
 | `npm run build` | Tip denetimi + üretim derlemesi |
 | `npm run preview` | Üretim çıktısını sunar (port 4173) |
-| `npm test` | Vitest — 273 test |
+| `npm test` | Vitest — 274 test |
 | `npm run e2e` | Playwright — 6 tarayıcı testi (üretim yapısı üzerinden) |
 | `npm run check` | Tip denetimi + birim + uçtan uca (dağıtım öncesi kapı) |
 | `npm run typecheck` | `tsc --noEmit` |
@@ -115,7 +115,7 @@ durur.
 | Arşivin seçilime katılması (Faz D, ε > 0) | ❌ **işe yaramadı** — doluluk değişmedi (p = 1,00); boyut ekseni kalıtsal değil |
 | Koloni sönümlenmesi (Faz B1) | ⚪ **teşhis edildi:** kaynak/avcı elendi, sınırlayıcı **bağ ömrü** (~2.100 tick) |
 | Bağ ömrü duyarlılığı (Faz B1b) | ⚪ **ölçüt karşılanmadı:** ömür 2.083 → 21.277 iken de "son 4+ yapı" dört kademede de **0.000**, kalıcılık **HAYIR** |
-| Y-2 bağ ömrünü seçilime açma | ❌ başarısız — seçilim kayması sıfırdan ayrışmadı: **−0.0006** [−0.0042, +0.0019] |
+| Y-2 bağ ömrünü seçilime açma | ⚪ **pencereye bağlı:** 12.000 tick'te −0.0006 (ayrışmıyor) · **40.000 tick'te +0.0083** [0.0026, 0.0145] (**ayrışıyor**) |
 | Üreme tıkanması | ❌ değil tıkanma, **çöküş**: son çeyrekte 1 doğum, pop 213 → 29 |
 | Uzun vadeli dayanıklılık | ❌ §5.4 40.000 tick'e **genellenmiyor** — kalibrasyon hafifçe **kötüleştiriyor** (son pop 33 → 26) |
 | **Bağ enerji paylaşımı** (varsayılan ayar) | ⚪ **etkisiz**: paylaşmanın matematiksel olarak imkânsız olduğu dünyayla tepe küme **birebir aynı** (fark [0,0], 12 tohum) |

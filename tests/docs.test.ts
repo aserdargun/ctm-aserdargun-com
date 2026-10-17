@@ -937,6 +937,36 @@ describe('README iddia tablosu rapora bağlı', () => {
    */
   const NARRATIVE_PS_DOCS = ['README.md', 'docs/PROGRESS.md', 'docs/ROADMAP.md'] as const;
 
+  it('§5.8 Y-2 derin ölçümü DEEP ile AYNI (pencere bağımlı)', () => {
+    // ⚠️ ÖLÇÜLEN: §5.8 40.000 tick'lik ölçümü anlatıyor ama yalnız **standart**
+    // rapora (12.000 tick) bakıyordu — derin ölçüm `EXPERIMENTS-DEEP.md`'de
+    // üretiliyor ve bölüm onu hiç görmemişti. Sonuç **ters yöne** kaymıştı:
+    //   bölüm  : kontrol −0.0112, tedavi −0.0056, "ölçüt karşılanmadı"
+    //   DEEP   : kontrol **+0.0037**, tedavi **+0.0083** [0.0026, 0.0145],
+    //             "ölçüt KARŞILANDI — kayma sıfırdan ayrışıyor"
+    // Yani bölüm hem sayıyı hem **yönü** ve **hükmü** yanlış taşıyordu.
+    const deep = section(read('docs/EXPERIMENTS-DEEP.md'), [
+      '## Y-2 · Bağ ömrünün kalıtılabilirliği',
+      '\n## ',
+    ]);
+    expect(deep, 'DEEP içinde Y-2 bölümü bulunamadı').not.toBe('');
+    // Belge tipografik eksi (U+2212), rapor ASCII eksi kullanıyor.
+    // ⚠️ Burada **virgül çevrilmez**: virgül aynı zamanda liste ayracı
+    // (`[lo, hi]`) olduğu için genel dönüşüm aralığı `[−0.0056, +0.0131]`
+    // biçimini `[−0.0056. +0.0131]` yapıyor ve eşleşme hiçbir zaman tutmuyor.
+    const norm = (s: string): string => s.replace(/−/g, '-');
+    const sec = norm(section(read('docs/VALIDATION.md'), ['### 5.8 ', '### 5.9 ']));
+    expect(sec, '§5.8 bulunamadı').not.toBe('');
+
+    // DEEP: `iki kol farkı 0.0046 [-0.0056, 0.0131] · p = 0.3302`
+    const m = deep.match(/iki kol farkı (\d+\.\d+) \[(-\d+\.\d+), (\d+\.\d+)\] · p = (\d+\.\d+)/);
+    expect(m, 'DEEP Y-2 fark/p-değeri okunamadı').toBeTruthy();
+    const [, diff, lo, hi, p] = m as RegExpMatchArray;
+    expect(sec, `§5.8 iki kol farkı ${diff} taşımıyor`).toContain(`+${diff}`);
+    expect(sec, `§5.8 fark aralığı [${lo}, +${hi}] taşımıyor`).toContain(`[${lo}, +${hi}]`);
+    expect(sec, `§5.8 p-değeri ${p} taşımıyor`).toContain(`p = ${p}`);
+  });
+
   it('anlatı belgelerindeki her p-değeri bir raporda izlenebilir', () => {
     const sources = read('docs/EXPERIMENTS.md') + read('docs/EXPERIMENTS-DEEP.md');
     // Belge ondalık ayracı olarak virgül kullanıyor; rapor nokta.
