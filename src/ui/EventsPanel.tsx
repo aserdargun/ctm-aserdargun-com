@@ -1,10 +1,19 @@
 /**
  * Cell to Mind — Olay Günlüğü paneli.
  *
- * Simülasyonun kaydı: 12.000 tick'te 7.088 öğrenme güncellemesi, 603 ölüm,
- * 302 tomurcuk ayrılması… **Bu veri zaten üretiliyordu ama hiçbir yere
- * bağlı değildi**: `SimClient.listEvents()` komutu gönderiyor, worker `events`
- * yanıtını üretiyor, ama ne bir yerden çağrılıyordu ne de yanıt işleniyordu
+ * Simülasyonun kaydı. Ölçülen değerler (varsayılan ayarlar, tohum 20261006,
+ * **12.000 tick**): `learning-update` **1.727**, `death` **129**,
+ * `bud-separation` **9**, `predation` 53, `fragmentation` 38.
+ *
+ * ⚠️ Bunlar **üretilen toplam** değil, halk tamponunda **kalan son kayıtlar**:
+ * tampon 2000 kapasiteli (`world.events`), yani 12.000 tick'te çoktan
+ * sarılmıştır. Yorum eskiden "7.088 / 603 / 302" diyordu; **hiçbiri
+ * doğru değildi** ve hiçbir raporda da izlenemiyordu — yani kaynağı yoktu.
+ * Ölçülen değerler ve sarma uyarısı buraya yazıldı.
+ *
+ * **Bu veri zaten üretiliyordu ama hiçbir yere bağlı değildi**:
+ * `SimClient.listEvents()` komutu gönderiyor, worker `events` yanıtını
+ * üretiyor, ama ne bir yerden çağrılıyordu ne de yanıt işleniyordu
  * (`VALIDATION.md` §6.53).
  *
  * Panel yalnız **ölçüm gösterir**: olayları listeler, türe göre sayar ve
