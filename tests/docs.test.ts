@@ -951,6 +951,46 @@ describe('README iddia tablosu rapora bağlı', () => {
    */
   const OFF_PIPELINE = /pipeline dışı ölçüm/i;
 
+  it('deney panelindeki bütçe sayıları ÖLÇÜM kodundan türetiliyor', () => {
+    // ⚠️ ÖLÇÜLEN: panel "Bütçe: 2.000 eğitim + 1.000 değerlendirme kararı"
+    // diyordu. Bu sayı **hiçbir yapılandırmadan türetilemiyordu**: sweep
+    // 6.000 eğitim + 4.000 değerlendirme tick'i koşuyor ve
+    // `DECISION_EVERY_TICKS = 10` olduğu için karar sayısı
+    // 6.000/10 = **600** ve 4.000/10 = **400**. Yani kullanıcıya gösterilen
+    // iki sayı da yanlıştı — ve bu kez yorum değil **arayüz** metni.
+    const energy = read('src/sim/biology/energy.ts');
+    const every = Number(energy.match(/DECISION_EVERY_TICKS:\s*(\d+)/)?.[1]);
+    expect(Number.isFinite(every) && every > 0, 'DECISION_EVERY_TICKS okunamadı').toBe(true);
+
+    const pipe = read('scripts/run-experiments.ts');
+    // ⚠️ `sweepLearning` **iki kez** geçiyor: üç nokta ifadesinin `quick`
+    // dalı (900/600 tick) ve tam koşu (6.000/4.000). İlk eşleşme quick'ı
+    // yakalıyor ve 90/60 gibi yanlış sayılar türetiyordu. Kullanıcıya
+    // gösterilen bütçe **tam** koşununki olmalı: en büyük eğitim tick'li
+    // blok seçiliyor.
+    const blocks = [...pipe.matchAll(/sweepLearning\(\{[\s\S]*?trainTicks:\s*(\d+),\s*evalTicks:\s*(\d+)/g)];
+    expect(blocks.length, 'sweepLearning çağrısı bulunamadı').toBeGreaterThanOrEqual(2);
+    const full = blocks.reduce((a, b) => (Number(a[1]) >= Number(b[1]) ? a : b));
+    const [, trainTicks, evalTicks] = full as unknown as RegExpMatchArray;
+
+    const train = Math.round(Number(trainTicks) / every);
+    const evalD = Math.round(Number(evalTicks) / every);
+    expect(train, 'eğitim karar sayısı hesaplanamadı').toBeGreaterThan(0);
+    expect(evalD, 'değerlendirme karar sayısı hesaplanamadı').toBeGreaterThan(0);
+
+    // Kullanıcıya gösterilen metin bu türetilmiş sayıları taşımalı.
+    const i18n = read('src/i18n/index.ts');
+    for (const key of ['trainSeedsLabel', 'evalSeedsLabel'] as const) {
+      expect(i18n, `${key} i18n'de yok`).toContain(key);
+    }
+    for (const [label, value] of [[`eğitim`, train], [`değerlendirme`, evalD]] as const) {
+      expect(
+        i18n,
+        `paneldeki ${label} bütçesi "${value}" sayısını taşımıyor (${trainTicks}/${evalTicks} tick ÷ ${every})`,
+      ).toMatch(new RegExp(`${value}\\s+${label}`));
+    }
+  });
+
   it('deney panelinde tohum satırının etiketi değerinden FARKLI', () => {
     // ⚠️ ÖLÇÜLEN: `ExperimentsPanel` tohum tablosunda `<dt>` (etiket) ve
     // `<dd>` (değer) **aynı** anahtarı basıyordu — ekranda "1–20  1–20"
