@@ -34,7 +34,7 @@ Anahtar yoksa uygulama **çalışır** ve gözlemci panelinde dürüstçe
 | `npm run dev` | Geliştirme sunucusu (port 5183) |
 | `npm run build` | Tip denetimi + üretim derlemesi |
 | `npm run preview` | Üretim çıktısını sunar (port 4173) |
-| `npm test` | Vitest — 276 test |
+| `npm test` | Vitest — 277 test |
 | `npm run e2e` | Playwright — 6 tarayıcı testi (üretim yapısı üzerinden) |
 | `npm run check` | Tip denetimi + birim + uçtan uca (dağıtım öncesi kapı) |
 | `npm run typecheck` | `tsc --noEmit` |
@@ -47,9 +47,14 @@ Anahtar yoksa uygulama **çalışır** ve gözlemci panelinde dürüstçe
 
 ### Sürekli doğrulama
 
-`master` dalına her push'ta ve her PR'da **CI koşar**: tip denetimi + 201 birim
-testi + 6 tarayıcı testi (`npm run check`). Başarısızsa tarayıcı kanıtları
-artifact olarak yüklenir.
+`master` dalına her push'ta ve her PR'da **CI koşar**: tip denetimi + 276 birim
+testi + 11 tarayıcı testi + niş ekseni kalibrasyon denetimi (`npm run check`).
+Başarısızsa tarayıcı kanıtları artifact olarak yüklenir.
+
+> ⚠️ Bu paragraf **kendisi** bağlı değildi ve iki gündür "201 birim testi +
+> 6 tarayıcı testi" diyordu; gerçekte 276 + 11 ve kapıya kalibrasyon adımı da
+> eklenmişti. Artık denetim hem birim hem tarayıcı test sayısını kaynaktan
+> türetiyor ve `package.json`'daki `check` scriptinin adımlarını listeliyor.
 
 > Bu depo şu an **yayınlanmıyor** (2026-10-13 tarihinde bilinçli olarak
 > ertelendi). CI kapısı yeşil ve derleme hazır; eksik olan yalnız barındırma.

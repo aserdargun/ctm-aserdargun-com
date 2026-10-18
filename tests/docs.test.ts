@@ -1037,6 +1037,42 @@ describe('README iddia tablosu rapora bağlı', () => {
     expect(sec, `§5.8 p-değeri ${p} taşımıyor`).toContain(`p = ${p}`);
   });
 
+  it('README kapı açıklaması gerçek test sayılarıyla ve check adımlarıyla AYNI', () => {
+    // ⚠️ ÖLÇÜLEN: README "201 birim testi + 6 tarayıcı testi" diyordu;
+    // gerçekte 276 + 11 ve `check` script'i ayrıca `calibrate` çalıştırıyor.
+    // Yani projenin **kendi kapısını** anlatan metin bayattı.
+    const readme = read('README.md');
+
+    // Tarayıcı testleri: e2e dosyalarındaki `test(` tanımları.
+    const e2e = readdirSync(resolve(ROOT, 'e2e')).filter((f) => f.endsWith('.spec.ts'));
+    let browser = 0;
+    for (const f of e2e) {
+      browser += (read(resolve('e2e', f)).match(/^\s*test\(/gm) ?? []).length;
+    }
+    expect(browser, 'e2e test sayısı sayılamadı').toBeGreaterThan(0);
+
+    const claimed = readme.match(/(\d+) birim\s*\n?\s*testi \+ (\d+) tarayıcı testi/);
+    expect(claimed, 'README kapı açıklamasındaki test sayıları okunamadı').toBeTruthy();
+    expect(
+      Number((claimed as RegExpMatchArray)[2]),
+      `README ${(claimed as RegExpMatchArray)[2]} tarayıcı testi diyor, e2e dosyalarında ${browser} var`,
+    ).toBe(browser);
+
+    // Birim testi sayısı zaten README'de ayrı bir satırda bağlı; burada
+    // `check` script'inin **adımlarını** da doğruluyoruz ki kapıya eklenen
+    // bir adım sessizce belgelenmeden kalmasın.
+    const check = (JSON.parse(read('package.json')) as { scripts: Record<string, string> })
+      .scripts.check;
+    expect(check, "package.json check script'i okunamadı").toBeTruthy();
+    for (const step of check.split('&&').map((s) => s.trim())) {
+      const name = step.replace(/^npm run /, '');
+      expect(
+        readme.includes(`npm run ${name}`) || name === 'typecheck' || name === 'test' || name === 'e2e',
+        `check script'i "${name}" çalıştırıyor ama README bunu anmıyor`,
+      ).toBe(true);
+    }
+  });
+
   it('anlatı belgelerindeki her p-değeri bir raporda izlenebilir', () => {
     const sources = read('docs/EXPERIMENTS.md') + read('docs/EXPERIMENTS-DEEP.md');
     // Belge ondalık ayracı olarak virgül kullanıyor; rapor nokta.
