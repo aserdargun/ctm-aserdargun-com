@@ -951,6 +951,22 @@ describe('README iddia tablosu rapora bağlı', () => {
    */
   const OFF_PIPELINE = /pipeline dışı ölçüm/i;
 
+  it('deney panelinde tohum satırının etiketi değerinden FARKLI', () => {
+    // ⚠️ ÖLÇÜLEN: `ExperimentsPanel` tohum tablosunda `<dt>` (etiket) ve
+    // `<dd>` (değer) **aynı** anahtarı basıyordu — ekranda "1–20  1–20"
+    // görünüyordu. Yani okuyucu hangisinin eğitim, hangisinin değerlendirme
+    // tohumu olduğunu **göremiyordu**; etiket anahtarları hiç yazılmamıştı.
+    //
+    // Denetim hem etiketi hem değeri okur ve **farklı olduklarını** ister —
+    // yani bu, yazının varlığını değil ayrılmasını denetliyor.
+    const panel = read('src/ui/ExperimentPanels.tsx');
+    const dt = panel.match(/<dt>\{t\.experiments\.(trainSeedsLabel|trainSeeds)\}<\/dt>\s*\n\s*<dd>\{t\.experiments\.(trainSeedsLabel|trainSeeds)\}<\/dd>/);
+    expect(dt, 'tohum satırı bulunamadı').toBeTruthy();
+    const [, dtKey, ddKey] = dt as RegExpMatchArray;
+    expect(dtKey, `<dt> ve <dd> aynı anahtarı kullanıyor (${dtKey}): etiket okunmuyor`).not.toBe(ddKey);
+    expect(dtKey, `etiket anahtarı ${dtKey} i18n'de yok`).toContain('Label');
+  });
+
   it('§5.8 Y-2 derin ölçümü DEEP ile AYNI (pencere bağımlı)', () => {
     // ⚠️ ÖLÇÜLEN: §5.8 40.000 tick'lik ölçümü anlatıyor ama yalnız **standart**
     // rapora (12.000 tick) bakıyordu — derin ölçüm `EXPERIMENTS-DEEP.md`'de

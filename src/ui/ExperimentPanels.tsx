@@ -52,9 +52,13 @@ export function ExperimentsPanel(): React.ReactElement {
 
           <h4>{t.experiments.seeds}</h4>
           <dl className="kv">
-            <dt>{t.experiments.trainSeeds}</dt>
+            {/* ⚠️ Önceden `<dt>` de `<dd>` de aynı metni basıyordu:
+                "1–20   1–20". Etiket anahtarları hiç yazılmamıştı, yani
+                okuyucu hangisinin eğitim hangisinin değerlendirme tohumu
+                olduğunu göremiyordu. */}
+            <dt>{t.experiments.trainSeedsLabel}</dt>
             <dd>{t.experiments.trainSeeds}</dd>
-            <dt>{t.experiments.evalSeeds}</dt>
+            <dt>{t.experiments.evalSeedsLabel}</dt>
             <dd>{t.experiments.evalSeeds}</dd>
             <dt>{t.experiments.budget}</dt>
             <dd>—</dd>
