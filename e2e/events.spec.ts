@@ -23,6 +23,21 @@ import { expect, test } from '@playwright/test'
 const PANEL = 'Olay Günlüğü'
 const CLEAR = 'Temizle'
 
+/**
+ * Simülasyonu **durdurur**.
+ *
+ * ⚠️ Ölçümü olay üretim hızından bağımsız yapmanın tek yolu. Çalışırken
+ * sayaç sürekli büyüdüğü için "temizlikten sonra azaldı" iddiası hıza
+ * bağlıydı: yerelde geçiyordu, CI'da 47 → 74 ile **kırılıyordu** — ürün
+ * doğru çalışıyor, ölçüm yanlıştı.
+ */
+async function pauseSim(page: import('@playwright/test').Page): Promise<void> {
+  await page.getByRole('button', { name: 'Duraklat', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Devam', exact: true })).toBeVisible({
+    timeout: 15_000,
+  })
+}
+
 async function openEvents(page: import('@playwright/test').Page) {
   await page.goto('/')
   await expect(page.locator('[aria-label="Canlılar"]').first()).toBeVisible({ timeout: 30_000 })
@@ -49,27 +64,27 @@ test.describe('Olay Günlüğü paneli', () => {
     const total = async (): Promise<number> =>
       Number((await list.innerText()).match(/\/\s*(\d+)/)?.[1] ?? -1);
 
-    // ⚠️ Temizlemeden **önce** halk dolmalı. İlk ölçümde sayaç 1'de alındı ve
-    // "düştü" iddiası 0'a inmesine bağlıydı — kırılgan bir kanıt. Anlamlı bir
-    // düşüş için başlangıç değerinin büyük olması gerekiyor.
+    await expect(items.first()).toBeVisible()
+    // Duraklatmadan **önce** birkaç olay biriksın: marj 1'e düşerse
+    // "temizlik kalıcı değil: 1 → 1" gibi okunması zor bir kanıt kalıyor.
     await expect
       .poll(total, { timeout: 40_000, intervals: [500] })
-      .toBeGreaterThanOrEqual(30);
-    await expect(items.first()).toBeVisible()
+      .toBeGreaterThanOrEqual(10)
+    await pauseSim(page)
 
+    // Duraklatılmış halkta sayı sabittir; birkaç yoklama sonra doğruluyoruz.
+    await page.waitForTimeout(2_500);
     const before = await total()
-    expect(before, 'olay sayacı okunamadı — test anlamsız kalır').toBeGreaterThanOrEqual(30)
+    expect(before, 'olay sayacı okunamadı — test anlamsız kalır').toBeGreaterThan(0)
 
     await page.getByRole('button', { name: CLEAR, exact: true }).click()
 
-    // ⚠️ **Ölçüm yoklamadan SONRA alınmalı.** Düğme önce depoları iyimser
-    // olarak sıfırlıyor (`eventsTotal: 0`), yani sayaç zaten bir an için 0'a
-    // düşüyor ve *her iki durumda da* "azaldı" der. Gerçek ayrım, birkaç yoklama
-    // döndükten **sonra** sayacın hâlâ düşük kalması: düğme yalnız arayüzü
-    // sıfırlıyorsa 1,2 sn içinde `w.events.size` geri gelir.
+    // Duraklatılmış simülasyonda **hiçbir yeni olay üretilmez**, dolayısıyla
+    // temizlikten sonra sayaç 0'da kalmalı. Düğme yalnız arayüzü sıfırlıyor
+    // olsaydı yoklama 1,2 sn içinde `w.events.size`'i geri getirirdi.
     await page.waitForTimeout(4_000);
     const after = await total();
-    expect(after, `temizlik kalıcı değil: ${before} → ${after}`).toBeLessThan(before);
+    expect(after, `temizlik kalıcı değil: ${before} → ${after}`).toBe(0);
   })
 
   test('temizlik simülasyonu durdurmuyor: yeni olaylar akmaya devam eder', async ({ page }) => {
@@ -77,17 +92,17 @@ test.describe('Olay Günlüğü paneli', () => {
     const total = async (): Promise<number> =>
       Number((await list.innerText()).match(/\/\s*(\d+)/)?.[1] ?? -1);
 
-    await expect
-      .poll(total, { timeout: 40_000, intervals: [500] })
-      .toBeGreaterThanOrEqual(30)
-    const before = await total()
+    // ⚠️ Bu test **simülasyonu durdurmuyor** — durdurmadığı için sayaç
+    // karşılaştırması hıza bağlı olurdu (CI'da temizlikten sonra 4 sn'de
+    // 47 → 74 büyüdü ve test kırıldı, ürün doğruydu). Buradaki iddia yalnız
+    // şu: temizlik bir **sıfırlamadır**, akışı durdurmaz. Sayaç düşüşünün
+    // ölçüldüğü yer 1. testtir ve orada simülasyon duraklatıldığı için
+    // tamamen belirlenimcidir.
+    await expect.poll(total, { timeout: 40_000, intervals: [500] }).toBeGreaterThan(0)
 
     await page.getByRole('button', { name: CLEAR, exact: true }).click()
-    await page.waitForTimeout(4_000)
-    expect(await total(), `temizlik kalıcı değil: ${before}`).toBeLessThan(before)
 
-    // Yeni olaylar üretilmeye ve **kayda geçmeye** devam etmeli — temizlik bir
-    // sıfırlamadır, simülasyonu durduran bir şey değil.
+    // Yeni olaylar üretilmeye ve **kayda geçmeye** devam etmeli.
     await expect.poll(total, { timeout: 40_000, intervals: [500] }).toBeGreaterThan(0)
     await expect(items.first()).toBeVisible({ timeout: 20_000 })
   })
