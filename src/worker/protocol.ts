@@ -215,7 +215,7 @@ export type WorkerResponse =
   | { type: 'frame'; buffer: ArrayBuffer; seq: number; measuredSpeed: number; running: boolean }
   | { type: 'organisms'; organisms: OrganismSummary[]; tick: number }
   | { type: 'lineages'; lineages: LineageSummary[] }
-  | { type: 'events'; events: SimEvent[]; totalKnown: number; seq?: number }
+  | { type: 'events'; events: SimEvent[]; totalKnown: number }
   | { type: 'decision'; decision: DecisionSnapshot }
   | { type: 'snapshot'; snapshotJson: string; tick: number; bytes: number }
   | { type: 'evidence'; pack: EvidencePack }

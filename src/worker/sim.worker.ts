@@ -396,14 +396,14 @@ function handle(request: WorkerRequest): void {
       post({ type: 'lineages', lineages: lineageSummaries() });
       break;
     case 'listEvents':
-      if (w) post({ type: 'events', events: w.recentEvents(request.count), totalKnown: w.events.size, seq: request.seq });
+      if (w) post({ type: 'events', events: w.recentEvents(request.count), totalKnown: w.events.size });
       break;
     case 'clearEvents':
       // Gerekçe: "Temizle" düğmesi kalıcı bir etki vaat ediyordu ama yalnız
       // istemci deposunu sıfırlıyordu; yoklama 1.2 sn'de listeyi geri
       // getiriyordu. Günlüğün sahibi worker, temizlik de orada olmalı.
       if (w) w.events.clear();
-      post({ type: 'events', events: [], totalKnown: 0, seq: request.seq });
+      post({ type: 'events', events: [], totalKnown: 0 });
       break;
     case 'snapshot': {
       if (!w) break;
