@@ -94,14 +94,14 @@ const ORGANISM_LIST_LIMIT = 300;" \
 
 # 8) README komut tablosundaki test sayısı bayatlıyor
 check "README tablo test sayısı" "README.md" \
-  '| `npm test` | Vitest — 286 test |' \
-  '| `npm test` | Vitest — 285 test |' \
+  '| `npm test` | Vitest — 294 test |' \
+  '| `npm test` | Vitest — 293 test |' \
   "tests/docs.test.ts"
 
 # 9) PROGRESS.md dosya sayısı bayatlıyor
 check "PROGRESS dosya sayısı" "docs/PROGRESS.md" \
-  '286 test, 12 dosya' \
-  '286 test, 10 dosya' \
+  '294 test, 12 dosya' \
+  '294 test, 10 dosya' \
   "tests/docs.test.ts"
 
 # 10) İngilizce metinde yer tutucu adı kaymış
@@ -115,6 +115,30 @@ check "format bilinmeyen yer tutucu" "src/i18n/index.ts" \
   "    key in vars ? String(vars[key]) : match," \
   "    key in vars ? String(vars[key]) : ''," \
   "tests/measurement.test.ts"
+
+# 12) Soy paneli kendi gösterim sınırını yazıyor
+check "soy paneli ortak sınırı kullanıyor" "src/ui/Panels.tsx" \
+  "lineages.slice(0, LINEAGE_DISPLAY_LIMIT)" \
+  "lineages.slice(0, 12)" \
+  "tests/caps.test.ts"
+
+# 13) Simülasyon soy gruplamasını elle yazıyor
+check "simülasyon ortak sabiti kullanıyor" "src/sim/world.ts" \
+  "founders.length / FOUNDER_LINEAGE_GROUPS" \
+  "founders.length / 12" \
+  "tests/caps.test.ts"
+
+# 14) Gözlemci paneli iddia tablosunu elle sınırlıyor
+check "iddia tablosu ortak sabiti kullanıyor" "src/ui/Panels.tsx" \
+  "r.claims.slice(0, OBSERVER_CLAIM_LIMIT)" \
+  "r.claims.slice(0, 20)" \
+  "tests/caps.test.ts"
+
+# 15) Gözlemci paneli ölçüm tablosunu elle sınırlıyor
+check "ölçüm tablosu ortak sabiti kullanıyor" "src/ui/Panels.tsx" \
+  "evidence.measurements.slice(0, OBSERVER_MEASUREMENT_LIMIT)" \
+  "evidence.measurements.slice(0, 24)" \
+  "tests/caps.test.ts"
 
 echo
 echo "ayırt edici: $pass · ayırt edici olmayan: $fail"

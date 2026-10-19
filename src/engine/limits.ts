@@ -18,7 +18,10 @@
  * `tools/measure-list-cap.ts`, 40.000 tick):
  *   - en yüksek canlı hücre: **266** (14 senaryo) → MAX_RENDER_CELLS payı %48
  *   - en yüksek canlı organizma: **252** (9 senaryo) → ORGANISM_LIST_LIMIT payı %16
+ *   - en yüksek canlı soy: **12** (7 senaryo) → LINEAGE_DISPLAY_LIMIT payı %0
  */
+
+import { FOUNDER_LINEAGE_GROUPS } from '../sim/genome.ts';
 
 /**
  * 3B görünümün aynı anda gösterebileceği azami hücre sayısı.
@@ -35,3 +38,35 @@ export const MAX_RENDER_CELLS = 512;
  * → tepe 252 organizma.
  */
 export const ORGANISM_LIST_LIMIT = 300;
+
+/**
+ * Soy defteri panelinde gösterilecek azami soy sayısı.
+ *
+ * ⚠️ Bu, **elle yazılmış bir sayı değil**: simülasyonun kendi kurucu soy
+ * gruplama sayısından gelir (`FOUNDER_LINEAGE_GROUPS`). Simülasyon yapısal
+ * olarak en fazla bu kadar soy üretir, yani bugün panel kırpmaz — ama iki
+ * sayı bağımsız yazılıydı ve simülasyonun tavanı değişseydi panel
+ * **sessizce** kırpmaya başlardı.
+ *
+ * Ölçülen sınır (19 Ekim 2026, `tools/measure-lineage-cap.ts`; 40.000 tick,
+ * 7 senaryo): tepe soy sayısı **12** — hiçbir koşuda 13 olmadı.
+ */
+export const LINEAGE_DISPLAY_LIMIT = FOUNDER_LINEAGE_GROUPS;
+
+/**
+ * Gözlemci panelinde gösterilen azami **kanıt ölçümü** sayısı.
+ *
+ * Kanıt paketi bugün 14 ölçüm üretiyor (9 metrik + 5 sabit), yani 24'lük
+ * sınır **bağlayıcı değil**. Yine de ölçüm sayısı büyürse tablo sessizce
+ * kırpılmasın diye sınır ve **görünür** kırpma notu birlikte tanımlanır.
+ */
+export const OBSERVER_MEASUREMENT_LIMIT = 24;
+
+/**
+ * Gözlemci panelinde gösterilen azami **model iddiası** sayısı.
+ *
+ * ⚠️ Model yanıtındaki sayı sayısı **sınırsızdır** (`extractNumericClaims`
+ * metindeki her sayıyı çeker), yani bu sınır gerçekten bağlayıcı olabilir.
+ * O yüzden burada sessiz kırpma kabul edilmiyor: kırpma **görünür** olur.
+ */
+export const OBSERVER_CLAIM_LIMIT = 20;

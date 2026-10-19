@@ -142,6 +142,24 @@ export function lineageLabel(index: number): string {
   return `G${index + 1}`;
 }
 
+/**
+ * Kurucu organizmaların gruplandığı **soy sayısı**.
+ *
+ * ⚠️ Bu sayı iki yerde kullanılıyordu ve **bağımsızdı**:
+ *   - `world.ts` → `Math.ceil(founders.length / 12)` (kurucu soyu gruplama)
+ *   - `ui/Panels.tsx` → `lineages.slice(0, 12)` (panelde gösterilecek soy)
+ * Simülasyon **yapısal olarak** en fazla bu kadar soy üretir (her kurucu
+ * grubu bir soy; yeni soy yalnız kurucu turlarında doğar), yani bugün panel
+ * hiç kırpmıyor. Ama iki "12" birbirinden bağımsız yazılıydı: simülasyondaki
+ * sayı değişseydi panel **sessizce** kırpmaya başlardı.
+ *
+ * **ÖLÇÜLDÜ** (19 Ekim 2026, `tools/measure-lineage-cap.ts`; 40.000 tick,
+ * 7 senaryo: 5 tohum × p=48 ve 2 × p=192): tepe soy sayısı **12** — hiçbir
+ * koşuda 13 olmadı. Panelin tavanı ile simülasyonun tavanı **ayni sayıdır**;
+ * artık bu sayı tek yerden gelir.
+ */
+export const FOUNDER_LINEAGE_GROUPS = 12;
+
 /** Yeni soy kaydı. */
 export function createLineage(
   id: number,

@@ -29,7 +29,14 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { extname, join, resolve } from 'node:path';
 import { World } from '../src/sim/world.ts';
-import { MAX_RENDER_CELLS, ORGANISM_LIST_LIMIT } from '../src/engine/limits.ts';
+import {
+  LINEAGE_DISPLAY_LIMIT,
+  MAX_RENDER_CELLS,
+  OBSERVER_CLAIM_LIMIT,
+  OBSERVER_MEASUREMENT_LIMIT,
+  ORGANISM_LIST_LIMIT,
+} from '../src/engine/limits.ts';
+import { buildEvidencePack } from '../src/worker/evidence.ts';
 
 const ROOT = resolve(__dirname, '..');
 
@@ -98,6 +105,24 @@ describe('görüntüleme sınırları ölçümle denetleniyor', () => {
         'Tavanı gözden geçir (src/engine/limits.ts) veya davranışı düzelt.',
     ).toBeLessThan(ORGANISM_LIST_LIMIT);
   });
+
+  it('simülasyonun ürettiği soy sayısı panelin gösterim sınırını aşmıyor', () => {
+    // ⚠️ Simülasyon soy sayısını **yapısal** olarak belirler: kurucu
+    // organizmalar `FOUNDER_LINEAGE_GROUPS` gruba bölünür ve her grup bir
+    // soy olur. Yeni soy yalnız kurucu turlarında doğduğu için sayı sabittir.
+    //
+    // Bu denetim **anlıktır** (tick süresi yok): soylar kuruluşta doğar.
+    // Panelin gösterim sınırı ile simülasyonun tavanı ayrışırsa panel
+    // sessizce kırpmaya başlar ve kullanıcı "tüm soylar" sanar.
+    for (const population of [8, 48, 100, 192, 500]) {
+      const world = new World({ seed: 11, population });
+      expect(
+        world.lineages.size,
+        `popülasyon ${population}: simülasyon ${world.lineages.size} soy üretti, ` +
+          `panel sınırı ${LINEAGE_DISPLAY_LIMIT}`,
+      ).toBeLessThanOrEqual(LINEAGE_DISPLAY_LIMIT);
+    }
+  });
 });
 
 describe('görüntüleme tavanları TEK kaynaktan okunuyor', () => {
@@ -127,6 +152,62 @@ describe('görüntüleme tavanları TEK kaynaktan okunuyor', () => {
     );
     expect(hud, 'HUD paylaşılan tavanları içe aktarmıyor').toMatch(
       /import\s*\{[^}]*MAX_RENDER_CELLS[^}]*ORGANISM_LIST_LIMIT[^}]*\}\s*from\s*'\.\.\/engine\/limits\.ts'/,
+    );
+  });
+
+  it('soy paneli gösterim sınırını simülasyondan alıyor (bağımsız "12" yok)', () => {
+    // ⚠️ Panel `lineages.slice(0, 12)` yazıyordu ve simülasyon da
+    // `founders.length / 12` ile soy grupluyordu — iki sayı **bağımsız**
+    // yazılıydı. Bugün ikisi de 12 olduğu için panel kırpmıyor; ama
+    // simülasyonun tavanı değişseydi panel sessizce kırpmaya başlardı.
+    const panel = readFileSync(resolve(ROOT, 'src/ui/Panels.tsx'), 'utf8');
+    expect(
+      panel,
+      'soy paneli kendi gösterim sınırını yazıyor — ortak sabit kullanmalı',
+    ).not.toMatch(/lineages\.slice\(0,\s*\d+\)/);
+    expect(panel, 'soy paneli paylaşılan sınırı içe aktarmıyor').toMatch(
+      /import\s*\{[^}]*LINEAGE_DISPLAY_LIMIT[^}]*\}\s*from\s*'\.\.\/engine\/limits\.ts'/,
+    );
+
+    // Ve simülasyonun kendi grubu da aynı sabitten gelmeli.
+    const world = readFileSync(resolve(ROOT, 'src/sim/world.ts'), 'utf8');
+    expect(world, 'simülasyon soy gruplamasını elle yazıyor').not.toMatch(
+      /Math\.ceil\(founders\.length\s*\/\s*\d+\)/,
+    );
+    expect(world, 'simülasyon ortak sabiti içe aktarmıyor').toMatch(/FOUNDER_LINEAGE_GROUPS/);
+  });
+
+  it('gözlemci paneli ölçüm tablosunda kırpma görünür', () => {
+    // Kanıt paketi bugün 14 ölçüm üretiyor (24'lük sınır bağlayıcı değil),
+    // ama ölçüm sayısı büyürse tablo sessizce kırpılmamalı.
+    const world = new World({ seed: 11, population: 48 });
+    const pack = buildEvidencePack(world, 'ne oluyor?', 'A', null, 'w');
+    expect(
+      pack.measurements.length,
+      `kanıt paketi ${pack.measurements.length} ölçüm üretti, sınır ${OBSERVER_MEASUREMENT_LIMIT}`,
+    ).toBeLessThanOrEqual(OBSERVER_MEASUREMENT_LIMIT);
+
+    const panel = readFileSync(resolve(ROOT, 'src/ui/Panels.tsx'), 'utf8');
+    expect(
+      panel,
+      'gözlemci paneli ölçüm tablosunu elle sınırlıyor — ortak sabit kullanmalı',
+    ).not.toMatch(/measurements\.slice\(0,\s*\d+\)/);
+    expect(panel, 'ölçüm tablosunda görünür kırpma notu yok').toContain(
+      `evidence.measurements.slice(0, OBSERVER_MEASUREMENT_LIMIT)`,
+    );
+  });
+
+  it('gözlemci paneli iddia tablosunda kırpma görünür', () => {
+    // ⚠️ Model yanıtındaki sayı sayısı **sınırsızdır**; 20'lik sınır gerçekten
+    // bağlayıcı olabilir. O yüzden burada sessiz kırpma kabul edilmiyor.
+    expect(OBSERVER_CLAIM_LIMIT).toBeGreaterThan(0);
+    const panel = readFileSync(resolve(ROOT, 'src/ui/Panels.tsx'), 'utf8');
+    expect(
+      panel,
+      'gözlemci paneli iddia tablosunu elle sınırlıyor — ortak sabit kullanmalı',
+    ).not.toMatch(/claims\.slice\(0,\s*\d+\)/);
+    expect(panel, 'iddia tablosunda görünür kırpma notu yok').toContain(
+      `r.claims.slice(0, OBSERVER_CLAIM_LIMIT)`,
     );
   });
 });

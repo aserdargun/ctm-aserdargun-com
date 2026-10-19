@@ -116,6 +116,7 @@ export const tr = {
     maxGeneration: 'En yüksek nesil',
     distance: 'Atasal → torun genom uzaklığı',
     note: 'Uyarlanma yalnız ortalama gen değişiminden ilan edilmez; ortak ortam deneyi gerekir.',
+    truncated: 'İlk {shown} / {total} soy gösteriliyor.',
   },
 
   experiments: {
@@ -165,6 +166,8 @@ export const tr = {
     sourceModel: 'Dil modeli yanıtı',
     sourceVision: 'Görsel destekli analiz',
     unverifiedNumbers: 'Doğrulanamayan sayılar çıkarıldı.',
+    measurementsTruncated: 'İlk {shown} / {total} ölçüm gösteriliyor.',
+    claimsTruncated: 'İlk {shown} / {total} sayı iddiası gösteriliyor.',
     modelUnavailable: 'API erişimi yok — yerel kural özeti üretildi. Sahte model yanıtı gösterilmez.',
     timeout: 'Model zaman aşımına uğradı; oyun devam ediyor.',
   },
@@ -330,6 +333,7 @@ const en: Strings = {
     maxGeneration: 'Highest generation',
     distance: 'Ancestor → descendant genome distance',
     note: 'Adaptation is never declared from mean gene change alone; a common-garden experiment is required.',
+    truncated: 'Showing first {shown} of {total} lineages.',
   },
   experiments: {
     title: 'Experiments',
@@ -377,6 +381,8 @@ const en: Strings = {
     sourceModel: 'Language model answer',
     sourceVision: 'Vision-assisted analysis',
     unverifiedNumbers: 'Unverifiable numbers were removed.',
+    measurementsTruncated: 'Showing first {shown} of {total} measurements.',
+    claimsTruncated: 'Showing first {shown} of {total} number claims.',
     modelUnavailable: 'No API access — a local rule summary was produced. No fake model answer is shown.',
     timeout: 'The model timed out; the game keeps running.',
   },

@@ -44,7 +44,14 @@ import {
 import { NeuralPolicy, restorePolicyFromSnapshot, type DecisionInfo } from './behavior/policy.ts';
 import { computeObservation } from './behavior/perception.ts';
 import { createTheta, initTheta, MLP_SHAPE } from './behavior/mlp.ts';
-import { clampGenome, createLineage, founderGenomes, meanGenome, mutateGenome } from './genome.ts';
+import {
+  clampGenome,
+  createLineage,
+  founderGenomes,
+  FOUNDER_LINEAGE_GROUPS,
+  meanGenome,
+  mutateGenome,
+} from './genome.ts';
 import { RingBuffer, hashNoise } from './ring.ts';
 import { RngBundle } from './rng.ts';
 import { SpatialGrid, dist2 } from './spatial.ts';
@@ -2352,8 +2359,10 @@ export class World {
       if (org.birthMode === 'genesis' && org.parentOrganismId === null) founders.push(org);
     }
     founders.sort((a, b) => a.id - b.id);
-    // 12 kurucu soy; her soy bir grup organizma barındırır.
-    const perLineage = Math.max(1, Math.ceil(founders.length / 12));
+    // `FOUNDER_LINEAGE_GROUPS` kurucu soy sayısıdır; **panelin gösterim
+    // sınırı da aynı sayıdan gelir** (`ui/Panels.tsx`). İki "12" bağımsız
+    // yazılıydı; simülasyonun tavanı değişseydi panel sessizce kırpardı.
+    const perLineage = Math.max(1, Math.ceil(founders.length / FOUNDER_LINEAGE_GROUPS));
     let lineageIndex = -1;
     for (let i = 0; i < founders.length; i++) {
       if (i % perLineage === 0) {

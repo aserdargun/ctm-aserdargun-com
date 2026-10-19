@@ -13,7 +13,12 @@ import { useStore } from '../engine/store.ts';
 import type { SimClient } from '../engine/client.ts';
 import { genomeDistance } from '../sim/genome.ts';
 import type { GenomeKey } from '../sim/genome.ts';
-import { actionLabels, getStrings, genomeLabels, inputLabels } from '../i18n/index.ts';
+import { actionLabels, format, getStrings, genomeLabels, inputLabels } from '../i18n/index.ts';
+import {
+  LINEAGE_DISPLAY_LIMIT,
+  OBSERVER_CLAIM_LIMIT,
+  OBSERVER_MEASUREMENT_LIMIT,
+} from '../engine/limits.ts';
 import {
   forwardMasked,
   MLP_SHAPE,
@@ -337,7 +342,7 @@ export function LineagePanel({ client }: { client: SimClient }): React.ReactElem
       body={
         <>
           <p className="note">{t.lineage.note}</p>
-          {lineages.slice(0, 12).map((l) => {
+          {lineages.slice(0, LINEAGE_DISPLAY_LIMIT).map((l) => {
             const latest = l.generations[l.generations.length - 1];
             // ⚠️ Burada elle mesafe hesaplamak YANLIŞ: ham toplam, `senseRadius`
             // (2..7) ile `motility` (0..1)'yi eşit tartıyor ve ölçümün kullandığı
@@ -369,6 +374,17 @@ export function LineagePanel({ client }: { client: SimClient }): React.ReactElem
               </section>
             );
           })}
+          {/* Kırpma **görünür** olmalı: simülasyonun tavanı ile panelin
+              gösterim sınırı aynı sayıdan gelir, ama eşleşmezse kullanıcı
+              "tüm soylar" sanar. */}
+          {lineages.length > LINEAGE_DISPLAY_LIMIT && (
+            <p className="note">
+              {format(t.lineage.truncated, {
+                shown: LINEAGE_DISPLAY_LIMIT,
+                total: lineages.length,
+              })}
+            </p>
+          )}
         </>
       }
     />
@@ -476,7 +492,7 @@ export function ObserverPanel({ client }: { client: SimClient }): React.ReactEle
               <h4>{t.observer.measurements}</h4>
               <table className="metric-table">
                 <tbody>
-                  {evidence.measurements.slice(0, 24).map((m) => (
+                  {evidence.measurements.slice(0, OBSERVER_MEASUREMENT_LIMIT).map((m) => (
                     <tr key={m.metricRef}>
                       <td style={{ textAlign: 'left' }}>{m.metricRef}</td>
                       <td>
@@ -486,6 +502,16 @@ export function ObserverPanel({ client }: { client: SimClient }): React.ReactEle
                   ))}
                 </tbody>
               </table>
+              {/* Kırpma görünür olmalı: kanıt paketi büyürse tablo eksik
+                  görünür ve kullanıcı "hepsi bu" sanır. */}
+              {evidence.measurements.length > OBSERVER_MEASUREMENT_LIMIT && (
+                <p className="note">
+                  {format(t.observer.measurementsTruncated, {
+                    shown: OBSERVER_MEASUREMENT_LIMIT,
+                    total: evidence.measurements.length,
+                  })}
+                </p>
+              )}
             </>
           )}
         </>
@@ -514,7 +540,7 @@ function ObserverReport({ report }: { report: unknown }): React.ReactElement | n
           <h4>{t.observer.unverifiedNumbers}</h4>
           <table className="metric-table">
             <tbody>
-              {r.claims.slice(0, 20).map((c, i) => (
+              {r.claims.slice(0, OBSERVER_CLAIM_LIMIT).map((c, i) => (
                 <tr key={`c${i}`}>
                   <td style={{ textAlign: 'left' }}>{c.value}</td>
                   <td>
@@ -536,6 +562,16 @@ function ObserverReport({ report }: { report: unknown }): React.ReactElement | n
               ))}
             </tbody>
           </table>
+          {/* Model yanıtındaki sayı sayısı **sınırsızdır**; 20'lik sınır
+              bağlayıcı olduğunda panel sessizce kırpar. */}
+          {r.claims.length > OBSERVER_CLAIM_LIMIT && (
+            <p className="note">
+              {format(t.observer.claimsTruncated, {
+                shown: OBSERVER_CLAIM_LIMIT,
+                total: r.claims.length,
+              })}
+            </p>
+          )}
         </>
       )}
       {r.observations && (
