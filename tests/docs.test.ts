@@ -1037,6 +1037,28 @@ describe('README iddia tablosu rapora bağlı', () => {
     expect(sec, `§5.8 p-değeri ${p} taşımıyor`).toContain(`p = ${p}`);
   });
 
+  it('§9 "Doğrulanmayanlar" listesinde kanıt denetiminin anlam sınırı VAR', () => {
+    // ⚠️ `verifyNumericClaims` **değer** karşılaştırması yapar, anlam
+    // denetimi yapmaz — kod yorumu bunu açıkça "yanlış kabul" diye yazıyor
+    // ("Bu 3 organizma bağ kurdu" → 3, `bondCount = 3` ile eşleşiyor).
+    // Sınır **yalnız kodda** yazılıydı; §9'un "yapılmadı" listesinde ve
+    // README'nin "eksik doğrulamalar gizlenmedi" sözünde yoktu.
+    // Gizli kalan bir ölçüm sınırı, yapılmayan ölçüm kadar yanıltıcıdır.
+    const src = read('src/worker/evidence.ts');
+    expect(
+      src,
+      'evidence.ts anlam denetimi yapılmadığını artık söylemiyor — yorum kaybolmuş',
+    ).toMatch(/anlam denetimi yapmaz|anlam/i);
+
+    const s9 = section(read('docs/VALIDATION.md'), ['## 9. Doğrulanmayanlar', '\n## 10']);
+    expect(s9, '§9 bölümü bulunamadı').not.toBe('');
+    expect(
+      s9,
+      '§9 "Doğrulanmayanlar" listesinde kanıt denetiminin anlam sınırı yok — ' +
+        'sınır yalnız kod yorumunda gizli kalmış',
+    ).toMatch(/anlam denetimi YAPMIYOR/);
+  });
+
   it('README kapı açıklaması gerçek test sayılarıyla ve check adımlarıyla AYNI', () => {
     // ⚠️ ÖLÇÜLEN: README "201 birim testi + 6 tarayıcı testi" diyordu;
     // gerçekte 276 + 11 ve `check` script'i ayrıca `calibrate` çalıştırıyor.
