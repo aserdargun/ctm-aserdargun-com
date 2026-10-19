@@ -290,6 +290,13 @@ describe('belge tutarlılığı · üretilmiş rapor', () => {
     expect(progress, 'PROGRESS.md test sayısını README ile aynı yapmalı').toContain(
       `${declared} test`,
     );
+    // ⚠️ **Dosya sayısı da bağlanmalı.** "286 test, 10 dosya" yazıyordu;
+    // test sayısı doğruydu ama dosya sayısı iki yeni dosya (caps, encoding)
+    // eklenince bayatladı ve **hiçbir denetim ona bakmıyordu**.
+    const unitFiles = readdirSync(resolve(ROOT, 'tests')).filter((f) => f.endsWith('.test.ts'));
+    expect(progress, 'PROGRESS.md test dosyası sayısını README/kaynakla aynı yapmalı').toContain(
+      `${declared} test, ${unitFiles.length} dosya`,
+    );
   });
 
   it('derin rapor, ÖLÇÜM boru hattından eski değil', () => {
@@ -1107,6 +1114,38 @@ describe('README iddia tablosu rapora bağlı', () => {
     expect(
       Number((claimed as RegExpMatchArray)[2]),
       `README ${(claimed as RegExpMatchArray)[2]} tarayıcı testi diyor, e2e dosyalarında ${browser} var`,
+    ).toBe(browser);
+
+    // ⚠️ **Komut tablosu da denetlenmiyordu.** "Sürekli doğrulama" paragrafı
+    // bağlıydı, ama tablo satırları ("Vitest — 279 test", "Playwright — 6
+    // tarayıcı testi") **hiçbir denetime bağlı değildi** ve ikisi de bayat
+    // kalmıştı. Aynı sınıf: sayı doğru yerde yazılı, yanlış yerde denetlenmiyor.
+    let unit = 0;
+    for (const f of readdirSync(resolve(ROOT, 'tests'))) {
+      if (!f.endsWith('.test.ts')) continue;
+      unit += (read(resolve('tests', f)).match(/^\s*it\(/gm) ?? []).length;
+    }
+    expect(unit, 'birim test sayısı sayılamadı').toBeGreaterThan(0);
+
+    // Paragrafın **birim** sayısı da bağlanmalı: yalnız tarayıcı sayısı
+    // denetleniyordu, birim sayısı yazıkça "276" da yazıkça geçiyordu.
+    expect(
+      Number((claimed as RegExpMatchArray)[1]),
+      `README paragrafı ${(claimed as RegExpMatchArray)[1]} birim testi diyor, tests/ içinde ${unit} var`,
+    ).toBe(unit);
+
+    const tableUnit = readme.match(/\|\s*`npm test`\s*\|[^|]*?(\d+)\s*test/);
+    expect(tableUnit, 'README komut tablosunda npm test satırı okunamadı').toBeTruthy();
+    expect(
+      Number((tableUnit as RegExpMatchArray)[1]),
+      `README tablosu ${(tableUnit as RegExpMatchArray)[1]} birim testi diyor, tests/ içinde ${unit} var`,
+    ).toBe(unit);
+
+    const tableBrowser = readme.match(/\|\s*`npm run e2e`\s*\|[^|]*?(\d+)\s*tarayıcı testi/);
+    expect(tableBrowser, 'README komut tablosunda npm run e2e satırı okunamadı').toBeTruthy();
+    expect(
+      Number((tableBrowser as RegExpMatchArray)[1]),
+      `README tablosu ${(tableBrowser as RegExpMatchArray)[1]} tarayıcı testi diyor, e2e dosyalarında ${browser} var`,
     ).toBe(browser);
 
     // Birim testi sayısı zaten README'de ayrı bir satırda bağlı; burada

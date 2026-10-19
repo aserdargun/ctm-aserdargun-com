@@ -25,7 +25,7 @@ import { GENOME_KEYS, founderGenomes, genomeDistance } from '../src/sim/genome.t
 import { ACTION_NAMES, MLP_SHAPE } from '../src/sim/behavior/mlp.ts';
 import { baselineThetas, readInWorldEvolution } from '../src/sim/experiments/index.ts';
 import { medianOf } from '../src/sim/experiments/ecology.ts';
-import { ACTION_LABELS_EN, ACTION_LABELS_TR } from '../src/i18n/index.ts';
+import { ACTION_LABELS_EN, ACTION_LABELS_TR, format, getStrings } from '../src/i18n/index.ts';
 import { Rng } from '../src/sim/rng.ts';
 import type { Genome } from '../src/sim/types.ts';
 import { join, resolve } from 'node:path';
@@ -197,8 +197,51 @@ describe('ölçüm kodu · ölü ölçüm kapsamı koruması', () => {
     expect(i18n).not.toMatch(/GENOME_LABELS_\w+: Record<string, string>/);
   });
 
-  it('i18n sözlüğünde kullanılmayan anahtar/sözlük kalmıyor', () => {
-    // Tarama sonucu (temiz negatif): 23 üst düzey anahtardan yalnız `units`
+  it('i18n şablon yer tutucuları TR ve EN arasında AYNI', () => {
+    // ⚠️ `format()` eklendiğinde (sayaç içeren metinler için) iki dil
+    // **ayrı ayrı** yazılır. Derleyici anahtar eşleşmesini zorlar, ama
+    // `{shown}` ile `{total}` yer tutucularının **eşleştiğini** zorlamaz:
+    // İngilizce metinde bir yer tutucu yazılmışsa, ekranda "{shown}"
+    // **olduğu gibi** görünür — sessiz bir arayüz hatası.
+    const walk = (node: unknown, path: string, out: Map<string, string[]>): void => {
+      if (typeof node === 'string') {
+        out.set(path, [...node.matchAll(/\{(\w+)\}/g)].map((m) => m[1] as string).sort());
+      } else if (node && typeof node === 'object') {
+        for (const [k, v] of Object.entries(node)) walk(v, path ? `${path}.${k}` : k, out);
+      }
+    };
+    const trMap = new Map<string, string[]>();
+    const enMap = new Map<string, string[]>();
+    walk(getStrings('tr'), '', trMap);
+    walk(getStrings('en'), '', enMap);
+    expect(trMap.size, 'i18n ağacı boş döndü — tarama işe yaramıyor').toBeGreaterThan(50);
+
+    const mismatch: string[] = [];
+    for (const [path, trVars] of trMap) {
+      const enVars = enMap.get(path);
+      if (!enVars) {
+        mismatch.push(`${path}: EN sözlüğünde yok`);
+        continue;
+      }
+      if (trVars.join(',') !== enVars.join(',')) {
+        mismatch.push(`${path}: TR {${trVars.join(',')}} ↔ EN {${enVars.join(',')}}`);
+      }
+    }
+    expect(mismatch, `şablon yer tutucuları iki dil arasında uyuşmuyor:\n${mismatch.join('\n')}`).toEqual(
+      [],
+    );
+  });
+
+  it('format() bilinmeyen yer tutucuyu boş dizeye çevirmiyor', () => {
+    // Sessizlik tuzağı: bilinmeyen anahtar boş string'e dönüşseydi ekranda
+    // "3B görünüm en fazla  hücre gösterir" gibi eksik bir cümle çıkardı —
+    // hata ayıklaması zor, ama görünür. Yerinde bırakmak hatayı gösterir.
+    expect(format('{a} ve {b}', { a: '1' })).toBe('1 ve {b}');
+    expect(format('{a}', { a: 3 })).toBe('3');
+    expect(format('sadece metin', { a: 1 })).toBe('sadece metin');
+  });
+
+  it('i18n sözlüğünde kullanılmayan anahtar/sözlük kalmıyor', () => {    // Tarama sonucu (temiz negatif): 23 üst düzey anahtardan yalnız `units`
     // (enerji birimi sözlüğü) hiçbir dosyada geçmiyordu; silindi.
     // Bu denetim yeni bir anahtar eklenip unutulduğunda yakalar.
     //

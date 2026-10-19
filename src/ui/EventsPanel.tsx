@@ -28,6 +28,16 @@ import type { SimEvent, SimEventType } from '../sim/types.ts';
 const POLL_MS = 1200;
 const PAGE = 400;
 
+/**
+ * Listede gösterilen azami olay sayısı.
+ *
+ * ⚠️ Bu sayı **üç yerde** geçiyordu: dilimde, koşulda ve kullanıcıya
+ * gösterilen metinde. Üçü ayrı ayrı yazılıydı; biri değişse diğer ikisi
+ * **yalan** olurdu ("Son 120 olay gösteriliyor" yazarken 400 göstermek gibi).
+ * Artık tek sabitten türer.
+ */
+const SHOWN_EVENTS = 120;
+
 const TYPE_LABEL: Record<SimEventType, string> = {
   genesis: 'kuruluş',
   'cell-division': 'hücre bölünmesi',
@@ -124,7 +134,7 @@ export function EventsPanel({ client }: { client: SimClient }): React.ReactEleme
 
           <ol className="events__list">
             {shown
-              .slice(-120)
+              .slice(-SHOWN_EVENTS)
               .reverse()
               .map((e) => (
                 <li key={e.id} className="events__item">
@@ -142,9 +152,11 @@ export function EventsPanel({ client }: { client: SimClient }): React.ReactEleme
               ))}
           </ol>
 
-          {shown.length > 120 && (
+          {shown.length > SHOWN_EVENTS && (
             <p className="panel__hint">
-              {tr ? `Son 120 olay gösteriliyor (${shown.length} kayıtlı).` : `Showing last 120 of ${shown.length}.`}
+              {tr
+                ? `Son ${SHOWN_EVENTS} olay gösteriliyor (${shown.length} kayıtlı).`
+                : `Showing last ${SHOWN_EVENTS} of ${shown.length}.`}
             </p>
           )}
         </>

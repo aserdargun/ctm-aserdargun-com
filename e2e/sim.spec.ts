@@ -188,4 +188,23 @@ test.describe('diğer paneller', () => {
       timeout: 20_000,
     })
   })
+
+  test('Gözlemci özetinde bozuk karakter (U+FFFD) YOK', async ({ page }) => {
+    // ⚠️ ÖLÇÜLEN: `src/worker/evidence.ts` içindeki özet metni
+    // "Şu ana kadar ␣ eşiğin üzerinde bağlı küme yok" yazıyordu — eşiğin
+    // **sayısı** U+FFFD ile değiştirilmişti. Kullanıcıya görünen bilimsel
+    // metindi ve e2e testi yalnız "Yerel kural özeti" varlığını denetlediği
+    // için **görünmez** kaldı.
+    //
+    // Buradaki denetim dalın hangisine düşerse düşsün çalışır: metin
+    // bozulmadan yazılıyorsa U+FFFD içeremez.
+    await page.goto('/')
+    await waitForWorld(page)
+    await openPanel(page, 'AI Gözlemci', 'İnceleme')
+    await page.getByRole('button', { name: 'Bana anlat', exact: true }).click()
+    const panel = page.locator('[aria-label="İnceleme"]')
+    await expect(panel).toContainText('Yerel kural özeti', { timeout: 20_000 })
+    const text = (await panel.innerText()) ?? ''
+    expect(text, 'gözlemci panelinde bozuk karakter (U+FFFD) var').not.toContain('\uFFFD')
+  })
 })

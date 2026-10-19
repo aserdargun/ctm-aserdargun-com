@@ -32,6 +32,9 @@ export const tr = {
     resume: 'Devam',
     paused: 'Duraklatıldı',
     running: 'Çalışıyor',
+    renderLimit: 'Görünüm sınırı',
+    renderLimitNote:
+      '3B görünüm en fazla {shown} hücre gösterir; {total} hücre var, {hidden} hücre görünmüyor.',
   },
 
   actions: {
@@ -200,6 +203,7 @@ export const tr = {
     empty: 'Yaşayan canlı yok.',
     columns: ['Kimlik', 'Soy', 'Nesil', 'Hücre', 'Enerji'],
     search: 'Canlı ara (kimlik veya soy)',
+    truncated: 'İlk {shown} / {total} kayıt gösteriliyor.',
   },
 
   status: {
@@ -245,6 +249,9 @@ const en: Strings = {
     resume: 'Resume',
     paused: 'Paused',
     running: 'Running',
+    renderLimit: 'View limit',
+    renderLimitNote:
+      'The 3D view shows at most {shown} cells; {total} exist, {hidden} are not shown.',
   },
   actions: {
     inspector: 'Inspector',
@@ -405,6 +412,7 @@ const en: Strings = {
     empty: 'No living organisms.',
     columns: ['ID', 'Lineage', 'Gen', 'Cells', 'Energy'],
     search: 'Search organism (id or lineage)',
+    truncated: 'Showing first {shown} of {total}.',
   },
   status: {
     starting: 'Starting simulation…',
@@ -419,6 +427,23 @@ const DICTIONARIES: Record<Language, Strings> = { tr, en };
 
 export function getStrings(lang: Language): Strings {
   return DICTIONARIES[lang] ?? tr;
+}
+
+/**
+ * Şablon doldurma: `{ad}` yerine değer yazar.
+ *
+ * Neden gerekli: Sayaç içeren metinler (kırpma uyarıları) **sözlükte**
+ * kalmalı ki iki dil eşitlenmiş olsun. Sözlük dışına düşen metinler
+ * (`EventsPanel`deki gibi bileşen içinde yazılanlar) bir gün yarı
+ * çevrilmiş kalır — çünkü çeviri yapacak ikinci bir göz görmez.
+ *
+ * Bilinmeyen anahtar **yerinde bırakılır** (sessizce boş dize dönmez):
+ * eksik bir değişken "…" gibi görünmemeli, hatta görünmelidir.
+ */
+export function format(template: string, vars: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (match, key: string) =>
+    key in vars ? String(vars[key]) : match,
+  );
 }
 
 export const ACTION_LABELS_TR = ['A gradyanına yönel', 'B gradyanına yönel', 'Keşfet', 'Dinlen'] as const;

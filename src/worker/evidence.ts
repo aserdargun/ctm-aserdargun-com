@@ -196,7 +196,7 @@ export function buildLocalSummary(pack: EvidencePack): LocalSummary {
     );
   } else {
     interpretations.push(
-      'Şu ana kadar �� eşiğin üzerinde bağlı küme yok. Bu "henüz gözlenmedi" demektir; olmayan bir sonuç değildir.',
+      `Şu ana kadar ${C.MULTICELL_THRESHOLD} eşiğin üzerinde bağlı küme yok. Bu "henüz gözlenmedi" demektir; olmayan bir sonuç değildir.`,
     );
   }
 
@@ -235,6 +235,21 @@ function networkSummaryIsPresent(pack: EvidencePack): boolean {
   return !!net && typeof net.learnedDeltaNorm === 'number' && net.learnedDeltaNorm > 1e-6;
 }
 
+/**
+ * "Yüksek seçilim baskısı" sayılırken kullanılan avcı enerjisi eşiği.
+ *
+ * ⚠️ Önce burada **elle yazılmış `400`** vardı; `C.PREDATOR_CAPACITY` ile
+ * hiçbir ilişkisi yoktu, yani kapasite değişse bile eşik değişmezdi —
+ * sessiz bir sapma. Şimdi eşik **kapasiteden türer**.
+ *
+ * Ölçülen temel (2026-10-19, 40.000 tick, 9 senaryo): avcı enerjisi
+ * ortalama 108–187 e, tepe 600 e (kapasitenin %25'i). Eşik 400 e
+ * (kapasitenin 1/6'sı) — yani "avcı ara sıra doygun" bandının üst sınırı.
+ * Değer **korunur**: 2400 / 6 = 400, yani bu değişiklik davranışı değiştirmez,
+ * yalnızca sayıyı izlenebilir kılar.
+ */
+const HIGH_PREDATOR_ENERGY = C.PREDATOR_CAPACITY / 6;
+
 /** Tek değişkenli sonraki deney önerisi. */
 function suggestNextExperiment(pack: EvidencePack): string {
   const metric = (ref: string): number | undefined => pack.measurements.find((m) => m.metricRef === ref)?.value;
@@ -248,7 +263,7 @@ function suggestNextExperiment(pack: EvidencePack): string {
   if (colonies4 === 0) {
     return 'Deney 2 (Adaptasyon): atasal ve torun genotiplerini aynı ortamda, öğrenme ve yeni mutasyon kapalıyken karşılaştır.';
   }
-  if (predator > 400) {
+  if (predator > HIGH_PREDATOR_ENERGY) {
     return 'Seçilim baskısını düşür, aynı tohumla tekrar etkileşimi ve koloni kalıcılığını ölç (tek değişkenli).';
   }
   return 'Deney 3 (Öğrenme): aynı kalıtsal ağla eğitilmiş/eğitilmemiş politikayı, büyüme ve mutasyon kapalıyken ayrılmış tohumlarda karşılaştır.';

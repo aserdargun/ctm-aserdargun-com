@@ -91,7 +91,6 @@ export interface NicheArchiveEntry {
 export interface WorldOptions {
   seed: number;
   population?: number;
-  capacity?: number;
   /** Habitat kutu boyutu (mb). */
   size?: Vec3;
   /** Kaynak sayısı. */

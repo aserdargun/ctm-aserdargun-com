@@ -1373,7 +1373,7 @@ dünya kurma ve dolayısıyla `branch` özelliği tamamen bozuktu.** Ürünün a
 `VALIDATION.md` "snapshot şeması yazıldı, tip denetimi geçiyor" diyordu — ama
 **çalıştırılmamıştı.** Yazılmış olmak, çalışıyor olmak değildir.
 
-**Dü��eltme:** `fromState` artık tüm alanları açıkça kuruyor (dokümanlı bir blok).
+**Düzeltme:** `fromState` artık tüm alanları açıkça kuruyor (dokümanlı bir blok).
 Duyarlılık kancaları boş bırakılıp `C` sabitlerine düşürülüyor, böylece ürün
 davranışı korunuyor. **Üç regresyon testi** eklendi (`tests/world.test.ts`).
 
@@ -3032,6 +3032,17 @@ Bu maddeler **yapılmadı** ve dokümana sayı uydurulmadı:
     ölçümün **adı/niceliği** de taşınıp metinle karşılaştırılmalı; bu **yapılmadı**
     ve **vaat edilmiyor**. Kayıt buraya, §6.32'deki düzeltme kaydının yanına
     eklendi çünkü sınır yalnız kod yorumunda yazılıydı.
+14. **Görüntüleme tavanlarının "asla aşılmaz" garantisi YOK.** 3B hücre tavanı
+    (512) ve canlı listesi tavanı (300) **görüntüleme** sınırlarıdır; simülasyon
+    onları aşabilir. Ölçülen durum: 40.000 tick, 14 + 9 senaryoda tepe canlı
+    hücre **266**, tepe canlı organizma **252** — yani ölçülen aralıkta ikisi de
+    aşılmıyor (paylar %48 ve %16). Ama bu bir **örnekleme** sonucu: "hiçbir
+    koşuda aşılmaz" iddiası **yapılmadı** ve **vaat edilmiyor**. `tests/caps.test.ts`
+    bu ölçümü 12.000 tick'lik iki tohumla **yeniden yapar** ve tavan aşılırsa
+    kırmızıya döner — yani denetim **örnekleme** üzerinedir, kanıt üzerine
+    değil. Aşılırsa ürün yanlış olmaz (kırpma **görünür** hâle gelir: HUD'da
+    "Görünüm sınırı" göstergesi ve listede "İlk 300 / N kayıt" notu çıkar),
+    ama tavan gözden geçirilmelidir.
 
 ---
 
@@ -3041,6 +3052,11 @@ Bunlar testlerin bulduğu, düzeltildiği ve **yeniden test edildiği** hatalard
 
 | # | Hata | Belirti | Düzeltme |
 |---|---|---|---|
+| 60 | Gözlemci özetinde **eşik sayısı kaybolmuştu** (bozuk karakter) | `src/worker/evidence.ts` içindeki "Şu ana kadar ␣ eşiğin üzerinde bağlı küme yok" cümlesinde `C.MULTICELL_THRESHOLD` (4) **yerine U+FFFD** vardı. Kullanıcıya **görünen** bilimsel metin "␣ eşiği" diyordu — yani eşiğin sayısı hiçbir yerde görünmüyordu. Aynı sınıftan ikinci bozulma `docs/VALIDATION.md` §6.8'deydi ("Dü␣eltme"). İkisi de **ilk commit'ten** (`636167c`) beri vardı; test hiç bu dala girmiyordu: `largestColonySize = 7` ≥ eşik 4 olduğu için bozuk metin üreten dal **hiç çalışmıyordu** | Sayı geri kondu; metin artık `${C.MULTICELL_THRESHOLD}` yazıyor, yani **kaynak sabitten** türer. Koruma **genel**: projedeki hiçbir metin dosyası U+FFFD içeremez (`tests/encoding.test.ts`, tüm ağaç taranır) + eşik dalının sayıyı içerdiğine dair doğrudan denetim. İkisi de mutasyonla doğrulandı (bozuk karakter geri konunca kırmızı; sabit sayı yazılınca kırmızı). ⚠️ Koruma **ilk çalıştırmada kendini yakaladı**: test dosyasının kendi yorumunda ham U+FFFD yazılıydı — yorum kaçışlı yazıldı |
+| 61 | `C` kümesinde **iki ölü sabit** vardı; bir `WorldOptions` alanı **hiç okunmuyordu** | `MOBILE_CAPACITY` (96, "küçük mobil habitat kapasitesi") ve `COLONY_GENERATION_TARGET` (3, "raporlanan koloni üreme nesli hedefi") **hiçbir yerde kullanılmıyordu**; `WorldOptions.capacity` de bildirilmiş ama **hiç okunmuyordu** (geçen çağıran da yok). `energy.ts` başlığı "Tüm ayarlar tek yerde; MODEL.md bu değerleri belgeler" diyor — ama kullanılmayan bir sabit, **varmış gibi duran bir özellik** vaatidir: biri "mobil habitat 96 hücrelik" diye okur, diğeri "koloni 3. nesle kadar raporlanıyor" diye okur. İkisi de **yok** | Üçü de kaldırıldı. Koruma **genel**: `C` kümesindeki **hiçbir** sabit ölü olamaz — kullanılmayan bir sabit eklenirse test kırmızıya döner ve adını yazar. Mutasyonla doğrulandı (`MOBILE_CAPACITY` geri konunca kırmızı). Raporlar yeniden üretildi: sayılar **birebir aynı** çıktı, yani kaldırma davranışsal olarak nötrdü |
+| 62 | **Görüntüleme sınırları sessizce kırpıyordu** | İki tavan vardı ve ikisi de **görünmez** bir kırpma üretiyordu. (a) `src/scene/Cells.tsx` karedeki hücreleri `Math.min(512, cellCount)` ile kırpar; HUD ise gerçek sayıyı yazar → **HUD ile sahne ayrışır**, kullanıcı farkına varamaz. (b) `Hud.tsx` canlı listesini `slice(0, 300)` ile kırpar ve başlıktaki sayaç **kırpılmış** sayıyı gösterir ("300" yazar, gerçekte 412 vardır) → kullanıcı "tüm canlılar" sanır. **ÖLÇÜLDÜ** (40.000 tick; 14 + 9 senaryo: 5 tohum × varsayılan p=48, p=192, yüksek rejenerasyon, besin ekleme, ikisinin birleşimi): en yüksek canlı hücre **266** (tavanın %52'si, pay %48), en yüksek canlı organizma **252** (tavanın %84'ü, pay **%16** — sıkı) | Tavanlar `src/engine/limits.ts` içinde **tek kaynağa** taşındı (sahne ve HUD aynı sayıyı okur; ikisi ayrı yazılırsa ayrışırlar). Kırpma artık **görünür**: HUD'da tavan aşılınca kırmızı "Görünüm sınırı" göstergesi (hover'da kaç hücrenin görünmediği), listede "İlk 300 / 412 kayıt gösteriliyor" notu. Tavanların yeterliliği `tests/caps.test.ts` ile **ölçümle** denetlenir: 12.000 tick'lik iki tohumda tepe ölçülür, tavan aşılırsa test kırmızıya döner ve gözden geçirme ister. Korumaların **beşi de mutasyonla kırıldı** (tavanlar küçültüldü → kırmızı) |
+| 63 | Kanıt panelindeki avcı eşiği **izlenemeyen bir sabitti** | `src/worker/evidence.ts` içinde "yüksek seçilim baskısı" dalı `predator > 400` diye yazılmıştı; oysa avcı kapasitesi `C.PREDATOR_CAPACITY = 2400`. Sayının hiçbir sabitle ilişkisi yoktu: kapasite değişse bile eşik değişmezdi. **ÖLÇÜLDÜ** (40.000 tick, 9 senaryo): avcı enerjisi ortalama **108–187 e**, tepe **600 e** (kapasitenin %25'i) — yani dal **ölü değil**, gerçekten tetikleniyor; ama eşiğin dayanağı yoktu | Eşik `C.PREDATOR_CAPACITY / 6` olarak **türetildi** (2400/6 = 400, yani **değer korunur** — davranış değişmiyor, sayı artık izlenebilir). Ölçülen temel yorumda yazılı |
+| 64 | Olay panelindeki "120" **üç ayrı yerde** yazılıydı | `EventsPanel` son 120 olayı gösteriyor, koşulu `> 120` ile yazıyor ve kullanıcıya "Son 120 olay gösteriliyor" diyor — üçü de **ayrı ayrı** yazılmıştı. Biri değişse diğer ikisi **yalan** olurdu (örn. dilim 400'e çıkarsa metin hâlâ "120" der) | Üçü de tek sabitten (`SHOWN_EVENTS`) türer |
 | 1 | `Organism.neural` ile `NeuralPolicy.state` **ayrı nesneydi** | Öğrenme gerçekleşiyordu ama mikroskop/organizma kaydı "hiç öğrenmemiş" gösteriyordu (ölçülen sapma: **0.0000**) | Tek kaynak yapıldı; sapma **0.0035** oldu |
 | 2 | Algı + öğrenme maliyeti **hücrelerden düşülmeden** defterde harcanmış sayılıyordu | Her karar aralığında **0.0189 e** enerji yaratılıyordu | `chargeOrganism()` ile hücrelerden tahsil edildi; rezidüel **0.0000** |
 | 3 | Avcı öldürmeleri parçalanmayı tetiklemiyordu | Kopmuş hücreler "tek organizma" sayılıyordu | `finalizeOrganism` avcı yoluna da bağlandı |

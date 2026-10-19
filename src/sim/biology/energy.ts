@@ -29,8 +29,6 @@ export const C = {
   DEFAULT_POPULATION: 48,
   /** Standart kapasite (performans bütçesi). */
   STANDARD_CAPACITY: 256,
-  /** Küçük mobil habitat kapasitesi. */
-  MOBILE_CAPACITY: 96,
 
   /** Bölünme eşiği (e). */
   DIVIDE_THRESHOLD: 70,
@@ -169,8 +167,6 @@ export const C = {
 
   /** İşletimsel çok hücrelilik eşiği (oyunun ölçümü, biyolojik tanım değil). */
   MULTICELL_THRESHOLD: 4,
-  /** Raporlanan koloni üreme nesli hedefi. */
-  COLONY_GENERATION_TARGET: 3,
 
   /** Yörünge uzunluğu sınırı. */
   TRAJECTORY_LIMIT: 64,

@@ -26,11 +26,10 @@ import {
   Vector3,
 } from 'three';
 import { CELL, CELL_FLOATS, HEADER_FLOATS } from '../worker/protocol.ts';
+import { MAX_RENDER_CELLS } from '../engine/limits.ts';
 import { getFrame } from '../engine/frame.ts';
 import { createCellMaterial } from './materials/CellMaterial.ts';
 import { useStore } from '../engine/store.ts';
-
-const MAX_CELLS = 512;
 
 export function Cells(): React.ReactElement {
   const meshRef = useRef<InstancedMesh>(null);
@@ -41,11 +40,11 @@ export function Cells(): React.ReactElement {
   const { material, uniforms } = useMemo(() => createCellMaterial(), []);
 
   const attributes = useMemo(() => {
-    const phase = new Float32Array(MAX_CELLS);
-    const energy = new Float32Array(MAX_CELLS);
-    const damage = new Float32Array(MAX_CELLS);
-    const organism = new Float32Array(MAX_CELLS);
-    for (let i = 0; i < MAX_CELLS; i++) {
+    const phase = new Float32Array(MAX_RENDER_CELLS);
+    const energy = new Float32Array(MAX_RENDER_CELLS);
+    const damage = new Float32Array(MAX_RENDER_CELLS);
+    const organism = new Float32Array(MAX_RENDER_CELLS);
+    for (let i = 0; i < MAX_RENDER_CELLS; i++) {
       // Deterministik faz: her örnek farklı nefes döngüsüne sahip olsun.
       phase[i] = ((Math.sin(i * 12.9898) * 43758.5453) % 1 + 1) % 1;
       energy[i] = 0.5;
@@ -83,7 +82,7 @@ export function Cells(): React.ReactElement {
     uniforms.uTime.value += reducedMotion ? delta * 0.15 : delta;
 
     if (!data) return;
-    const count = Math.min(MAX_CELLS, data[1] as number);
+    const count = Math.min(MAX_RENDER_CELLS, data[1] as number);
     mesh.count = count;
 
     const energyAttr = geometry.getAttribute('aEnergy') as BufferAttribute | undefined;
@@ -122,7 +121,7 @@ export function Cells(): React.ReactElement {
   return (
     <instancedMesh
       ref={meshRef}
-      args={[geometry, material, MAX_CELLS]}
+      args={[geometry, material, MAX_RENDER_CELLS]}
       castShadow={false}
       receiveShadow={false}
     />
@@ -211,7 +210,7 @@ export function Bonds(): React.ReactElement {
     if (!mesh) return;
     mesh.count = 0;
     if (!data) return;
-    const cellCount = Math.min(MAX_CELLS, data[1] as number);
+    const cellCount = Math.min(MAX_RENDER_CELLS, data[1] as number);
 
     // Hücreleri hızlıca eşleştirmek için basit dizin haritası.
     // (Bağlar kare paketinde yok; komşuluk çiftlerini hücre konumlarından kurarız.)

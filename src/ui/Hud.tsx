@@ -7,7 +7,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../engine/store.ts';
-import { getStrings, genomeLabels } from '../i18n/index.ts';
+import { format, getStrings, genomeLabels } from '../i18n/index.ts';
+import { MAX_RENDER_CELLS, ORGANISM_LIST_LIMIT } from '../engine/limits.ts';
 import type { SimClient, SpeedMultiplier } from '../engine/client.ts';
 
 function fmt(value: number, digits = 0): string {
@@ -36,6 +37,20 @@ export function Hud({ client }: { client: SimClient }): React.ReactElement {
           value={`${s.energyResidual >= 0 ? '' : '−'}${fmt(Math.abs(s.energyResidual), 3)} e`}
           tone={Math.abs(s.energyResidual) > 0.01 ? 'damage' : undefined}
         />
+        {s.population > MAX_RENDER_CELLS && (
+          // ⚠️ 3B sahne bu sayının ALTINDA hücre gösterir. Sessiz kırpma
+          // olursa HUD ile sahne ayrışır; bu satır ayrışmayı görünür kılar.
+          <Stat
+            label={t.hud.renderLimit}
+            value={`${fmt(MAX_RENDER_CELLS)} / ${fmt(s.population)}`}
+            tone="damage"
+            title={format(t.hud.renderLimitNote, {
+              shown: fmt(MAX_RENDER_CELLS),
+              total: fmt(s.population),
+              hidden: fmt(s.population - MAX_RENDER_CELLS),
+            })}
+          />
+        )}
       </div>
 
       <div className="hud__tools">
@@ -76,15 +91,19 @@ function Stat({
   label,
   value,
   tone,
+  title,
 }: {
   label: string;
   value: string;
   tone?: 'life' | 'resource' | 'damage';
+  title?: string;
 }): React.ReactElement {
   return (
     <div className="stat">
       <span className="stat__label">{label}</span>
-      <span className={`stat__value${tone ? ` stat__value--${tone}` : ''}`}>{value}</span>
+      <span className={`stat__value${tone ? ` stat__value--${tone}` : ''}`} title={title}>
+        {value}
+      </span>
     </div>
   );
 }
@@ -99,14 +118,17 @@ export function OrganismList({ client }: { client: SimClient }): React.ReactElem
   const listRef = useRef<HTMLUListElement>(null);
   const [focusIndex, setFocusIndex] = useState(0);
 
-  const filtered = useMemo(() => {
+  const matching = useMemo(() => {
     const q = query.trim().toLowerCase();
     const list = organisms.filter((o) => o.alive);
-    if (!q) return list.slice(0, 300);
-    return list
-      .filter((o) => String(o.id).includes(q) || `g${o.lineageId}`.includes(q))
-      .slice(0, 300);
+    if (!q) return list;
+    return list.filter((o) => String(o.id).includes(q) || `g${o.lineageId}`.includes(q));
   }, [organisms, query]);
+
+  // Kırpma **görünür** olmalı: `matching.length` (kırpılmamış) ile
+  // `filtered.length` (gösterilen) ayrı tutulur, fark varsa kullanıcıya söylenir.
+  const filtered = useMemo(() => matching.slice(0, ORGANISM_LIST_LIMIT), [matching]);
+  const truncated = matching.length > filtered.length;
 
   useEffect(() => {
     const index = filtered.findIndex((o) => o.id === selectedId);
@@ -196,6 +218,11 @@ export function OrganismList({ client }: { client: SimClient }): React.ReactElem
           </li>
         ))}
       </ul>
+      {truncated && (
+        <p className="panel__hint">
+          {format(t.list.truncated, { shown: fmt(filtered.length), total: fmt(matching.length) })}
+        </p>
+      )}
     </div>
   );
 }
