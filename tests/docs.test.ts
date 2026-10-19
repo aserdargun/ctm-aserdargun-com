@@ -1037,6 +1037,35 @@ describe('README iddia tablosu rapora bağlı', () => {
     expect(sec, `§5.8 p-değeri ${p} taşımıyor`).toContain(`p = ${p}`);
   });
 
+  it('üretilen raporlar ÖLÇÜLDÜĞÜ ORTAMI yazıyor', () => {
+    // ⚠️ ÖLÇÜLDÜ (19 Ekim 2026): aynı kod + aynı tohum iki platformda farklı
+    // sonuç veriyor — macOS/arm24 en büyük organizma 20 hücre, Linux/x64 24
+    // hücre (yani yapısal tavana ulaşılıyor). Maks hücre sayısındaki 20 ↔ 24
+    // farkı kayan nokta gürültüsü değil, **ayrık davranış farkı**.
+    //
+    // Rapor başlığı platformu yazmadığı için iki rapor **başlıkları aynı**
+    // görünür ama sayıları farklı olabilir — yani rapor kendini yeniden
+    // üretemeyi söylemiyor. Üretici satırı ve §9 kaydı birlikte bağlanıyor.
+    for (const rel of ['docs/EXPERIMENTS.md', 'docs/EXPERIMENTS-DEEP.md'] as const) {
+      const head = read(rel).split('\n').slice(0, 8).join('\n');
+      expect(head, `${rel} başlığında Ortam satırı yok`).toMatch(
+        /\*\*Ortam:\*\* \S+ \(\S+\) · Node v\d+/,
+      );
+    }
+
+    const pipe = read('scripts/run-experiments.ts');
+    expect(pipe, 'rapor üreticisi platform bilgisini yazmıyor').toMatch(
+      /\*\*Ortam:\*\*.*process\.platform.*process\.arch.*process\.version/,
+    );
+
+    // §9'un çapraz cihaz maddesi ölçümü taşımalı — "ölçülmedi" yazan bir
+    // kayıt, artık ölçülmüş bir gerçeği yanlışlardı.
+    const s9 = section(read('docs/VALIDATION.md'), ['## 9. Doğrulanmayanlar', '\n## 10']);
+    expect(s9, '§9 çapraz cihaz maddesi ölçümü taşımıyor').toMatch(
+      /platformlar arasında bit düzeyinde aynı \*\*değildir/,
+    );
+  });
+
   it('§9 "Doğrulanmayanlar" listesinde kanıt denetiminin anlam sınırı VAR', () => {
     // ⚠️ `verifyNumericClaims` **değer** karşılaştırması yapar, anlam
     // denetimi yapmaz — kod yorumu bunu açıkça "yanlış kabul" diye yazıyor

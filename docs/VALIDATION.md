@@ -2984,10 +2984,29 @@ Bu maddeler **yapılmadı** ve dokümana sayı uydurulmadı:
    ⚠️ **Kısmi kanıt (§6.40):** CI ilk koşusunda iki test düştü. Teşhis: platform
    determinizmi değil, **testler tohuma kırılganmış** — varsayılan paylaşma
    eşiğinde özellik yalnız 10 tohumun 3'ünde gerçekleşiyor ve test şanslı bir
-   tohumla geçiyordu. Testler sağlamlaştırıldı; ancak **yörüngelerin platformlar
-   arasında bit düzeyinde aynı olduğu hâlâ ölçülmedi.** Rastgele erişimli bir
-   testin başka platformda düşmesi, yörüngenin orada ayrışmış olabileceğinin
-   dolaylı işaretidir; bu tesadüf de olabilir ve **ayrıştırılmamıştır.**
+   tohumla geçiyordu. Testler sağlamlaştırıldı.
+
+   **ÖLÇÜLDÜ (19 Ekim 2026) — soru artık açık değil, cevap "ayrışıyor".**
+   Aynı kod, aynı tohum (20261006), 12.000 tick, iki platform:
+
+   | | macOS/arm64 | Linux/x64 (CI) |
+   |---|---|---|
+   | hız örneklem sayısı | 1.158 | 1.183 |
+   | en büyük hız | 0.1117 | 0.1014 |
+   | en büyük organizma | **20 hücre** | **24 hücre** |
+   | kalibrasyon tavan payı | %6,9 | %15,5 |
+
+   Maks hücre sayısının **20 ↔ 24** olması yalnız kayan nokta gürültüsü değil:
+   Linux'de bir organizma yapısal tavana (`MAX_ORGANISM_CELLS = 24`) ulaşıyor,
+   macOS'ta hiçbiri 20'yi geçmiyor. Örneklem sayısının 1.158 ↔ 1.183 olması da
+   yalnız "farklı ölçüm" değil, **ölçülecek organizmaların sayısının** farklı
+   olduğunu gösteriyor. Aynı platform içinde ise sonuç **bit düzeyinde tekrarlanıyor**
+   (iki ardışık koşu: 1.727 / 129 / 9 ve pop 113 — birebir aynı).
+
+   **Sonuç:** yörüngeler platformlar arasında bit düzeyinde aynı **değildir** ve
+   bu **vaat edilmiyor**. Üretilen raporların sayıları onları üreten makineye
+   bağlıdır; bu yüzden rapor başlığına artık `Ortam` satırı yazılıyor. Testler
+   tohum kırılganlığından arındırıldı ve platform ayrışması da kayda geçti.
 10. **Tarayıcıda deney paneli.** Deney motoru headless Node'da çalışıyor; worker
     komutlarıyla tarayıcı içinden tetiklenen deneyler **bağlanmadı.**
 11. **Gözlemcinin gerçek sağlayıcı çağrısı.** `CTM_API_KEY` olmadığı için

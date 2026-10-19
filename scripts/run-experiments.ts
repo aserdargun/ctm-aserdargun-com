@@ -382,6 +382,16 @@ function main(): void {
       '# Cell to Mind — Deney Sonuçları',
       '',
       `**Körüldü:** ${new Date().toISOString()}`,
+      // ⚠️ **Ortam kaydı, süslü biçim tercihi değil.** Ölçüldü (2026-10-19):
+      // aynı tohum ve aynı kod, iki platformda **farklı** sonuç veriyor —
+      //   macOS/arm64 : n=1158 · maks hız 0.1117 · en büyük organizma 20 hücre
+      //   Linux/x64   : n=1183 · maks hız 0.1014 · en büyük organizma 24 hücre
+      // Maks hücre sayısının 20 ↔ 24 olması yalnız kayan nokta gürültüsü değil,
+      // **ayrık bir davranış farkı**: Linux'de bir organizma yapısal tavana
+      // (MAX_ORGANISM_CELLS = 24) ulaşıyor, macOS'ta hiçbiri 20'yi geçmiyor.
+      // Platform yazılmadığında iki rapor başlıkları aynı görünür ama sayıları
+      // farklı olabilir — yani rapor **kendini yeniden üretemeyi** söylemiyor.
+      `**Ortam:** ${process.platform} (${process.arch}) · Node ${process.version}`,
       `**Toplam koşu:** ${totalRuns} · **duvar süresi:** ${(elapsed / 1000).toFixed(1)} s`,
       `**Mod:** ${profile}`,
       `**Pencere:** ${args.quick ? '—' : args.deep ? '40.000 tick' : '12.000 tick'} ` +
