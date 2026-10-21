@@ -219,7 +219,8 @@ export const tr = {
     },
     sourceModel: 'Dil modeli yanıtı',
     sourceVision: 'Görsel destekli analiz',
-    unverifiedNumbers: 'Doğrulanamayan sayılar çıkarıldı.',
+    numberCheck:
+      'Model yanıtındaki sayılar — kanıt paketiyle eşleşenler ✓ işaretlidir; eşleşmeyenler ✗.',
     preparing: 'JSON hazırlanıyor…',
     measurementsTruncated: 'İlk {shown} / {total} ölçüm gösteriliyor.',
     claimsTruncated: 'İlk {shown} / {total} sayı iddiası gösteriliyor.',
@@ -492,7 +493,8 @@ const en: Strings = {
     },
     sourceModel: 'Language model answer',
     sourceVision: 'Vision-assisted analysis',
-    unverifiedNumbers: 'Unverifiable numbers were removed.',
+    numberCheck:
+      'Numbers in the model reply — those matching the evidence pack are marked ✓; unmatched ones ✗.',
     preparing: 'Preparing JSON…',
     measurementsTruncated: 'Showing first {shown} of {total} measurements.',
     claimsTruncated: 'Showing first {shown} of {total} number claims.',

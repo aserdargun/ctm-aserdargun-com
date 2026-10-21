@@ -86,6 +86,7 @@ import {
   type ExperimentReport,
 } from '../src/sim/experiments/index.ts';
 import { fmt } from '../src/sim/stats.ts';
+import { C } from '../src/sim/biology/energy.ts';
 
 /**
  * Paketteki **adım sayısı** — ilerleme çıktısının paydası.
@@ -189,6 +190,9 @@ function main(): void {
     resourceCounts: args.quick ? [8, 34] : [4, 8, 14, 22, 34],
   });
   process.stdout.write(`${formatDifficulty(difficulty)}\n\n`);
+  // Varsayılan habitat = kalibrasyon eğrisinin **en kalabalık** noktası.
+  const defaultHabitat = difficulty[difficulty.length - 1];
+  if (!defaultHabitat) throw new Error('kalibrasyon eğrisi boş');
 
   progress('Deney 1 · bağ gücü');
   const exp1 = experiment1({ seeds: args.quick ? 3 : 12, ticks: scale.colonyTicks });
@@ -283,6 +287,10 @@ function main(): void {
     ? sweepBondDurability({ settings: [{ strainDecayK: 0.02, bondFatigue: 2e-5 }, { strainDecayK: 0.005, bondFatigue: 5e-6 }], ticks: 4000, seeds: 1 })
     : sweepBondDurability({ ticks: longTicks, seeds: 4 });
   process.stdout.write(`${formatBondDurability(durability)}\n`);
+  // Varsayılan ayarların satırı: anlatıdaki sayılar buradan türer.
+  const defaultDurability =
+    durability.find((p) => p.strainDecayK === C.STRAIN_DECAY_K && p.bondFatigue === C.BOND_FATIGUE) ??
+    durability[0];
 
   progress('Y-2 · bağ ömrünün kalıtılabilirliği');
   const heritability = args.quick
@@ -531,7 +539,12 @@ function main(): void {
       '',
       '## Öğrenme · zorluk taraması',
       '',
-      'Varsayılan habitatta (34 kaynak) ölçüm headroom u yalnız 0.072 olduğu için',
+      // ⚠️ Bu sayı **ölçümden türer**. Önce "0.072" **sert kodlanmıştı** ve
+      // artık **yanlıştı**: ölçülen headroom 0.078'di. Anlatı ölçümden ayrılınca
+      // rapor kendi tablosuyla çelişiyordu. Artık kalibrasyon eğrisinin
+      // **en kalabalık** (varsayılan habitat) noktasından okunuyor.
+      `Varsayılan habitatta (${defaultHabitat.resourceCount} kaynak) ölçüm headroom u yalnız ` +
+        `${fmt(defaultHabitat.headroom, 3)} olduğu için`,
       'deney ölçemiyordu. Aşağıdaki tarama, **önceden kaydedilmiş** zorluk ekseninde',
       'tam protokolü koşar: her noktada ayrık eğitim/değerlendirme tohumları,',
       'eşleştirilmiş fark ve bootstrap güven aralığı vardır. Tüm eğri raporlanır —',
@@ -577,7 +590,8 @@ function main(): void {
       'Önceden kaydedilmiş hipotez: darboğaz ölçek değil **varyans**; avantaj',
       'dönüşümü (z-skor / işaret) gradyanın sinyal/gürültü oranını artırır.',
       'Tarama `TRAJECTORY_LIMIT` ve `LEARN_RATE` değerlerini **varsayılanlarda',
-      'tutar** (64 / 0.02) — §4.7 bölümünde adımı büyütmenin kötüleştirdiği',
+      // ⚠️ "(64 / 0.02)" **sert kodlanmıştı**; artık sabitlerden okunuyor.
+      `tutar** (${C.TRAJECTORY_LIMIT} / ${C.LEARN_RATE}) — §4.7 bölümünde adımı büyütmenin kötüleştirdiği`,
       'ölçüldüğü için S-1 en zor koşulda sınanır.',
       '',
       '**Başarı ölçütü (önceden kaydedildi):** en az bir varyantta farkın güven',
@@ -633,7 +647,9 @@ function main(): void {
       '',
       '**Başarı ölçütü (önceden kaydedildi):** yorgunluk ve strain katsayısı',
       'düşürüldüğünde pencerenin sonunda **4+ hücreli yapıların sıfırdan çıkması**',
-      '(varsayılan ayarlarda pencerenin sonunda 0).',
+      // ⚠️ "0" **sert kodlanmıştı**; artık varsayılan ayarların satırından
+      // okunuyor (varsayılan = C.STRAIN_DECAY_K / C.BOND_FATIGUE eşleşen nokta).
+      `(varsayılan ayarlarda pencerenin sonunda ${defaultDurability.finalMultiCellColonies}).`,
       '',
       '```',
       formatBondDurability(durability),

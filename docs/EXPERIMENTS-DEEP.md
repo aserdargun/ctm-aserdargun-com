@@ -1,8 +1,8 @@
 # Cell to Mind — Deney Sonuçları
 
-**Körüldü:** 2026-10-21T09:52:43.690Z
+**Körüldü:** 2026-10-21T12:47:01.138Z
 **Ortam:** darwin (arm64) · Node v22.23.1
-**Toplam koşu:** 2239 · **duvar süresi:** 969.5 s
+**Toplam koşu:** 2239 · **duvar süresi:** 952.2 s
 **Mod:** TAM (derin pencere)
 **Pencere:** 40.000 tick (40.000 tick'lik ekolojik çöküşü kapsamak için `--deep` kullanın)
 
@@ -34,7 +34,7 @@ Kaynak sayısı arttıkça kontrol kolusunun skoru tırmanır ve ölçüm tavana
 
 ## Öğrenme · zorluk taraması
 
-Varsayılan habitatta (34 kaynak) ölçüm headroom u yalnız 0.072 olduğu için
+Varsayılan habitatta (34 kaynak) ölçüm headroom u yalnız 0.078 olduğu için
 deney ölçemiyordu. Aşağıdaki tarama, **önceden kaydedilmiş** zorluk ekseninde
 tam protokolü koşar: her noktada ayrık eğitim/değerlendirme tohumları,
 eşleştirilmiş fark ve bootstrap güven aralığı vardır. Tüm eğri raporlanır —
@@ -493,9 +493,9 @@ bozuktu**. Düzeltildi; regresyon testi eklendi.
 ```
   çatal noktası: tick 3000 · 1500 adım sonra karşılaştırma
   snapshot boyutu: 2.371.911 bayt
-  çatallama süresi: 70.09 ms · iki dalın koşusu: 2119.5 ms · oran 3.3%
+  çatallama süresi: 37.19 ms · iki dalın koşusu: 2269.5 ms · oran 1.6%
   dallar bit düzeyinde aynı: evet · müdahale sızıntısı: yok · müdahale etkili: evet
-  → Çatallama **doğru**: iki dal bit düzeyinde aynı ilerliyor ve müdahale diğerine sızmıyor. Snapshot 2.37 MB; bir dal açmak 35.0 ms, bir simülasyon adımı 0.707 ms → **bir çatal ≈ 50 tick** maliyetinde. Yani 500 tick'te bir, 16 pertürbasyonlu güncelleme ≈ 159% ek yük demek: üstel strateji yaşam içinde pratikte **bütçelenebilir**. Müdahale testi: müdahalesiz dal referansla AYNI, müdahale görmüş dal AYRILDI. **DİKKAT:** bu maliyet 3000. tick'te ölçüldü ve snapshot boyutuyla ölçeklenir; geç pencerelerde farklı olabilir ve **ölçülmedi**.
+  → Çatallama **doğru**: iki dal bit düzeyinde aynı ilerliyor ve müdahale diğerine sızmıyor. Snapshot 2.37 MB; bir dal açmak 18.6 ms, bir simülasyon adımı 0.756 ms → **bir çatal ≈ 25 tick** maliyetinde. Yani 500 tick'te bir, 16 pertürbasyonlu güncelleme ≈ 79% ek yük demek: üstel strateji yaşam içinde pratikte **bütçelenebilir**. Müdahale testi: müdahalesiz dal referansla AYNI, müdahale görmüş dal AYRILDI. **DİKKAT:** bu maliyet 3000. tick'te ölçüldü ve snapshot boyutuyla ölçeklenir; geç pencerelerde farklı olabilir ve **ölçülmedi**.
 ```
 
 ## S-4 · Çatallanmış ortamda yaşam içi üstel arama
@@ -509,10 +509,10 @@ ortalaması boyunca kaydırılır. Seyrek dünyada koşulur (pop 6, kaynak 6).
   kontrol (arama kapalı): medyan enerji 47.56 e · pop 15 · arama 0
   tedavi  (arama açık) : medyan enerji 47.56 e · pop 15 · arama 24 (4 pertürbasyon × 120 tick)
   ağırlık hareketi: kontrol 0.00000 · tedavi 0.00066
-  maliyet: 4000 tick'in koşusu 44 ms · arama 155 ms → ek yük ≈ 2173 tick
+  maliyet: 4000 tick'in koşusu 48 ms · arama 172 ms → ek yük ≈ 2184 tick
   enerji rezidülü: 0.000000000 e
   eşleştirilmiş fark 0.000 [0.000, 0.000] · p = 1.0000
-  → Çatallanmış arama **ölçülebilir performans artışı üretmedi**: fark 0.000 [0.000, 0.000], p = 1.0000. Ağırlık hareketi: medyan ‖Δθ‖ = 0.0007 (kontrol 0.0000) — yani arama θ'yı hareket ettirdi ama davranış kazanmadı. Ek yük ≈ 2173 tick'lik eşdeğer.
+  → Çatallanmış arama **ölçülebilir performans artışı üretmedi**: fark 0.000 [0.000, 0.000], p = 1.0000. Ağırlık hareketi: medyan ‖Δθ‖ = 0.0007 (kontrol 0.0000) — yani arama θ'yı hareket ettirdi ama davranış kazanmadı. Ek yük ≈ 2184 tick'lik eşdeğer.
 ```
 
 ## Paylaşma eşiği duyarlılık taraması
@@ -568,12 +568,12 @@ koloni sayısı, organizma enerjisi) ölçüldüğü gibi **aynıdır**.
 
 ```
   tohum 11 · canlı dünya 3000 tick → dal · değerlendirme 1000 tick
-  kontrol (arama yok)      taban(en iyi) 65.983 · ort 55.230 · taban ölümü 0/4 → bulunan 48.242 (kazanç -17.741) · bölünme sonrası enerji 58 e · pop 212 · 4+ 1 · süre 8159 ms
-  evrim (6 nesil)          taban(en iyi) 65.983 · ort 55.230 · taban ölümü 0/4 → bulunan 69.299 (kazanç +3.316) · bölünme sonrası enerji 58 e · pop 212 · 4+ 1 · süre 78862 ms
+  kontrol (arama yok)      taban(en iyi) 65.983 · ort 55.230 · taban ölümü 0/4 → bulunan 48.242 (kazanç -17.741) · bölünme sonrası enerji 58 e · pop 212 · 4+ 1 · süre 8268 ms
+  evrim (6 nesil)          taban(en iyi) 65.983 · ort 55.230 · taban ölümü 0/4 → bulunan 69.299 (kazanç +3.316) · bölünme sonrası enerji 58 e · pop 212 · 4+ 1 · süre 78893 ms
     nesil eğrisi: 66.865 → 66.865 → 68.529 → 68.529 → 68.529 → 69.299
   gürültü tabanı (arama yok): -17.741 → net etki +21.057
   enerji rezidülü: 0.000000009 e
-  → Çevrimiçi evrim **canlı dünyanın dalında da işe yarıyor**: rastgele taban 65.983 → bulunan politika 69.299 (kazanç +3.316). Buna karşılık **arama yapmayan kontrol kolunun** kendi kazancı -17.741 — yani örneklem gürültüsü bu kadar; **net etki +21.057**. Bölünmenin ardından organizmanın enerjisi 55 → 58 e (kontrol 58 e). Arama 78862 ms sürdü. ⚠️ **TEK tohum, güven aralığı yok** — bu bir protokol doğrulamasıdır, genellenebilir bir etki ölçümü değildir.
+  → Çevrimiçi evrim **canlı dünyanın dalında da işe yarıyor**: rastgele taban 65.983 → bulunan politika 69.299 (kazanç +3.316). Buna karşılık **arama yapmayan kontrol kolunun** kendi kazancı -17.741 — yani örneklem gürültüsü bu kadar; **net etki +21.057**. Bölünmenin ardından organizmanın enerjisi 55 → 58 e (kontrol 58 e). Arama 78893 ms sürdü. ⚠️ **TEK tohum, güven aralığı yok** — bu bir protokol doğrulamasıdır, genellenebilir bir etki ölçümü değildir.
 ```
 
 ## Bağ gücü koloni büyüklüğünü artırıyor mu?

@@ -540,7 +540,7 @@ function ObserverReport({ report }: { report: unknown }): React.ReactElement | n
     <>
       {r.claims && (
         <>
-          <h4>{t.observer.unverifiedNumbers}</h4>
+          <h4>{t.observer.numberCheck}</h4>
           <table className="metric-table">
             <tbody>
               {r.claims.slice(0, OBSERVER_CLAIM_LIMIT).map((c, i) => (

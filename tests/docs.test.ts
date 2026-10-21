@@ -390,6 +390,59 @@ describe('belge tutarlılığı · üretilmiş rapor', () => {
     ).toContain(`(${peak} hücre)`);
   });
 
+  it('raporda kırık değer (undefined / NaN) YOK', () => {
+    // ⚠️ ÖLÇÜLEN (19 Ekim 2026): rapor anlatısında bir alan adı yazım hatası
+    // "Varsayılan habitatta (**undefined** kaynak) …" biçiminde yayımlanmıştı.
+    // Sayı doğruydu (0,353), ama kaynak sayısı **yoktu** — ve `as` cast'ı
+    // tip hatasını gizlediği için derleyici de yakalamamıştı.
+    //
+    // Bu koruma geneldir: yayımlanan rapor **hiçbir yerde** kırık bir değer
+    // taşımamalı. "undefined" yalnız satır içi kod parçası (backtick) olarak
+    // geçebilir (ör. "`ledger` `undefined` kalıyor" — tarihsel bir cümlenin
+    // açıklaması). "NaN" hiç geçemez: ölçümler sonlu değilse "—" basılır.
+    for (const rel of ['docs/EXPERIMENTS.md', 'docs/EXPERIMENTS-DEEP.md']) {
+      const text = read(rel);
+      const nan = [...text.matchAll(/NaN/g)];
+      expect(nan.length, `${rel}: "NaN" görünüyor — sonlu olmayan değer sızdı`).toBe(0);
+      for (const m of text.matchAll(/undefined/g)) {
+        const before = m.index > 0 ? text[m.index - 1] : '';
+        expect(
+          before,
+          `${rel}: "undefined" kod parçası değil — kırık bir değer yayımlanmış`,
+        ).toBe('`');
+      }
+    }
+  });
+
+  it('rapor anlatısındaki ÖLÇÜLEN sayılar türetilir', () => {
+    // ⚠️ ÖLÇÜLEN: anlatı "ölçüm headroom u yalnız **0.072**" diyordu — sert
+    // kodlanmış ve **yanlıştı**: ölçülen headroom 0,078'di. Anlatı, raporun
+    // kendi tablosuyla çelişiyordu. Aynı sınıf: "varsayılan ayarlarda
+    // pencerenin sonunda 0" ve "(64 / 0.02)".
+    //
+    // Ölçüt eşiği sayıları (p < 0.05, %80) **sabit kalabilir** — onlar
+    // ölçümden önce yazılmış ölçütlerdir. Buradakiler **ölçüm sonuçlarıdır**:
+    // ölçümden türemeli.
+    const runner = read('scripts/run-experiments.ts');
+    // Yorumlar temizlenir: bu korumanın **kendi** yorumu eski metni örnek
+    // olarak veriyor — kaynak yorumuyla taranırsa yanlış pozitif üretir.
+    const runnerCode = runner
+      .replace(/\/\*[\s\S]*?\*\//g, ' ')
+      .replace(/(^|[^:])\/\/.*$/gm, '$1');
+    expect(runnerCode, 'headroom sayısı sert kodlanmış').not.toMatch(/headroom u yalnız 0\./);
+    expect(runnerCode, 'varsayılan ayarlar iddiası sert kodlanmış').not.toMatch(
+      /pencerenin sonunda 0\)/,
+    );
+    expect(runnerCode, 'sabit değerler sert kodlanmış').not.toMatch(/\(64 \/ 0\.02\)/);
+    // Ve türetme gerçekten var.
+    expect(runnerCode, 'headroom türetilmiyor').toMatch(/defaultHabitat\.headroom/);
+    expect(runnerCode, 'varsayılan ayarların sonucu türetilmiyor').toMatch(
+      /defaultDurability\.finalMultiCellColonies/,
+    );
+    expect(runnerCode, 'sabitler türetilmiyor').toMatch(/C\.TRAJECTORY_LIMIT/);
+    expect(runnerCode, 'sabitler türetilmiyor').toMatch(/C\.LEARN_RATE/);
+  });
+
   it('deney koşucusunda ilerleme paydası ADIM SAYISIYLA aynı', () => {
     // ⚠️ ÖLÇÜLEN: koşucunun ilerleme satırlarında elle yazılmış, birbiriyle
     // **tutarsız** paydalar vardı: "1/22 … 8/8 … 14/14 … 23/23"; "14/14" iki

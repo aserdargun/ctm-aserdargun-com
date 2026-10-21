@@ -126,6 +126,29 @@ describe('metin bütünlüğü', () => {
     ).toEqual([]);
   });
 
+  it('gözlemci panelinin başlığı tablonun ne gösterdiğini SÖYLÜYOR', () => {
+    // ⚠️ ÖLÇÜLEN (19 Ekim 2026): başlık "Doğrulanamayan sayılar **çıkarıldı**"
+    // diyordu — ama panel doğrulanamayanları **listeliyordu** (✓/✗ ile).
+    // Yani başlık, hemen altındaki tablonun tersini söylüyordu: kullanıcı
+    // "doğrulanamayan sayılar gizlendi" sanırken hepsini görüyordu.
+    //
+    // Tasarımın kendisi doğru: eşleşmeyi gizlemek yerine **göstermek** isteniyor
+    // ("ölçülen gerçeği saklamak yerine gösteriyoruz"). Yani başlık düzeltilmeli.
+    const i18n = readFileSync(resolve(ROOT, 'src/i18n/index.ts'), 'utf8');
+    expect(
+      i18n,
+      'başlık hâlâ "çıkarıldı" diyor ama sayılar listeleniyor',
+    ).not.toMatch(/Doğrulanamayan sayılar çıkarıldı/);
+    expect(i18n, 'İngilizce başlık hâlâ "were removed" diyor').not.toMatch(
+      /Unverifiable numbers were removed/,
+    );
+    expect(i18n, 'sayı denetimi başlığı yok').toContain('numberCheck');
+
+    // Ve panel gerçekten sayıları listeliyor (başlıkla uyumlu).
+    const panel = readFileSync(resolve(ROOT, 'src/ui/Panels.tsx'), 'utf8');
+    expect(panel, 'panel sayıları listelemiyor').toMatch(/r\.claims\.slice\(/);
+  });
+
   it('gözlemci özeti eşiği SAYIYLA yazar (bozuk metin yeniden dönmüyor)', () => {
     // Koruma, düzeltmenin kendisine bağlanır: eşik dalı gerçekten çalışıyor
     // mu, yoksa "düzelttim" kaydı mı tutuyor?

@@ -390,6 +390,24 @@ check "olay sayısı örneklem değil" "src/worker/evidence.ts" \
   "events: pack.eventIds.length," \
   "tests/observer.test.ts"
 
+# 51) Gözlemci başlığı tablonun tersini söylüyor
+check "başlık tabloyla uyumlu" "src/i18n/index.ts" \
+  "numberCheck:" \
+  "unverifiedNumbers: 'Doğrulanamayan sayılar çıkarıldı.'," \
+  "tests/encoding.test.ts"
+
+# 52) Rapor anlatısındaki ölçülen sayı yeniden sert kodlanıyor
+check "anlatı sayıları türetilir" "scripts/run-experiments.ts" \
+  '`tutar** (${C.TRAJECTORY_LIMIT} / ${C.LEARN_RATE})' \
+  "'tutar** (64 / 0.02)" \
+  "tests/docs.test.ts"
+
+# 53) Yayımlanan rapora kırık bir değer sızıyor
+check "raporda kırık değer yok" "docs/EXPERIMENTS.md" \
+  "**Körüldü:**" \
+  "**Körüldü:** undefined kaynak" \
+  "tests/docs.test.ts"
+
 echo
 echo "ayırt edici: $pass · ayırt edici olmayan: $fail"
 [ "$fail" -eq 0 ]
