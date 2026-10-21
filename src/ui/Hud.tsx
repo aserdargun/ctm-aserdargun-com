@@ -305,7 +305,7 @@ export function Toolbar({ client }: { client: SimClient }): React.ReactElement {
             client.setLearning(next);
           }}
         >
-          {t.hud.learning}: {settings.learningEnabled ? 'Açık' : 'Kapalı'}
+          {t.hud.learning}: {settings.learningEnabled ? t.settings.on : t.settings.off}
         </button>
         <button type="button" onClick={() => client.addNutrient('A', 900)}>
           + A

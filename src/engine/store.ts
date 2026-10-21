@@ -211,6 +211,22 @@ function loadLanguage(): Language {
 }
 
 /**
+ * Gözlemci susturma tercihi — başlangıç değeri.
+ *
+ * ⚠️ Bu tercih önce **hiç saklanmıyordu**: kullanıcı susturdu, sayfayı
+ * yenileyince susturma kalkıyordu. `language` ve `reducedMotion` saklandığı
+ * için üç tercihten ikisi kalıcıydı — aynı sınıftan bir tutarsızlık.
+ */
+function loadMuted(): boolean {
+  try {
+    return localStorage.getItem('ctm.muted') === '1';
+  } catch {
+    /* localStorage yoksa susturulmamış */
+  }
+  return false;
+}
+
+/**
  * Azaltılmış hareket başlangıç değeri.
  *
  * Öncelik sırası: **kullanıcının kendi seçimi → işletim sistemi tercihi →
@@ -287,7 +303,7 @@ export const useStore = create<StoreState>((set, get) => ({
   panel: null,
   language: loadLanguage(),
   reducedMotion: loadReducedMotion(),
-  muted: false,
+  muted: loadMuted(),
   notices: [],
   activeBranch: null,
 
@@ -375,7 +391,17 @@ export const useStore = create<StoreState>((set, get) => ({
     }
     set({ reducedMotion: value });
   },
-  setMuted: (muted) => set({ muted }),
+  setMuted: (muted) => {
+    // ⚠️ Bu tercih **kaydedilmiyordu**: kullanıcı susturdu, sayfayı yenileyince
+    // susmuş kalmıyordu. `language` ve `reducedMotion` kaydedildiği için aynı
+    // sınıftan bir tutarsızlıktı — üç tercihten ikisi kalıcıydı.
+    try {
+      localStorage.setItem('ctm.muted', muted ? '1' : '0');
+    } catch {
+      /* yok sayılır */
+    }
+    set({ muted });
+  },
   notify: (kind, message) =>
     set({ notices: [...get().notices.slice(-4), { id: ++noticeId, kind, message, at: Date.now() }] }),
   dismissNotice: (id) => set({ notices: get().notices.filter((n) => n.id !== id) }),

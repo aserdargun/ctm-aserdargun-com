@@ -79,14 +79,18 @@ describe('metin bütünlüğü', () => {
   });
 
   it('arayüzde Türkçe sabit metin kalmıyor (dil değiştirme her yere geçer)', () => {
-    // ⚠️ ÖLÇÜLEN (19 Ekim 2026): uygulama iki dilli ama **42** Türkçe sabit
-    // metin vardı — 30'u gözlemci panelinin **tüm** bilimsel çıktısında, 12'si
+    // ⚠️ ÖLÇÜLEN (19 Ekim 2026): uygulama iki dilli ama **52** Türkçe sabit
+    // metin vardı — 30'u gözlemci panelinin **tüm** bilimsel çıktısında, 22'si
     // bileşenlerde. Dil İngilizce'ye geçtiğinde panel Türkçe kalıyordu.
     //
-    // Buradaki koruma **genel**: arayüz dosyalarında (ve kanıt paketinin
-    // metinlerinde) Türkçe'ye özgü karakter içeren, iki dilli olmayan sabit
-    // metin kalmaz. Yorumlar temizlenir (JSX yorumları dâhil), iki dilli
-    // kalıplar (`tr ? ... : ...`) muaftır.
+    // ⚠️ **Tarayıcının iki sürümü vardı ve ikisi de hatalıydı:**
+    //   (a) satır satır tarayan ilk sürüm, satırda hem `?` hem `:` varsa
+    //       "iki dilli" sayıyordu → `{muted ? 'Açık' : 'Kapalı'}` **kaçtı**;
+    //   (b) üçlü ifadeyi satır içinde arayan ikinci sürüm, çok satırlı
+    //       üçlüleri ("tr\n ? 'Türkçe'\n : 'English'") **kaçırdı** ve zaten
+    //       iki dilli olan metinleri yanlışlıkla raporluyordu.
+    // Doğrusu: **tüm dosya** tek seferde taranır, dizgenin ardından gelen karşı
+    // dal (yeni satır da olabilir) karşılaştırılır.
     const UI_FILES = [
       'src/ui/EventsPanel.tsx',
       'src/ui/EvolutionPanel.tsx',
@@ -104,16 +108,17 @@ describe('metin bütünlüğü', () => {
     const offenders: string[] = [];
     for (const rel of UI_FILES) {
       const src = stripComments(readFileSync(resolve(ROOT, rel), 'utf8'));
-      src.split('\n').forEach((line, i) => {
-        if (/^\s*import\s/.test(line)) return;
-        for (const m of line.matchAll(/(['"`])([^'"`]*)\1/g)) {
-          const text = m[2] as string;
-          if (text.length < 3 || !TR.test(text)) continue;
-          // İki dilli kalıp (tr ? ... : ...) sorun değil.
-          if (line.includes('?') && line.includes(':')) continue;
-          offenders.push(`${rel}:${i + 1}  ${text.slice(0, 60)}`);
-        }
-      });
+      const lineOf = (index: number): number => src.slice(0, index).split('\n').length;
+      for (const m of src.matchAll(/(['"`])((?:(?!\1).)*)\1/g)) {
+        const text = m[2] as string;
+        if (text.length < 3 || !TR.test(text)) continue;
+        const start = m.index ?? 0;
+        const end = start + m[0].length;
+        // Karşı dal Türkçe değilse bu dizge zaten iki dillidir.
+        const alt = /^\s*:\s*(['"`])((?:(?!\1).)*)\1/.exec(src.slice(end));
+        if (alt && !TR.test(alt[2] as string)) continue;
+        offenders.push(`${rel}:${lineOf(start)}  ${text.slice(0, 60)}`);
+      }
     }
     expect(
       offenders,

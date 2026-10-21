@@ -342,6 +342,18 @@ check "arayüzde Türkçe sabit metin yok" "src/ui/EventsPanel.tsx" \
   "{'Simülasyonun kaydı. Bu veri zaten üretiliyordu; panel onu görünür kılıyor.'}" \
   "tests/encoding.test.ts"
 
+# 44) TEK TARAFLI üçlüde Türkçe metin (ilk tarayıcı sürümünün kaçırdığı hâl)
+check "tek taraflı üçlüde Türkçe metin yok" "src/ui/Hud.tsx" \
+  "{t.hud.learning}: {settings.learningEnabled ? t.settings.on : t.settings.off}" \
+  "{t.hud.learning}: {settings.learningEnabled ? 'Açık' : 'Kapalı'}" \
+  "tests/encoding.test.ts"
+
+# 45) Kullanıcı tercihi kaydedilmiyor (sessizce unutuluyor)
+check "kullanıcı tercihi kalıcı" "src/engine/store.ts" \
+  "localStorage.setItem('ctm.muted', muted ? '1' : '0');" \
+  "/* muted saklanmaz */" \
+  "tests/measurement.test.ts"
+
 echo
 echo "ayırt edici: $pass · ayırt edici olmayan: $fail"
 [ "$fail" -eq 0 ]

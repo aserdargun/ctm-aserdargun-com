@@ -254,7 +254,7 @@ export function SettingsPanel(): React.ReactElement {
               aria-pressed={reducedMotion}
               onClick={() => setReducedMotion(!reducedMotion)}
             >
-              {reducedMotion ? 'Açık' : 'Kapalı'}
+              {reducedMotion ? t.settings.on : t.settings.off}
             </button>
           </div>
           <p className="note">{t.settings.reducedMotionHint}</p>
@@ -262,7 +262,7 @@ export function SettingsPanel(): React.ReactElement {
           <h4>{t.settings.silent}</h4>
           <div className="chips">
             <button type="button" aria-pressed={muted} onClick={() => setMuted(!muted)}>
-              {muted ? 'Açık' : 'Kapalı'}
+              {muted ? t.settings.on : t.settings.off}
             </button>
           </div>
           <p className="note">{t.settings.silentHint}</p>

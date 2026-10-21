@@ -21,6 +21,7 @@ import { getStrings } from './i18n/index.ts';
 import { H, RES, RESOURCE_FLOATS } from './worker/protocol.ts';
 import { downloadJson, saveRecord, StorageError } from './engine/storage.ts';
 import { buildLocalSummary, verifyNumericClaims } from './worker/evidence.ts';
+import { format } from './i18n/index.ts';
 
 const ORGANISM_REFRESH_MS = 900;
 
@@ -115,7 +116,9 @@ export function App(): React.ReactElement {
           });
           s.notify(
             message.holdoutGain >= 0 ? 'success' : 'info',
-            `Evrim atölyesi: görülmemiş tohumlarda ${message.holdoutGain >= 0 ? '+' : ''}${message.holdoutGain.toFixed(3)}`,
+            format(t.evolution.holdoutNotice, {
+              gain: `${message.holdoutGain >= 0 ? '+' : ''}${message.holdoutGain.toFixed(3)}`,
+            }),
           );
           break;
         case 'snapshot':

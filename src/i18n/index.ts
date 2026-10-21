@@ -66,6 +66,8 @@ export const tr = {
     reset: 'Yeniden başlat',
     language: 'Dil',
     reducedMotion: 'Hareketi azalt',
+    on: 'Açık',
+    off: 'Kapalı',
     silent: 'Sessiz kullanım',
   },
 
@@ -148,6 +150,7 @@ export const tr = {
     applied: 'Bulunan politika organizmaya yazıldı.',
     dryRunOnly: 'Yalnız denendi, organizma değiştirilmedi.',
     heldOut: 'Kazanç yalnız görülmemiş tohumlarda raporlanır; arama bunları görmedi.',
+    holdoutNotice: 'Evrim atölyesi: görülmemiş tohumlarda {gain}',
   },
   lifeMap: {
     axis: { speed: 'hız', size: 'boyut', range: 'menzil' },
@@ -248,6 +251,8 @@ export const tr = {
     turkish: 'Türkçe',
     english: 'English',
     reducedMotion: 'Hareketi azalt',
+    on: 'Açık',
+    off: 'Kapalı',
     reducedMotionHint: 'Kamera sallanması ve parçacık hareketi kapanır.',
     silent: 'Sessiz kullanım',
     silentHint: 'Görsel uyarılar ve otomatik kaydırma kapatılır.',
@@ -338,6 +343,8 @@ const en: Strings = {
     reset: 'Restart',
     language: 'Language',
     reducedMotion: 'Reduce motion',
+    on: 'On',
+    off: 'Off',
     silent: 'Silent use',
   },
   inspector: {
@@ -417,6 +424,7 @@ const en: Strings = {
     dryRunOnly: 'Dry run only; the organism was not changed.',
     heldOut:
       'The gain is reported only on held-out seeds; the search did not see them.',
+    holdoutNotice: 'Evolution lab: on held-out seeds {gain}',
   },
   lifeMap: {
     axis: { speed: 'speed', size: 'size', range: 'range' },
@@ -514,6 +522,8 @@ const en: Strings = {
     turkish: 'Türkçe',
     english: 'English',
     reducedMotion: 'Reduce motion',
+    on: 'On',
+    off: 'Off',
     reducedMotionHint: 'Camera sway and particle motion are disabled.',
     silent: 'Silent use',
     silentHint: 'Visual alerts and auto-scrolling are disabled.',

@@ -551,8 +551,26 @@ describe('ölçüm kodu · ölü ölçüm kapsamı koruması', () => {
     expect(i18n, 'dürüst notWired metni yok').toContain('notWired');
   });
 
-  it('azaltılmış hareket: kullanıcı seçimi önce, sistem tercihi sonra', () => {
-  // ⚠️ `systemPrefersReducedMotion()` yıllardır yazılıydı ama HİÇ ÇAĞRILMIYORDU:
+  it('HER kullanıcı tercihi kalıcıdır (sessizce unutulmaz)', () => {
+    // ⚠️ ÖLÇÜLEN: `muted` (gözlemci susturma) **kaydedilmiyordu** — kullanıcı
+    // susturdu, sayfayı yenileyince susturma kalkıyordu. `language` ve
+    // `reducedMotion` kaydedildiği için üç tercihten ikisi kalıcıydı: aynı
+    // sınıftan bir tutarsızlık ve kullanıcı kararının **görünmezce**
+    // geçersizleşmesi.
+    const store = readFileSync(join(ROOT, 'src/engine/store.ts'), 'utf8');
+    for (const pref of ['language', 'reducedMotion', 'muted']) {
+      expect(
+        store,
+        `ctm.${pref} tercihi localStorage'a yazılmıyor — sayfa yenilenince unutuluyor`,
+      ).toContain(`localStorage.setItem('ctm.${pref}'`);
+      expect(
+        store,
+        `ctm.${pref} tercihi başlangıçta okunmuyor (kayıt geri yüklenmiyor)`,
+      ).toContain(`localStorage.getItem('ctm.${pref}')`);
+    }
+  });
+
+  it('azaltılmış hareket: kullanıcı seçimi önce, sistem tercihi sonra', () => {  // ⚠️ `systemPrefersReducedMotion()` yıllardır yazılıydı ama HİÇ ÇAĞRILMIYORDU:
   // localStorage boşken doğrudan `false` dönülüyordu. Yani `prefers-reduced-motion:
   // reduce` ayarlı kullanıcı tam animasyonlu sahneyi görüyordu — erişilebilirlik
   // tercihi sessizce yok sayılıyordu.
