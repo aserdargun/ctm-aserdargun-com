@@ -354,6 +354,27 @@ check "kullanıcı tercihi kalıcı" "src/engine/store.ts" \
   "/* muted saklanmaz */" \
   "tests/measurement.test.ts"
 
+# 46) Snapshot'ın ağ durumuna alan ekleniyor (restore sessizce kaçırır)
+check "snapshot ağ şekli restore ile aynı" "src/sim/persistence/snapshot.ts" \
+  "    hasPrev: boolean;
+  };" \
+  "    hasPrev: boolean;
+    yeniAlan: number;
+  };" \
+  "tests/measurement.test.ts"
+
+# 47) Geri yükleme bir alanı okumuyor (sessiz öğrenme kaybı)
+check "restore her alanı okuyor" "src/sim/behavior/policy.ts" \
+  "  policy.state.hasPrev = snap.neural.hasPrev;" \
+  "  /* hasPrev okunmuyor */" \
+  "tests/measurement.test.ts"
+
+# 48) Hata bildirimi sessizce düşürülüyor
+check "hata bildirimi korunuyor" "src/engine/store.ts" \
+  "const dropIndex = next.findIndex((n) => n.kind !== 'error');" \
+  "const dropIndex = 0;" \
+  "tests/measurement.test.ts"
+
 echo
 echo "ayırt edici: $pass · ayırt edici olmayan: $fail"
 [ "$fail" -eq 0 ]

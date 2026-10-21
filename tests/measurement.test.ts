@@ -588,7 +588,70 @@ describe('ölçüm kodu · ölü ölçüm kapsamı koruması', () => {
   expect(store.match(/systemPrefersReducedMotion\(\)/g)?.length ?? 0).toBeGreaterThanOrEqual(1);
 });
 
-it('bir adı iki modül TANIMLAYAMAZ (ölü beyan sınıfının kapısı)', () => {
+  it('snapshot\'ın ağ durumu ile geri yükleme tipi AYNI alanları taşır', () => {
+    // ⚠️ `PolicySnapshotLike` (policy.ts) ile `snapshot.ts`teki organizma
+    // `neural` şekli **iki ayrı tanımdır**. Nedeni mimari: `policy.ts`
+    // `snapshot.ts`'i içe aktaramaz (döngü: snapshot → world → policy).
+    //
+    // Risk: snapshot'ın `neural` şekline yeni bir alan eklenirse, geri yükleme
+    // onu **sessizce kaçırır** — yani fork/save yolunda öğrenme kaybı. Bu,
+    // `restorePolicyFromSnapshot` için yazılmış yorumun uyarısının **tip**
+    // karşılığıdır; yorum tek başına koruma değildir.
+    const snapshotSrc = readFileSync(join(ROOT, 'src/sim/persistence/snapshot.ts'), 'utf8');
+    const policySrc = readFileSync(join(ROOT, 'src/sim/behavior/policy.ts'), 'utf8');
+
+    /** Bir "neural: { … }" bloğunun alan adlarını döndürür. */
+    const neuralKeys = (src: string): string[] => {
+      const start = src.indexOf('neural: {');
+      expect(start, 'neural bloğu bulunamadı').toBeGreaterThan(-1);
+      const body = src.slice(start + 'neural: {'.length);
+      const end = body.indexOf('};');
+      const block = body.slice(0, end);
+      return [...block.matchAll(/^\s{4}([A-Za-z][A-Za-z0-9]*):/gm)].map((m) => m[1] as string);
+    };
+
+    const snapKeys = neuralKeys(snapshotSrc);
+    const policyKeys = neuralKeys(policySrc);
+    expect(snapKeys.length, 'snapshot ağ şekli boş').toBeGreaterThan(5);
+    expect(
+      [...policyKeys].sort(),
+      `policy.ts'in PolicySnapshotLike şekli snapshot'ınkinden ayrışmış:\n  snapshot: ${snapKeys.join(', ')}\n  policy:  ${policyKeys.join(', ')}`,
+    ).toEqual([...snapKeys].sort());
+
+    // Ve geri yükleme **her** alanı doldurmalı: yeni alan eklendi ama
+    // geri yüklenmediyse öğrenme sessizce kaybolur.
+    const restore = policySrc.match(/export function restorePolicyFromSnapshot[\s\S]*?\n\}/)?.[0] ?? '';
+    expect(restore, 'restorePolicyFromSnapshot bulunamadı').not.toBe('');
+    for (const key of snapKeys) {
+      expect(
+        restore,
+        `snapshot'ın ağ durumunda "${key}" var ama geri yükleme onu okumuyor — ` +
+          'fork/save yolunda sessiz öğrenme kaybı',
+      ).toMatch(new RegExp(`\\b${key}\\b`));
+    }
+  });
+
+    it('bir hata bildirimi sessizce DÜŞÜRÜLMEZ', () => {
+    // ⚠️ ÖLÇÜLEN (19 Ekim 2026): bildirim yığını taşınca en eski bildirim
+    // düşüyordu. Bir "worker çöktü" hatasının ardından 5 bilgi gelince hata
+    // **kayboluyordu** — kullanıcı hatayı hiç görmüyordu. En kötü türden
+    // sessizlik: kullanıcıya gösterilmeyen hata.
+    //
+    // Düzeltme: taşmada düşürülen, **hata olmayan** en eski bildirimdir.
+    const store = readFileSync(join(ROOT, 'src/engine/store.ts'), 'utf8');
+    // ⚠️ `notify:` **iki** yerde geçiyor: arayüz tipi ve uygulama. Uygulamayı
+    // hedeflemek gerekiyor (ilk eşleşme tip bildirimidir).
+    const start = store.indexOf('notify: (kind, message) =>');
+    const end = store.indexOf('dismissNotice:', start);
+    const notify = start >= 0 && end > start ? store.slice(start, end) : '';
+    expect(notify, 'store.notify uygulaması bulunamadı').not.toBe('');
+    expect(
+      notify,
+      'store.notify hata bildirimlerini korumuyor — hatalar sessizce düşebilir',
+    ).toMatch(/findIndex\(\(n\) => n\.kind !== 'error'\)/);
+  });
+
+  it('bir adı iki modül TANIMLAYAMAZ (ölü beyan sınıfının kapısı)', () => {
     // "genomeDistance" üç modülde üç farklı hesap olarak yaşıyordu; iki modül
     // aynı adı **tanımlıyordu** (üçüncüsü satır içi bir ifadeydi). Aynı adlı
     // iki tanım = içe aktarma yoluna göre farklı sayı üreten sessiz bir kova.

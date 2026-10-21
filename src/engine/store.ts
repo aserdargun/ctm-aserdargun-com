@@ -200,6 +200,11 @@ interface StoreState {
 
 let noticeId = 0;
 
+/** Görünen bildirim yığınının kapasitesi. */
+const NOTICE_LIMIT = 5;
+/** Taşma hâlinde korunan ek hata sayısı (hepsi hataysa). */
+const ERROR_NOTICE_LIMIT = 10;
+
 function loadLanguage(): Language {
   try {
     const saved = localStorage.getItem('ctm.language');
@@ -403,7 +408,21 @@ export const useStore = create<StoreState>((set, get) => ({
     set({ muted });
   },
   notify: (kind, message) =>
-    set({ notices: [...get().notices.slice(-4), { id: ++noticeId, kind, message, at: Date.now() }] }),
+    set((s) => {
+      const next = [...s.notices, { id: ++noticeId, kind, message, at: Date.now() }];
+      if (next.length <= NOTICE_LIMIT) return { notices: next };
+      // ⚠️ **Hata bildirimi sessizce düşürülmez.**
+      // ÖLÇÜLDÜ (19 Ekim 2026): yığın taşınca en eski bildirim düşüyordu;
+      // bir "worker çöktü" hatasının ardından 5 bilgi gelince hata **kayboluyordu**
+      // — kullanıcı hatayı hiç görmüyordu. Taşmada düşürülen, **hata olmayan**
+      // en eski bildirimdir; hatalar korunur.
+      const dropIndex = next.findIndex((n) => n.kind !== 'error');
+      if (dropIndex < 0) {
+        // Her şey hata: en eski hata düşer (olağanüstü durum, sınırlı).
+        return { notices: next.slice(-(NOTICE_LIMIT + ERROR_NOTICE_LIMIT)) };
+      }
+      return { notices: [...next.slice(0, dropIndex), ...next.slice(dropIndex + 1)] };
+    }),
   dismissNotice: (id) => set({ notices: get().notices.filter((n) => n.id !== id) }),
   setBranch: (activeBranch) => set({ activeBranch }),
   recordVersion: 0,
