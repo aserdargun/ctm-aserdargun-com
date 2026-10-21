@@ -295,6 +295,18 @@ check "belge kendisiyle çelişmiyor" "docs/VALIDATION.md" \
   "Düzeltilmiş hâliyle ölçüm **karşılaştırılamaz** ve olumsuz" \
   "tests/docs.test.ts"
 
+# 37) Arayüzün gönderdiği komutun worker karşılığı yok (sessizce düşer)
+check "komut yüzeyi tam" "src/worker/sim.worker.ts" \
+  "    case 'setSpeed':" \
+  "    case 'setSpeedYeni':" \
+  "tests/measurement.test.ts"
+
+# 38) Worker'da kimsenin göndermediği ölü bir işleyici
+check "ölü worker işleyicisi yok" "src/worker/sim.worker.ts" \
+  "    case 'requestDecision': {" \
+  "    case 'requestDecisionEski': {" \
+  "tests/measurement.test.ts"
+
 echo
 echo "ayırt edici: $pass · ayırt edici olmayan: $fail"
 [ "$fail" -eq 0 ]

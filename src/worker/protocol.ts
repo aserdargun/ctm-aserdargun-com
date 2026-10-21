@@ -94,7 +94,6 @@ export type Command =
   | { type: 'setLearning'; enabled: boolean }
   | { type: 'addNutrient'; kind: 'A' | 'B'; amount: number }
   | { type: 'revivePredator'; energy: number }
-  | { type: 'select'; organismId: number | null }
   | { type: 'requestDecision'; organismId: number }
   | { type: 'snapshot'; reason: string }
   | { type: 'load'; snapshotJson: string; label: string }
@@ -240,7 +239,6 @@ export type WorkerResponse =
       evaluations: number;
       spentMs: number;
     }
-  | { type: 'ack'; seq: number; command: string }
   | { type: 'error'; message: string; detail?: string; fatal: boolean };
 
 /** Kare paketini okunabilir nesneye çevirir (yalnız seçili organizma için kullanılır). */

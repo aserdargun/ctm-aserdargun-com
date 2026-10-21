@@ -459,17 +459,69 @@ describe('ölçüm kodu · ölü ölçüm kapsamı koruması', () => {
       .filter((f) => !f.endsWith('src/worker/sim.worker.ts'))
       .map((f) => readFileSync(f, 'utf8'))
       .join('\n');
-    // Kapsanmayan: `ack` taşıma protokolü olmayan tek yönlü komut yanıtıdır
-    // (istemci `dispatch` ile TÜM mesajları dinleyicilere iletir, ama hiçbir
-    // dinleyici bunu kontrol etmez — işlenmemiş altyapı, yanlış iddia değil).
+    // Kapsanmayan: **yok**. `ack` istisnası kaldırıldı — `ack` mesajı
+    // protokolden de silindi. Sebep: `ack`'i hiçbir yerde tüketen yoktu ve
+    // bilinmeyen komut `ack` ile yanıtlanıyordu, yani eski (önbelleklenmiş)
+    // worker yeni bir komutu tanımadığında kullanıcı **hiçbir şey olmadığını**
+    // sanıyordu. Artık bilinmeyen komut `fail()` ile hata kanalına gider.
     //
     // `pong` ÖNCE burada istisnaydı ve kaldırıldı: `ping`'i HİÇBİR yer
     // göndermiyordu, yani worker'daki işleyici erişilemez ölü koddu.
     // Gerçek bir gecikme ölçümü istenirse geri eklenmeli — ama o zaman
     // istisna da kaldırılmalı.
-    const exempt = new Set(['ack']);
+    const exempt = new Set<string>();
     const orphans = produced.filter((t) => !exempt.has(t) && !consumerSrc.includes(`'${t}'`));
     expect(orphans, `tüketicisi olmayan worker mesajı: ${orphans.join(', ')}`).toEqual([]);
+  });
+
+  it('arayüzün gönderdiği her komut worker\'da karşılanıyor ve BEYAN EDİLMİŞ', () => {
+    // ⚠️ Worker → arayüz yönü denetleniyor; **tersi** denetlenmiyordu.
+    // Arayüz bir komut gönderir, worker'da `case` karşılığı yoksa komut
+    // **sessizce** düşer ve kullanıcı hiçbir geri bildirim almaz.
+    //
+    // ÖLÇÜLEN: `select` komutu protokolde beyan edilmiş ve worker'da
+    // karşılanıyordu — ama **istemci hiç göndermiyordu**. Seçim tamamen
+    // istemci tarafında; worker'a gidişi gereksiz bir turdu.
+    const client = readFileSync(join(ROOT, 'src/engine/client.ts'), 'utf8');
+    const worker = readFileSync(join(ROOT, 'src/worker/sim.worker.ts'), 'utf8');
+    const protocol = readFileSync(join(ROOT, 'src/worker/protocol.ts'), 'utf8');
+
+    // Gönderilen komutlar: yalnız `send({ type: '...' })` çağrıları.
+    // ⚠️ `new Worker(url, { type: 'module' })` bir **komut değil**; ilk sürüm
+    // onu komut sanıp yanlış pozitif üretti.
+    const sent = [
+      ...new Set(
+        [...client.matchAll(/this\.send\(\{\s*type:\s*'([a-zA-Z]+)'/g)].map((m) => m[1] as string),
+      ),
+    ].sort();
+    expect(sent.length, 'istemci komutu bulunamadı').toBeGreaterThan(5);
+
+    const handled = new Set(
+      [...worker.matchAll(/case\s*'([a-zA-Z]+)':/g)].map((m) => m[1] as string),
+    );
+    const declared = new Set(
+      [...protocol.matchAll(/type:\s*'([a-zA-Z]+)'/g)].map((m) => m[1] as string),
+    );
+
+    const unhandled = sent.filter((t) => !handled.has(t));
+    expect(
+      unhandled,
+      `worker'da karşılığı olmayan komut (sessizce düşer): ${unhandled.join(', ')}`,
+    ).toEqual([]);
+
+    const undeclared = sent.filter((t) => !declared.has(t));
+    expect(
+      undeclared,
+      `protokolde beyan edilmemiş komut: ${undeclared.join(', ')}`,
+    ).toEqual([]);
+
+    // Tersi: worker'da karşılanan ama istemcinin göndermediği komutlar
+    // **ölü** işleyicilerdir (erişilemez kod).
+    const neverSent = [...handled].filter((t) => !sent.includes(t)).sort();
+    expect(
+      neverSent,
+      `worker karşılıyor ama istemci göndermiyor (ölü işleyici): ${neverSent.join(', ')}`,
+    ).toEqual([]);
   });
 
   it('deney düğmeleri ÇALIŞMADIĞINI iddia etmiyor', () => {

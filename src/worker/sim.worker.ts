@@ -380,9 +380,6 @@ function handle(request: WorkerRequest): void {
         w.recordIntervention('pressure', 'predator', request.energy, 'avcı yeniden sokuldu (dış girdi)');
       }
       break;
-    case 'select':
-      post({ type: 'ack', seq: seqCounter++, command: 'select' });
-      break;
     case 'requestDecision': {
       const snapshot = decisionSnapshot(request.organismId);
       if (snapshot) post({ type: 'decision', decision: snapshot });
@@ -518,8 +515,20 @@ function handle(request: WorkerRequest): void {
       // Takipçi her tick ilerletildiği için bu yalnız arşivin anlık görüntüsü.
       post({ type: 'lifeMapResult', snapshot: w ? w.nicheSnapshot() : EMPTY_LIFE_MAP });
       break;
-    default:
-      post({ type: 'ack', seq: seqCounter++, command: 'unknown' });
+    default: {
+      // ⚠️ Bilinmeyen komut **sessizce yutulmaz.** Önce burada
+      // `ack` (command: 'unknown') basılıyordu; ama istemci `ack`'i hiç
+      // işlemiyordu — yani eski (önbelleklenmiş) bir worker yeni bir komutu
+      // tanımadığında kullanıcı **hiçbir şey olmadığını** sanıyordu.
+      // Artık hata kanalı kullanılıyor: `fail` → istemci `error` işler →
+      // `App.tsx` görünür bir bildirim gösterir.
+      //
+      // ⚠️ TypeScript bu dalda `request`'i `never` olarak daraltır — yani
+      // **her komutun karşılandığı** tip düzeyinde kanıtlıdır. Bu dal
+      // çalışma zamanı için güvenlik ağıdır (ör. eski worker + yeni istemci).
+      const name = (request as unknown as { type: string }).type;
+      fail('Bilinmeyen komut', `Worker "${name}" komutunu tanımıyor.`);
+    }
   }
 }
 
