@@ -14,7 +14,7 @@ Bu raporda **yalnızca gerçekten çalıştırılan** kontroller yer alır.
 
 ```
 Test Files  12 passed (12)
-     Tests  312 passed (312)
+     Tests  313 passed (313)
 ```
 
 ### 1.1 MLP sayısal doğruluğu (`tests/mlp.test.ts`, 14 test)
@@ -1547,7 +1547,7 @@ Fark şurada: çevrimiçi arama **seçim yapıyor** — her nesilde en iyisi tut
 burada da tamamlandı ve kalan tek seçenek yine **S-3**.
 
 
-### 6.14 S-3 hazırlığı · in-world arama denendi ve **reddedildi**
+### 6.14 S-3 hazırlığı · in-world arama denendi ve **reddedildi** (⚠️ **hüküm sonradan düzeltildi** — §4.14)
 
 S-3'ü ürüne almadan önce ölçülen +0.032 sonucunun (arena, §4.9) **canlı dünyanın
 bir dalında** da üretilip üretilmediği soruldu. `evolvePolicy`'ye isteğe bağlı bir
@@ -1580,7 +1580,7 @@ Bu iki hatadan çıkan tasarım kararı nettir:
 
 **S-3, canlı dünyanın dalında değil, arenada çalışmalı.**
 
-| Özellik | Arena (ölçülmüş, §4.9) | Canlı dünya dalı (denendi) |
+| Özellik | Arena (ölçülmüş, §4.9) | Canlı dünya dalı (§6.14'teki hâli) |
 |---|---|---|
 | Birey sayısı | 1 — davranış sonucu belirler | ~250 — birey doyuyor, davranış etkisiz |
 | Uygunluk | Hücre başına normalize | Doygunluk ve temel yanlılığı |
@@ -1599,6 +1599,31 @@ kullanıcıya **görünür, denetlenebilir bir öğrenme süreci** sunar.
 **Maliyet uyarısı:** ölçülen arama süresi tek koşuda **~123 saniye** (8 nesil).
 Bu ürün içinde **otomatik** çalışmaz; kullanıcı tetiklediği, ilerlemesi
 gösterilen, iptal edilebilen bir işlem olmalıdır.
+
+#### ⚠️ Düzeltme (19 Ekim 2026): karar duruyor, **gerekçesi değişti**
+
+Yukarıdaki "Canlı dünya dalı" sütunu §6.14'teki **hatalı ölçümün** özetidir ve
+artık **doğru değildir**. O ölçümdeki iki hata (§6.14) sonradan **düzeltildi**:
+
+1. uygunluk **hücre başına** enerjiye çevrildi (doygunluk yanlılığı gitti),
+2. iki kol **aynı** rastgele tabanı paylaşıyor (karşılaştırılabilirlik gitti),
+3. ve bu turda ek olarak: hüküm artık **gürültü tabanını** düşüyor —
+   kontrol kolunun (arama yok) kendi kazancı ölçüldü.
+
+Düzeltilmiş hâliyle ölçüm **karşılaştırılabilir** ve olumlu: kontrol kolu
+**−17,7** (gürültü), tedavi kolu **+3,3**, **net etki +21,1** (§4.14). Yani
+**mekanizma canlı dünyanın dalında da çalışıyor** — §6.14'teki "reddedildi"
+hükmü artık geçerli değil.
+
+**Karar yine de aynı, ama gerekçesi değişti:** canlı dünyada arama
+**ölçülebilir** bir dünya sonucu **üretmiyor**. İki kolun canlı dünya çıktısı
+(popülasyon 212, 4+ koloni 1, organizma enerjisi 58 e) **birebir aynıdır**;
+fark yalnız *değerlendirme skorkasında* görünür. Yani canlı dünyada çalışan
+arama "dünyayı değiştirdi" iddiasını desteklemiyor, yalnız "skoru yükseltti"
+diyor — ve arena, tutulmuş tohumlarla **genellenebilir** bir kazanç ölçtüğü
+için (§6.16: +0,035) doğru yoldur.
+
+**Yani:** "ölçülemezdi" → "ölçülebilir ama dünyayı değiştirmiyor".
 
 
 ### 6.16 S-3 · Evrim Atölyesi — **ürün özelliği olarak kuruldu ve tarayıcıda doğrulandı**

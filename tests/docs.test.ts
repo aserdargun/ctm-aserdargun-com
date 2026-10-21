@@ -313,6 +313,44 @@ describe('belge tutarlılığı · üretilmiş rapor', () => {
     expect(inWorld, 'ölçülen kazancın skorkasında olduğu belirtilmiyor').toMatch(/skor|değerlendirme/);
   });
 
+  it('§6.15 canlı dünya dalı hükmü §4.14 ile ÇELİŞMİYOR', () => {
+    // ⚠️ ÖLÇÜLEN: §6.14/§6.15 "in-world arama **reddedildi**" diyordu.
+    // O hüküm §6.14'teki iki ölçüm hatasının (toplam enerjiyle şişen uygunluk
+    // ve karşılaştırılamaz tabanlar) düzeltilmiş hâline dayanıyordu. Düzeltme
+    // sonrası ölçüm **karşılaştırılabilir** ve olumlu: net etki +21,1 (§4.14).
+    // Yani belge **kendi içinde** çelişmeye başlamıştı: §4.14 "çalışıyor"
+    // diyor, §6.15 "reddedildi" diyordu.
+    //
+    // Karar (arena) duruyor — ama gerekçesi değişti: canlı dünyada arama
+    // ölçülebilir bir **dünya sonucu** üretmiyor.
+    const v = read('docs/VALIDATION.md');
+    const sec615 = section(v, ['### 6.15 ', '\n### ']);
+    expect(sec615, '§6.15 okunamadı').not.toBe('');
+    expect(
+      sec615,
+      '§6.15 yeni ölçüme (§4.14) atıf yapmıyor — belge kendisiyle çelişebilir',
+    ).toMatch(/§4\.14/);
+    // Bayat "karşılaştırılamaz" hükmü, düzeltme notu olmadan kalamaz.
+    expect(sec615, '§6.15 düzeltmeyi işaretlemiyor').toMatch(/Düzeltme/);
+
+    // Ve kanonik modülün başlığı da bayat "reddedildi" iddiasını taşımamalı.
+    // ⚠️ İddia **alıntılanıp reddedilebilir** ("…diyordu. O hüküm artık geçerli
+    // değil"), bu yüzden düzeltme işareti **yakinlıkta** aranır: iddia
+    // kendi başına bırakılmışsa bayattır, hemen ardından reddediliyorsa
+    // dürüst bir kayıttır.
+    const lab = read('src/sim/lab/evolutionLab.ts');
+    const head = lab.slice(0, lab.indexOf('export interface EvolutionLabOptions'));
+    const stale = head.indexOf('**reddedildi**');
+    if (stale >= 0) {
+      const nearby = head.slice(stale, stale + 260);
+      expect(
+        nearby,
+        'evolutionLab.ts başlığı "reddedildi" iddiasını düzeltmesiz bırakıyor',
+      ).toMatch(/artık geçerli değil|Düzeltme|diyordu/);
+    }
+    expect(head, 'evolutionLab.ts başlığı düzeltmeyi işaretlemiyor').toMatch(/Düzeltme/);
+  });
+
   it('VALIDATION §4.13/§4.14 sayıları raporla AYNI', () => {
     // Yeni bölümler belgeye elle yazıldı; sayıları **rapordan** gelmeli.
     // Aksi hâlde belge "24 hücre" derken rapor "18 hücre" der ve ikisi sessizce

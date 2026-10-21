@@ -34,7 +34,7 @@ Anahtar yoksa uygulama **çalışır** ve gözlemci panelinde dürüstçe
 | `npm run dev` | Geliştirme sunucusu (port 5183) |
 | `npm run build` | Tip denetimi + üretim derlemesi |
 | `npm run preview` | Üretim çıktısını sunar (port 4173) |
-| `npm test` | Vitest — 312 test |
+| `npm test` | Vitest — 313 test |
 | `npm run e2e` | Playwright — 12 tarayıcı testi (üretim yapısı üzerinden) |
 | `npm run check` | Tip denetimi + birim + uçtan uca (dağıtım öncesi kapı) |
 | `npm run typecheck` | `tsc --noEmit` |
@@ -47,7 +47,7 @@ Anahtar yoksa uygulama **çalışır** ve gözlemci panelinde dürüstçe
 
 ### Sürekli doğrulama
 
-`master` dalına her push'ta ve her PR'da **CI koşar**: tip denetimi + 312 birim
+`master` dalına her push'ta ve her PR'da **CI koşar**: tip denetimi + 313 birim
 testi + 12 tarayıcı testi + niş ekseni kalibrasyon denetimi (`npm run check`).
 Başarısızsa tarayıcı kanıtları artifact olarak yüklenir.
 

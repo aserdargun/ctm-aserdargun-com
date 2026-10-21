@@ -5,14 +5,25 @@
  *
  * **Neden arena?** `docs/VALIDATION.md` §4.9'da ölçüldü: arena (tek birey,
  * kaynak kısıtlı, hücre başına normalize edilmiş uygunluk, ayrık eğitim ve
- * değerlendirme tohumları) **+0.032** kazanç veriyor (+0.161 daha önce yanlışlandı). Aynı arama canlı
- * dünyanın dalında denendi ve **reddedildi** (§6.14–6.15): ~250 birey
- * birbirini doyurduğu için politikanın davranışı sonucu belirlemiyor,
- * uygunluk da hücre sayısıyla şişiyor.
+ * değerlendirme tohumları) **+0.032** kazanç veriyor (+0.161 daha önce yanlışlandı).
+ *
+ * ⚠️ **Düzeltme (19 Ekim 2026):** bu başlık önce "aynı arama canlı dünyanın
+ * dalında denendi ve **reddedildi**" diyordu. O hüküm **artık geçerli
+ * değil**: §6.14'teki iki ölçüm hatası (toplam enerjiyle şişen uygunluk ve
+ * karşılaştırılamaz tabanlar) sonradan düzeltildi ve düzeltilmiş ölçüm
+ * **karşılaştırılabilir** bir net etki veriyor: kontrol kolu (arama yok)
+ * **−17,7** gürültü, tedavi kolu **+3,3**, **net +21,1** (§4.14).
+ *
+ * Yani **mekanizma canlı dünyanın dalında da çalışıyor.** Ama canlı dünyada
+ * arama **ölçülebilir bir dünya sonucu üretmiyor**: iki kolun canlı dünya
+ * çıktısı (popülasyon, koloni sayısı, organizma enerjisi) birebir aynı;
+ * fark yalnız *değerlendirme skorkasında* görünüyor.
  *
  * **Bu yüzden atölye canlı dünyayı değiştirmez.** Arama ayrı arena koşularında
- * yapılır; kazanan politika seçili organizmanın **ağırlıklarına yazılır**.
- * Kullanıcının gördüğü ve denetleyebildiği şey budur.
+ * yapılır; kazanan politika seçili organizmanın **ağırlıklarına** yazılır.
+ * Arena, tutulmuş tohumlarla **genellenebilir** bir kazanç ölçtüğü için
+ * (§6.16: +0,035) doğru yoldur. Kullanıcının gördüğü ve denetleyebildiği
+ * şey budur.
  *
  * **Ölçülen maliyet:** §6.15'te tam dünya dalında tek arama ~123 sn sürdü. Arena
  * tek birey olduğu için çok daha ucuzdur; aşağıdaki varsayılan bütçe
