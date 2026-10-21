@@ -241,6 +241,135 @@ describe('ölçüm kodu · ölü ölçüm kapsamı koruması', () => {
     expect(format('sadece metin', { a: 1 })).toBe('sadece metin');
   });
 
+  it('RNG akış sayısı koddan türetiliyor ve belgelerle AYNI', () => {
+    // ⚠️ ÖLÇÜLEN: `src/sim/rng.ts` başlığı "simülasyonun **üç** ayrı rastgele
+    // akışı vardır (`env`, `inherit`, `action`)" diyordu. Gerçekte **dört**
+    // akış var: `evolve` de var ve `world.ts:2056`da kullanılıyor
+    // (`this.rng.evolve`). Eksik olan akış, **şart** olan akıştı: üstel arama
+    // pertürbasyonlarının dünya akışlarından ayrı tutulması, çatallanan
+    // dünyaların yanlış sebeple farklılaşmaması için gerekli.
+    //
+    // Yani yanlış sayı, **deney geçerliliğini** ilgilendiren bir alanda
+    // sessizce eksik bir akışı gizliyordu. Aynı yanlış sayı `MODEL.md` §6
+    // (Determinizm), `ROADMAP.md` G3 ve `experiments/index.ts`de de vardı.
+    const rngSrc = readFileSync(join(ROOT, 'src/sim/rng.ts'), 'utf8');
+
+    // (a) Koddaki akışlar: `StreamName` birleşimi.
+    const union = rngSrc.match(/export type StreamName\s*=\s*([^;]+);/)?.[1] ?? '';
+    const streams = [...union.matchAll(/'([a-z]+)'/g)].map((m) => m[1] as string);
+    expect(streams.length, 'RNG akışları koddan okunamadı').toBeGreaterThan(1);
+    expect(streams, 'evolve akışı kodda yok').toContain('evolve');
+
+    // (b) `RngBundle` gerçekten o kadar akış taşıyor mu (union ile uyum).
+    const bundle = rngSrc.match(/export class RngBundle[\s\S]*?\n}/)?.[0] ?? '';
+    const fields = [...bundle.matchAll(/readonly\s+([a-z]+):\s*Rng;/g)].map((m) => m[1] as string);
+    expect(fields.sort(), 'RngBundle alanları StreamName ile uyuşmuyor').toEqual([...streams].sort());
+
+    // (c) Türkçe sayı sözcüğü → sayı.
+    const words: Record<string, number> = {
+      bir: 1, iki: 2, üç: 3, dört: 4, beş: 5, altı: 6, yedi: 7, sekiz: 8, dokuz: 9, on: 10,
+    };
+
+    // (d) Belgeler: hem sayı doğru olmalı. Akış **adlarını** yalnız
+    // kanonik yerler (model belgesi ve kaynak modül) saymak zorunda —
+    // `ROADMAP.md` tek satırlık bir özet ("Dört ayrı RNG akışı"), orada
+    // adları listelemek beklenmez.
+    const mustName = new Set(['docs/MODEL.md', 'src/sim/rng.ts']);
+    for (const rel of ['docs/MODEL.md', 'docs/ROADMAP.md', 'src/sim/rng.ts']) {
+      const text = readFileSync(join(ROOT, rel), 'utf8');
+      const m = text.match(
+        /\b(bir|iki|üç|dört|beş|altı|yedi|sekiz|dokuz|on)\b[^.\n]{0,60}?(?:RNG|rastgele)\s+akış/i,
+      );
+      expect(m, `${rel} içinde "N ... akış" biçiminde bir iddia bulunamadı`).toBeTruthy();
+      // ⚠️ `/i` bayrağı yakalanan kelimeyi **özgün büyük harfle** döndürür
+      // ("Dört"); sözlük küçük harfli olduğu için normalizasyon şart.
+      const raw = (m as RegExpMatchArray)[1] as string;
+      const stated = words[raw.toLocaleLowerCase('tr')];
+      expect(
+        stated,
+        `${rel} "N akış" diyor (${stated}), kodda ${streams.length} akış var: ` +
+          streams.join(', '),
+      ).toBe(streams.length);
+
+      if (!mustName.has(rel)) continue;
+      for (const s of streams) {
+        expect(text, `${rel} "${s}" akışını anmıyor`).toContain(s);
+      }
+    }
+  });
+
+  it('ağ parametre sayısı belgelerde ve arayüzde koddan türetiliyor', () => {
+    // ⚠️ `tests/mlp.test.ts` koddaki 140 sayısını ve formülü koruyor, ama
+    // **belgeler** korunmuyordu. "140" beş yerde elle yazılıydı:
+    // `MODEL.md` (formülle birlikte), `PROGRESS.md`, `ROADMAP.md`,
+    // `VALIDATION.md` ve — **kullanıcıya görünen** — `i18n` metni
+    // ("140 parametreli ağ"). Mimari değişseydi hepsi sessizce yanlış olurdu.
+    const p = MLP_SHAPE;
+    // Kodun kendi içinde tutarlılığı (formülü koddan türet).
+    expect(
+      p.INPUTS * p.HIDDEN + p.HIDDEN + p.HIDDEN * p.OUTPUTS + p.OUTPUTS,
+      'MLP parametre formülü PARAM_COUNT ile uyuşmuyor',
+    ).toBe(p.PARAM_COUNT);
+    expect(p.INPUTS + p.HIDDEN + p.OUTPUTS, 'toplam birim sayısı uyuşmuyor').toBe(p.TOTAL_UNITS);
+
+    // Belgelerdeki "N parametre" iddiası.
+    for (const rel of ['docs/MODEL.md', 'docs/PROGRESS.md', 'docs/ROADMAP.md', 'docs/VALIDATION.md']) {
+      const text = readFileSync(join(ROOT, rel), 'utf8');
+      const m = text.match(/\b(\d+)\s+parametre/);
+      expect(m, `${rel} içinde "N parametre" iddiası bulunamadı`).toBeTruthy();
+      expect(
+        Number((m as RegExpMatchArray)[1]),
+        `${rel} "N parametre" diyor (${(m as RegExpMatchArray)[1]}), kod ${p.PARAM_COUNT} diyor`,
+      ).toBe(p.PARAM_COUNT);
+    }
+
+    // `MODEL.md` formülü: sayılar koddaki topolojiden gelmeli.
+    const model = readFileSync(join(ROOT, 'docs/MODEL.md'), 'utf8');
+    const formula = model.match(/`(\d+)·(\d+) \+ (\d+) \+ (\d+)·(\d+) \+ (\d+) = ` \*\*(\d+)\*\*/);
+    expect(formula, 'MODEL.md ağ formülü okunamadı').toBeTruthy();
+    const f = (formula as RegExpMatchArray).map((x) => Number(x));
+    expect(f[1], 'MODEL.md formülündeki girdi sayısı yanlış').toBe(p.INPUTS);
+    expect(f[2], 'MODEL.md formülündeki gizli sayısı yanlış').toBe(p.HIDDEN);
+    expect(f[3], 'MODEL.md formülündeki bias sayısı yanlış').toBe(p.HIDDEN);
+    expect(f[4], 'MODEL.md formülündeki gizli sayısı yanlış').toBe(p.HIDDEN);
+    expect(f[5], 'MODEL.md formülündeki çıktı sayısı yanlış').toBe(p.OUTPUTS);
+    expect(f[6], 'MODEL.md formülündeki bias sayısı yanlış').toBe(p.OUTPUTS);
+    expect(f[7], 'MODEL.md formülünün sonucu yanlış').toBe(p.PARAM_COUNT);
+
+    // Arayüz metni: kullanıcıya gösterilen sayı.
+    const i18n = readFileSync(join(ROOT, 'src/i18n/index.ts'), 'utf8');
+    const ui = i18n.match(/(\d+)\s+parametreli ağ/);
+    expect(ui, 'i18n metninde "N parametreli ağ" bulunamadı').toBeTruthy();
+    expect(
+      Number((ui as RegExpMatchArray)[1]),
+      `arayüz metni ${(ui as RegExpMatchArray)[1]} parametreli ağ diyor, kod ${p.PARAM_COUNT} diyor`,
+    ).toBe(p.PARAM_COUNT);
+
+    // Arayüzün **mimari tanımı**: yedi sayıyı birden gösteriyor. Hepsi koddan
+    // türemeli — kullanıcıya anlatılan mimari ile gerçek mimari ayrışamaz.
+    const arch = i18n.match(
+      /Mimari: (\d+) → (\d+) \(tanh\) → (\d+) \(softmax\) · (\d+) parametre · (\d+) ağırlıklı bağlantı · (\d+) bias · (\d+) birim/,
+    );
+    expect(arch, 'i18n mimari tanımı okunamadı').toBeTruthy();
+    const a = (arch as RegExpMatchArray).map((x) => Number(x));
+    expect(a[1], 'mimari tanımındaki girdi sayısı yanlış').toBe(p.INPUTS);
+    expect(a[2], 'mimari tanımındaki gizli sayısı yanlış').toBe(p.HIDDEN);
+    expect(a[3], 'mimari tanımındaki çıktı sayısı yanlış').toBe(p.OUTPUTS);
+    expect(a[4], 'mimari tanımındaki parametre sayısı yanlış').toBe(p.PARAM_COUNT);
+    expect(a[5], 'mimari tanımındaki ağırlıklı bağlantı sayısı yanlış').toBe(p.WEIGHTED_CONNECTIONS);
+    expect(a[6], 'mimari tanımındaki bias sayısı yanlış').toBe(p.BIASES);
+    expect(a[7], 'mimari tanımındaki birim sayısı yanlış').toBe(p.TOTAL_UNITS);
+
+    // Kanıt modülünün başlığı da aynı sayıyı kullanıyor.
+    const evidenceSrc = readFileSync(join(ROOT, 'src/worker/evidence.ts'), 'utf8');
+    const ev = evidenceSrc.match(/(\d+)\s+parametreli ağ/);
+    expect(ev, 'evidence.ts başlığında "N parametreli ağ" bulunamadı').toBeTruthy();
+    expect(
+      Number((ev as RegExpMatchArray)[1]),
+      `evidence.ts başlığı ${(ev as RegExpMatchArray)[1]} parametreli ağ diyor, kod ${p.PARAM_COUNT} diyor`,
+    ).toBe(p.PARAM_COUNT);
+  });
+
   it('i18n sözlüğünde kullanılmayan anahtar/sözlük kalmıyor', () => {    // Tarama sonucu (temiz negatif): 23 üst düzey anahtardan yalnız `units`
     // (enerji birimi sözlüğü) hiçbir dosyada geçmiyordu; silindi.
     // Bu denetim yeni bir anahtar eklenip unutulduğunda yakalar.

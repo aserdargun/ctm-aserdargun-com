@@ -9,6 +9,21 @@ cd "$(dirname "$0")/.."
 pass=0
 fail=0
 
+# ⚠️ Hedef sayılar **türetilir**, elle yazılmaz. Elle yazılan hedefler her
+# yeni test eklendiğinde bayatlıyor ve "mutasyon uygulanamadı" hatası
+# korumanın çalışmadığı anlamına geliyordu (kendim iki kez bunu yaşadım).
+UNIT="$(node -e '
+const fs=require("node:fs"),path=require("node:path");
+let n=0; for (const f of fs.readdirSync("tests")) if (f.endsWith(".test.ts"))
+  n += (fs.readFileSync(path.join("tests",f),"utf8").match(/^\s*it\(/gm)||[]).length;
+console.log(n);
+')"
+FILES="$(node -e '
+const fs=require("node:fs");
+console.log(fs.readdirSync("tests").filter(f=>f.endsWith(".test.ts")).length);
+')"
+echo "hedef sayılar türetildi: $UNIT test / $FILES dosya"
+
 check() {
   local name="$1" file="$2" from="$3" to="$4" test="$5"
   local backup
@@ -94,14 +109,14 @@ const ORGANISM_LIST_LIMIT = 300;" \
 
 # 8) README komut tablosundaki test sayısı bayatlıyor
 check "README tablo test sayısı" "README.md" \
-  '| `npm test` | Vitest — 294 test |' \
-  '| `npm test` | Vitest — 293 test |' \
+  "| \`npm test\` | Vitest — ${UNIT} test |" \
+  "| \`npm test\` | Vitest — $((UNIT - 1)) test |" \
   "tests/docs.test.ts"
 
 # 9) PROGRESS.md dosya sayısı bayatlıyor
 check "PROGRESS dosya sayısı" "docs/PROGRESS.md" \
-  '294 test, 12 dosya' \
-  '294 test, 10 dosya' \
+  "${UNIT} test, ${FILES} dosya" \
+  "${UNIT} test, $((FILES - 2)) dosya" \
   "tests/docs.test.ts"
 
 # 10) İngilizce metinde yer tutucu adı kaymış
@@ -139,6 +154,48 @@ check "ölçüm tablosu ortak sabiti kullanıyor" "src/ui/Panels.tsx" \
   "evidence.measurements.slice(0, OBSERVER_MEASUREMENT_LIMIT)" \
   "evidence.measurements.slice(0, 24)" \
   "tests/caps.test.ts"
+
+# 16) RNG akış sayısı bayatlıyor (kaynak modül)
+check "RNG akış sayısı kaynakta" "src/sim/rng.ts" \
+  "simülasyonun **dört** ayrı rastgele akışı vardır" \
+  "simülasyonun **üç** ayrı rastgele akışı vardır" \
+  "tests/measurement.test.ts"
+
+# 17) RNG akış sayısı bayatlıyor (model belgesi)
+check "RNG akış sayısı MODEL.md'de" "docs/MODEL.md" \
+  "**Dört** ayrı RNG akışı vardır" \
+  "**Üç** ayrı RNG akışı vardır" \
+  "tests/measurement.test.ts"
+
+# 18) Ağ parametre sayısı belgede bayatlıyor
+check "parametre sayısı MODEL.md'de" "docs/MODEL.md" \
+  "Parametre | \`12·8 + 8 + 8·4 + 4 = \` **140**" \
+  "Parametre | \`12·8 + 8 + 8·4 + 4 = \` **120**" \
+  "tests/measurement.test.ts"
+
+# 19) Ağ parametre sayısı ARAYÜZDE bayatlıyor (kullanıcıya görünen metin)
+check "parametre sayısı arayüzde" "src/i18n/index.ts" \
+  "140 parametreli ağdan AYRIDIR" \
+  "120 parametreli ağdan AYRIDIR" \
+  "tests/measurement.test.ts"
+
+# 20) Arayüzün MİMARİ tanımındaki bağlantı sayısı bayatlıyor
+check "mimari tanımı arayüzde" "src/i18n/index.ts" \
+  "128 ağırlıklı bağlantı · 12 bias · 24 birim" \
+  "120 ağırlıklı bağlantı · 12 bias · 24 birim" \
+  "tests/measurement.test.ts"
+
+# 21) VALIDATION §1 özet bloğu bayatlıyor
+check "§1 özet bloğu" "docs/VALIDATION.md" \
+  "Test Files  12 passed (12)" \
+  "Test Files  11 passed (11)" \
+  "tests/docs.test.ts"
+
+# 22) VALIDATION §1.x alt başlığındaki dosya bazlı sayı bayatlıyor
+check "§1 alt başlık sayısı" "docs/VALIDATION.md" \
+  "\`tests/world.test.ts\`, 29 test" \
+  "\`tests/world.test.ts\`, 22 test" \
+  "tests/docs.test.ts"
 
 echo
 echo "ayırt edici: $pass · ayırt edici olmayan: $fail"

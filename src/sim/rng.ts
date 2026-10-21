@@ -1,10 +1,19 @@
 /**
  * Cell to Mind — tohumlu (seeded) rastgele sayı üretimi.
  *
- * Tasarım kararı: simülasyonun üç ayrı rastgele akışı vardır
- * (`env`, `inherit`, `action`) ve bunlar ayrı tohumlanır. Böylece A/B deney
- * dallarında farklı politikaların rastgele sayı tüketimi hava ya da kaynak
- * olaylarını kaydıramaz.
+ * Tasarım kararı: simülasyonun **dört** ayrı rastgele akışı vardır
+ * (`env`, `inherit`, `action`, `evolve`) ve bunlar ayrı tohumlanır. Böylece
+ * A/B deney dallarında farklı politikaların rastgele sayı tüketimi hava ya da
+ * kaynak olaylarını kaydıramaz. `evolve` akışı üstel arama pertürbasyonlarını
+ * taşır ve dünya akışlarından **ayrı olmalıdır**: ortak bir akıştan çekilseydi
+ * arama gürültüsü dünya tohumuyla ilişkili olur ve çatallanan dünyalar yanlış
+ * sebeple farklılaşırdı (bkz. `RngBundle.evolve`).
+ *
+ * ⚠️ Bu sayı **üç** diye yazılmıştı ve `evolve` akışı hiç anılmamıştı — oysa
+ * `evolve`'un ayrı olması **şarttır** (aşağıdaki `RngBundle.evolve` notu).
+ * Yanlış sayı, denetimi olan bir alanda (deney geçerliliği) sessizce eksik
+ * bir akışı gizliyordu. Artık `tests/measurement.test.ts` bu sayıyı koddan
+ * türetip `MODEL.md` ve `ROADMAP.md` ile karşılaştırıyor.
  *
  * `normal()` bilinçli olarak Box–Muller değil, Irwin–Hall (12 üniform toplamı
  * eksi 6) kullanır: yalnızca toplama ve çarpma içerir, dolayısıyla `Math.log`
@@ -87,7 +96,7 @@ export class Rng {
 }
 
 /**
- * Üç bağımsız akışı bir arada tutan kapsayıcı. Tohum tek bir sayıdan türetilir.
+ * Dört bağımsız akışı bir arada tutan kapsayıcı. Tohum tek bir sayıdan türetilir.
  */
 export class RngBundle {
   readonly env: Rng;

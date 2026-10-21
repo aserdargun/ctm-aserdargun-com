@@ -280,6 +280,71 @@ describe('belge tutarlılığı · üretilmiş rapor', () => {
     expect(baseRow, `§4.9 değerlendirme tabanı ${base} taşımıyor`).toContain(base as string);
   });
 
+  it('VALIDATION §1 test sayıları kaynaktan AYNI', () => {
+    // ⚠️ ÖLÇÜLEN: §1'in başındaki özet blok ("Test Files 4 passed (4) /
+    // Tests 151 passed (151)") **145 test bayattı** — o blok, test dosyası
+    // sayısı 4 iken kopyalanmış bir terminal çıktısıydı ve o günden beri
+    // güncellenmemişti. Aynı sınıftan: §1.2 `world.test.ts` için "22 test"
+    // diyordu, dosyada 29 vardı.
+    //
+    // Bu, projenin **kendi test paketini** anlatan bölüm — yani sayıların
+    // bayatladığı yer. Koruma: hem §1 özet bloğu hem her §1.x alt başlığındaki
+    // dosya bazlı sayı kaynaktan türetiliyor.
+    const validation = read('docs/VALIDATION.md');
+    const sec1 = validation.slice(validation.indexOf('## 1. '), validation.indexOf('## 2. '));
+    expect(sec1, 'VALIDATION §1 bulunamadı').not.toBe('');
+
+    const itCount = (rel: string): number => {
+      const src = read(rel);
+      return (src.match(/^\s*it\(/gm) ?? []).length;
+    };
+
+    // (a) §1 özet bloğu
+    const realFiles = readdirSync(resolve(ROOT, 'tests')).filter((f) => f.endsWith('.test.ts'));
+    const realTests = realFiles.reduce((sum, f) => sum + itCount(resolve('tests', f)), 0);
+
+    const blockFiles = sec1.match(/Test Files\s+(\d+) passed/);
+    const blockTests = sec1.match(/Tests\s+(\d+) passed/);
+    expect(blockFiles, '§1 özet bloğunda "Test Files N passed" yok').toBeTruthy();
+    expect(blockTests, '§1 özet bloğunda "Tests N passed" yok').toBeTruthy();
+    expect(
+      Number((blockFiles as RegExpMatchArray)[1]),
+      `§1 "Test Files ${(blockFiles as RegExpMatchArray)[1]}" diyor, tests/ içinde ${realFiles.length} dosya var`,
+    ).toBe(realFiles.length);
+    expect(
+      Number((blockTests as RegExpMatchArray)[1]),
+      `§1 "Tests ${(blockTests as RegExpMatchArray)[1]}" diyor, kaynakta ${realTests} test var`,
+    ).toBe(realTests);
+
+    // (b) §1.x alt başlıklarındaki dosya bazlı sayılar
+    const sections = [...sec1.matchAll(/^### 1\.\d+ .*`tests\/([\w.]+)`, (\d+) test/gm)];
+    expect(sections.length, '§1 alt başlıklarında dosya sayısı bulunamadı').toBeGreaterThan(0);
+    for (const m of sections) {
+      const file = m[1] as string;
+      const claimed = Number(m[2]);
+      const real = itCount(resolve('tests', file));
+      expect(
+        claimed,
+        `§1 alt başlığı tests/${file} için "${claimed} test" diyor, dosyada ${real} var`,
+      ).toBe(real);
+    }
+  });
+
+  it('VALIDATION §1 alt başlıklarında dosya sayısı kaynaktan AYNI', () => {
+    // §1.x başlıkları hangi test dosyalarından söz ediyor? O dosyalar
+    // gerçekten var mı (yoksa bölüm yanlış dosyayı anlatıyor)?
+    const validation = read('docs/VALIDATION.md');
+    const sec1 = validation.slice(validation.indexOf('## 1. '), validation.indexOf('## 2. '));
+    const files = [...sec1.matchAll(/`tests\/([\w.]+)`/g)].map((m) => m[1] as string);
+    expect(files.length, '§1 hiçbir test dosyası anmıyor').toBeGreaterThan(0);
+    for (const f of files) {
+      expect(
+        readdirSync(resolve(ROOT, 'tests')).includes(f),
+        `§1 tests/${f} dosyasını anıyor ama dosya yok`,
+      ).toBe(true);
+    }
+  });
+
   it('anlatı belgeleri bayat test sayısı taşımıyor', () => {
     // PROGRESS.md "145 test, 4 dosya" diyordu; gerçek sayı kaynaktan gelir.
     const progress = read('docs/PROGRESS.md');

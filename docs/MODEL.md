@@ -275,8 +275,11 @@ bakım, hareket ve kaynak erişimi maliyetleriyle dengelenir.
 
 ## 6. Determinizm
 
-Üç ayrı RNG akışı vardır: `env`, `inherit`, `action`. Böylece A/B dallarında
-farklı politikalar hava/kaynak olaylarını kaydıramaz.
+**Dört** ayrı RNG akışı vardır: `env`, `inherit`, `action`, `evolve`. Böylece A/B
+dallarında farklı politikalar hava/kaynak olaylarını kaydıramaz. `evolve`
+akışı üstel arama pertürbasyonlarını taşır ve dünya akışlarından **ayrı
+olmalıdır**: ortak bir akıştan çekilseydi arama gürültüsü dünya tohumuyla
+ilişkili olur ve çatallanan dallar yanlış sebeple farklılaşırdı.
 
 `normal()` bilinçli olarak Box–Muller yerine **Irwin–Hall** (12 üniform toplamı
 eksi 6) kullanır: yalnız toplama ve çarpma içerir, `Math.log`/`Math.cos` gibi

@@ -37,7 +37,7 @@ simülasyondur.** Yol planının tamamı, projeyi "çalışan bir gösteri"den
 |---|---|---|
 | G1 | Kapalı enerji sistemi, rezidüel 0.0000 | Literatürde Flow-Lenia'nın aradığı tam olarak budur (kütle koruma). Rastlantı değil, tasarım. |
 | G2 | 140 parametrede analitik gradyan, 2e-6 | Öğrenme iddiasının sayısal temeli. Korunursa sonraki her faz buna yaslanabilir. |
-| G3 | Üç ayrı RNG akışı | A/B dallarını birbirinden kirletmiyor. Doğru ve nadir. |
+| G3 | Dört ayrı RNG akışı | A/B dallarını birbirinden kirletmiyor; arama gürültüsü de dünya akışından ayrı. Doğru ve nadir. |
 | G4 | `thetaInherited` / `thetaLive` ayrımı | Yaşam içi öğrenme ile kalıtımın ayrılması. Doğru kurgu. |
 | G5 | `VALIDATION.md` §6'daki dürüstlük | Projenin en değerli varlığı. Boşa harcanmasın. |
 

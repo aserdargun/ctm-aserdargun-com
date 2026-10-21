@@ -967,8 +967,9 @@ export function evolvePolicy(options?: {
         (options.evaluate as (t: Float64Array) => number)(_theta)
     : scoreDefault;
 
-  // Arama için **ayrı** bir akış: dünya akışlarından (env/inherit/action)
-  // bağımsız olmalı, yoksa mutasyon gürültüsü dünya tohumuyla ilişkili olur.
+  // Arama için **ayrı** bir akış: dünya akışlarından
+  // (env/inherit/action/evolve) bağımsız olmalı, yoksa mutasyon gürültüsü
+  // dünya tohumuyla ilişkili olur.
   const search = new Rng(seedBase);
   const randomTheta = (): Float64Array => {
     const t = new Float64Array(N);

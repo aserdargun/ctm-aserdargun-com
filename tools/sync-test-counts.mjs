@@ -42,5 +42,26 @@ let progress = readFileSync(progressPath, 'utf8');
 progress = progress.replace(/\d+ test, \d+ dosya/, `${unit} test, ${unitFiles} dosya`);
 writeFileSync(progressPath, progress);
 
+// `VALIDATION.md` §1 — projenin **kendi test paketini** anlatan bölüm.
+// ⚠️ Buradaki sayılar elle yazılmıştı ve 145 test bayatlamıştı
+// ("Test Files 4 passed (4) / Tests 151 passed (151)").
+const validationPath = join(ROOT, 'docs/VALIDATION.md');
+let validation = readFileSync(validationPath, 'utf8');
+const before = validation;
+validation = validation.replace(
+  /(## 1\. [\s\S]*?```\n)Test Files\s+\d+ passed \(\d+\)\n(\s*)Tests\s+\d+ passed \(\d+\)/,
+  (_m, head, indent) => `${head}Test Files  ${unitFiles} passed (${unitFiles})\n${indent}Tests  ${unit} passed (${unit})`,
+);
+// §1.x alt başlıklarındaki dosya bazlı sayılar.
+validation = validation.replace(
+  /(`tests\/([\w.]+)`, )\d+( test)/g,
+  (m, prefix, file, suffix) => {
+    const src = readFileSync(join(ROOT, 'tests', file), 'utf8');
+    const n = (src.match(/^\s*it\(/gm) ?? []).length;
+    return `${prefix}${n}${suffix}`;
+  },
+);
+if (validation !== before) writeFileSync(validationPath, validation);
+
 console.log(`birim: ${unit} test / ${unitFiles} dosya · e2e: ${e2e} test`);
-console.log('README ve PROGRESS.md güncellendi');
+console.log('README, PROGRESS.md ve VALIDATION.md §1 güncellendi');
