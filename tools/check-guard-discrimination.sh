@@ -289,6 +289,12 @@ check "ölü dışa aktarım yok" "src/sim/genome.ts" \
   "export function founderGenomesUnused" \
   "tests/measurement.test.ts"
 
+# 36) Belge kendi içinde çelişiyor (§6.15 yeni ölçüme atıf yapmıyor)
+check "belge kendisiyle çelişmiyor" "docs/VALIDATION.md" \
+  "Düzeltilmiş hâliyle ölçüm **karşılaştırılabilir** ve olumlu" \
+  "Düzeltilmiş hâliyle ölçüm **karşılaştırılamaz** ve olumsuz" \
+  "tests/docs.test.ts"
+
 echo
 echo "ayırt edici: $pass · ayırt edici olmayan: $fail"
 [ "$fail" -eq 0 ]
