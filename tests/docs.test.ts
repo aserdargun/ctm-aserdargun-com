@@ -463,6 +463,30 @@ describe('belge tutarlılığı · üretilmiş rapor', () => {
     ).toBe(steps);
   });
 
+  it('hücre zarının hasar DESENİ uygulanmış (yalnız renk değil)', () => {
+    // ⚠️ ÖLÇÜLEN (19 Ekim 2026): `CellMaterial.ts` başlığı "Durum ayrımı
+    // **yalnız renkle değil**: … hasarlı hücrede desen (pattern) belirginleşir
+    // (Renk körlüğü için ayrıca klavye/arayüz metinleri vardır)" diyordu —
+    // ama `vDamage` yalnız **renk** karışımına giriyordu. Yani renk körlüğü
+    // için önerilen ayrım **uygulanmıyordu**; başlık yanlış bir güvence
+    // veriyordu.
+    //
+    // Düzeltme: hasarda doku kontrastı artar. Koruma: başlıktaki iddia
+    // **shader'da gerçekten uygulanmış** olmalı.
+    const material = read('src/scene/materials/CellMaterial.ts');
+    const head = material.slice(0, material.indexOf('export function createCellMaterial'));
+    expect(head, 'başlık hasar desenini vaat etmiyor').toMatch(/desen.*belirginleşir|pattern.*pronounced/);
+
+    // Desen hesabı hasar değişkenine bağlı olmalı (renk karışımı tek başına
+    // yetmez — `vDamage` iki kez geçmeli: bir kez renk, bir kez doku).
+    const uses = (material.match(/\bvDamage\b/g) ?? []).length;
+    expect(uses, `vDamage yalnız ${uses} yerde geçiyor — desen hasara bağlı değil`).toBeGreaterThanOrEqual(4);
+    // Doku (veins) hasardan etkilenmeli: doku satırı hasar değişkenini
+    // **kullanmalı** (yoksa desen hasardan bağımsız kalır).
+    const veinsLine = material.match(/veins = mix\([^;]+;/)?.[0] ?? '';
+    expect(veinsLine, 'doku, hasar değişkeniyle karıştırılmıyor').toMatch(/dmg|vDamage/);
+  });
+
   it('VALIDATION §1 test sayıları kaynaktan AYNI', () => {
     // ⚠️ ÖLÇÜLEN: §1'in başındaki özet blok ("Test Files 4 passed (4) /
     // Tests 151 passed (151)") **145 test bayattı** — o blok, test dosyası

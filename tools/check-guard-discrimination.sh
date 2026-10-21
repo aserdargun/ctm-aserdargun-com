@@ -408,6 +408,12 @@ check "raporda kırık değer yok" "docs/EXPERIMENTS.md" \
   "**Körüldü:** undefined kaynak" \
   "tests/docs.test.ts"
 
+# 54) Hasar DESENİ kaldırıldı (başlık yine de vaat ediyor)
+check "hasar deseni uygulanmış" "src/scene/materials/CellMaterial.ts" \
+  "veins = mix(veins, abs(veins - 0.5) * 2.0, dmg * 0.75);" \
+  "/* desen hasara bağlı değil */" \
+  "tests/docs.test.ts"
+
 echo
 echo "ayırt edici: $pass · ayırt edici olmayan: $fail"
 [ "$fail" -eq 0 ]

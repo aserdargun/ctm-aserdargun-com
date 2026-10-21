@@ -175,6 +175,13 @@ export function createCellMaterial(): CellMaterialHandle {
 
         // Zar iç dokusu: hücre içinde yumuşak damarlar
         float veins = ctmFbm(vLocalPos * 5.5 + vPhase * 9.0);
+        // Hasarlı hücrede desen BELIRGINLEŞIR — durum yalnız renkle anlatılmaz.
+        // Başlık bu iddiayı taşıyordu ama vDamage yalnız RENK karışımına
+        // giriyordu; yani renk körlüğü için önerilen ayrım uygulanmıyordu.
+        // Hasarda damarların kontrastı artar: abs(veins - 0.5) * 2 daha keskin
+        // bir doku verir.
+        float dmg = clamp(vDamage, 0.0, 1.0);
+        veins = mix(veins, abs(veins - 0.5) * 2.0, dmg * 0.75);
         base *= 0.86 + 0.28 * veins;
 
         // Fresnel kenar aydınlanması — sulu zarın imzası
