@@ -169,7 +169,7 @@ export function serializeWorld(world: World): WorldSnapshot {
     version: SNAPSHOT_VERSION,
     simVersion: world.version,
     createdAt: Date.now(),
-    seed: 0,
+    seed: world.seed,
     tick: world.tick,
     settings: { ...world.settings, size: { ...world.settings.size } },
     constraints: { ...world.constraints },
@@ -227,6 +227,7 @@ export function validateSnapshot(input: unknown): asserts input is WorldSnapshot
     throw new SnapshotError('version', `desteklenmeyen sürüm: ${String(s.version)} (beklenen ${SNAPSHOT_VERSION})`);
   }
   num(s.tick, 'tick');
+  num(s.seed, 'seed');
   if (!Array.isArray(s.cells)) throw new SnapshotError('cells', 'dizi bekleniyordu');
   if (!Array.isArray(s.bonds)) throw new SnapshotError('bonds', 'dizi bekleniyordu');
   if (!Array.isArray(s.organisms)) throw new SnapshotError('organisms', 'dizi bekleniyordu');

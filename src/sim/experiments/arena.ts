@@ -21,6 +21,12 @@
  *    lehineye değil aleyhine sayılır.
  * 4. **Enerji korunumu doğrulanır.** Her koşu muhasebe rezidüelini raporlar;
  *    sıfırdan farklı bir rezidüel deney sonucunu geçersiz kılar.
+ *
+ *    ⚠️ Bu vaat **uygulanmıyordu**: rezidüel raporlanıyordu ama hiçbir yerde
+ *    denetlenmiyordu (ölçüm, 19 Ekim 2026). Artık `scripts/run-experiments.ts`
+ *    bir **kapı** taşıyor: eşik (1e-3 e) aşılırsa süreç **EXIT=1** verir ve
+ *    **rapor yazılmaz** — yani geçersiz sayılar yayımlanmaz. Ölçülen en büyük
+ *    rezidüel 7,5e-8 e, yani eşiğin ~13.000 katı altında.
  */
 
 import { C } from '../biology/energy.ts';

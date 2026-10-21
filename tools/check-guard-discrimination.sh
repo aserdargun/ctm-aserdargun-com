@@ -29,6 +29,9 @@ README_RUNS="$(grep -oE 'Vitest — [0-9]+ test' README.md | grep -oE '[0-9]+' |
 PROGRESS_RUNS="$(grep -oE '[0-9]+ test, [0-9]+ dosya' docs/PROGRESS.md | grep -oE '[0-9]+' | head -1)"
 PROGRESS_FILES="$(grep -oE '[0-9]+ test, [0-9]+ dosya' docs/PROGRESS.md | grep -oE '[0-9]+' | tail -1)"
 echo "hedef sayılar türetildi: $UNIT test / $FILES dosya · README $README_RUNS · PROGRESS $PROGRESS_RUNS/$PROGRESS_FILES"
+# §1.x alt başlık sayısı **belgeden** türetilir: her yeni test bu sayıyı
+# değiştirdiği için elle hedef yazmak bayatlıyordu.
+VALIDATION_WORLD_TESTS="$(grep -oE '\`tests/world\.test\.ts\`, [0-9]+ test' docs/VALIDATION.md | grep -oE '[0-9]+' | head -1)"
 
 check() {
   local name="$1" file="$2" from="$3" to="$4" test="$5"
@@ -205,8 +208,8 @@ check "§1 özet bloğu" "docs/VALIDATION.md" \
 
 # 22) VALIDATION §1.x alt başlığındaki dosya bazlı sayı bayatlıyor
 check "§1 alt başlık sayısı" "docs/VALIDATION.md" \
-  "\`tests/world.test.ts\`, 29 test" \
-  "\`tests/world.test.ts\`, 22 test" \
+  "\`tests/world.test.ts\`, ${VALIDATION_WORLD_TESTS} test" \
+  "\`tests/world.test.ts\`, $((VALIDATION_WORLD_TESTS - 1)) test" \
   "tests/docs.test.ts"
 
 # 23) Paylaşma eşiği okuması bayat cümleyi geri getiriyor
@@ -306,6 +309,24 @@ check "ölü worker işleyicisi yok" "src/worker/sim.worker.ts" \
   "    case 'requestDecision': {" \
   "    case 'requestDecisionEski': {" \
   "tests/measurement.test.ts"
+
+# 39) Enerji korunumu kapısı kaldırıldı (vaat uygulanmıyor)
+check "enerji korunumu kapısı var" "scripts/run-experiments.ts" \
+  "const RESIDUAL_LIMIT = 1e-3;" \
+  "const RESIDUAL_LIMIT = 1e-3; // kapı yok" \
+  "tests/measurement.test.ts"
+
+# 40) Kapı ihlalde raporu yazıyor (geçersiz sayılar yayımlanır)
+check "kapı ihlalde rapor yazılmıyor" "scripts/run-experiments.ts" \
+  "Rapor YAZILMADI." \
+  "Rapor yazıldı." \
+  "tests/measurement.test.ts"
+
+# 41) Snapshot yanlış tohum yazıyor (kullanıcıya yalan bilgi)
+check "snapshot gerçek tohumu yazıyor" "src/sim/persistence/snapshot.ts" \
+  "seed: world.seed," \
+  "seed: 0," \
+  "tests/world.test.ts"
 
 echo
 echo "ayırt edici: $pass · ayırt edici olmayan: $fail"

@@ -439,6 +439,58 @@ function main(): void {
 
   process.stdout.write(`toplam koşu: ${totalRuns} · süre: ${(elapsed / 1000).toFixed(1)} s\n`);
 
+  // ------------------------------------------------------------------ kapı 2
+  // ⚠️ **Enerji korunumu kapısı.** `arena.ts` başlığı şunu vaat ediyordu:
+  // "Her koşu muhasebe rezidüelini raporlar; **sıfırdan farklı bir rezidüel
+  // deney sonucunu geçersiz kılar**." ÖLÇÜLDÜ: vaat **uygulanmıyordu** —
+  // rezidüel her bölümde raporlanıyordu ama **hiçbir yerde denetlenmiyordu**.
+  // Yani bir korunum kırılması sonuçları geçersiz kılmaz, yalnızca "raporlanır".
+  //
+  // Bu kapı, vaadi yerine getirir: eşik aşılırsa **rapor yazılmaz** ve süreç
+  // hata ile biter (değişmez kontroller kapısıyla aynı davranış).
+  //
+  // Eşik: 1e-3 e. Ölçülen en büyük rezidüel **7,5e-8 e** (iki raporda da) —
+  // yani eşik ölçülen aralığın ~13.000 katı üstünde, ama bir korunum
+  // kırılması (düzende 1 e mertebesinde) onu rahatlıkla aşar. Aynı eşik
+  // `worker/evidence.ts`teki "korunum ihlali" işaretinde de kullanılıyor.
+  const RESIDUAL_LIMIT = 1e-3;
+  const residuals: { label: string; value: number }[] = [];
+  const collectResidual = (label: string, obj: unknown): void => {
+    if (!obj || typeof obj !== 'object') return;
+    const r = (obj as { worstLedgerResidual?: number }).worstLedgerResidual;
+    if (typeof r === 'number' && Number.isFinite(r)) residuals.push({ label, value: r });
+  };
+  collectResidual('Deney 1 · bağ gücü', exp1.report);
+  collectResidual('Deney 2 · evrim', exp2.report);
+  collectResidual('Deney 3 · öğrenme', exp3.report);
+  collectResidual('ekolojik sönümlenme', ecology);
+  collectResidual('kalıtılabilirlik', heritability);
+  collectResidual('rejenerasyon A/B', regen);
+  collectResidual('popülasyon-ES', popUpdate);
+  collectResidual('ödül hızı yayılımı', rewardSignal);
+  collectResidual('dayanıklılık', durability);
+  collectResidual('paylaşma eşiği taraması', shareSweep.points[0]);
+  collectResidual('dünya içi evrim', inWorld.arms[1]?.point);
+  const worstResidual = residuals.reduce(
+    (a, b) => (Math.abs(b.value) > Math.abs(a.value) ? b : a),
+    { label: '-', value: 0 },
+  );
+  if (Math.abs(worstResidual.value) > RESIDUAL_LIMIT) {
+    const detail = residuals
+      .filter((r) => Math.abs(r.value) > RESIDUAL_LIMIT)
+      .map((r) => `  ✗ ${r.label} — ${r.value} e`)
+      .join('\n');
+    process.stderr.write(
+      `\nEnerji korunumu BOZULDU; sonuçlar geçerli sayılmaz:\n${detail}\n` +
+        `Eşik: ${RESIDUAL_LIMIT} e. Rapor YAZILMADI.\n`,
+    );
+    process.exit(1);
+  }
+  process.stdout.write(
+    `enerji korunumu: en büyük rezidüel ${worstResidual.value} e ` +
+      `(${worstResidual.label}) · eşik ${RESIDUAL_LIMIT} e → geçerli\n`,
+  );
+
   if (args.out) {
     const md = [
       '# Cell to Mind — Deney Sonuçları',

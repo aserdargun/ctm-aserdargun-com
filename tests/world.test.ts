@@ -303,6 +303,21 @@ describe('Snapshot → dünya (branch)', () => {
     expect(restored.recentEvents(5).length).toBeGreaterThan(0);
   });
 
+  it('snapshot dünyanın GERÇEK tohumunu yazar (önce hep 0 yazıyordu)', () => {
+    // ⚠️ ÖLÇÜLEN: `serializeWorld` snapshot'ın `seed` alanına **sabit `0`**
+    // yazıyordu — dünya tohumu hiç saklanmadığı için. Yani kullanıcının dışa
+    // aktardığı kayıt dosyasında `"seed": 0` görünüyordu: **yanlış bilgi**.
+    // Alan hiç okunmadığı için "zararsız" görünüyordu, ama bir kayıt
+    // dosyasındaki yanlış sayı sessizce yanlış bilgi taşır.
+    const source = new World({ seed: 4242, population: 12 });
+    for (let t = 0; t < 50; t++) source.step();
+    const snapshot = serializeWorld(source);
+    expect(snapshot.seed, 'snapshot yanlış tohum yazıyor').toBe(4242);
+    // Ve geri yükleme tohumu korumalı.
+    const restored = deserializeWorld(snapshot);
+    expect(restored.seed, 'geri yükleme tohumu kaybetti').toBe(4242);
+  });
+
   it('iki dal bit düzeyinde aynı ilerler ve müdahale diğerine sızmaz', () => {
     const source = new World({ seed: 79, population: 12 });
     for (let t = 0; t < 400; t++) source.step();

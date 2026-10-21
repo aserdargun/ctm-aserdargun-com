@@ -423,7 +423,19 @@ export class World {
     signAdvantage?: boolean;
   };
 
+  /**
+   * Dünyanın kurucu tohumu.
+   *
+   * ⚠️ Snapshot `seed` alanı **önce** her zaman `0` yazıyordu — dünya tohumu
+   * hiç saklanmadığı için. Yani kullanıcının dışa aktardığı kayıt dosyasında
+   * `"seed": 0` görünüyordu: **yanlış bilgi**. Alan hiç okunmadığı için
+   * "zararsız" görünüyordu, ama bir kayıt dosyasındaki yanlış sayı sessizce
+   * yanlış bilgi taşır.
+   */
+  readonly seed: number;
+
   constructor(options: WorldOptions) {
+    this.seed = options.seed;
     this.rng = new RngBundle(options.seed);
     this.shareIdleLevel = options.shareIdleLevel ?? C.SHARE_IDLE_LEVEL;
     this.nicheConfig = {
@@ -1926,6 +1938,7 @@ export class World {
 
     return {
       tick: this.tick,
+      seed: this.seed,
       settings: { ...this.settings, size: { ...this.settings.size } },
       constraints: { ...this.constraints },
       rng: this.rng.getState(),
@@ -2456,6 +2469,8 @@ export class World {
   static fromState(
     snapshot: {
       tick: number;
+      /** Kurucu tohumu — snapshot'tan geri yüklenir. */
+      seed: number;
       settings: HabitatSettings;
       constraints: ExperimentConstraints;
       rng: { env: number; inherit: number; action: number };
@@ -2504,6 +2519,7 @@ export class World {
       lastDecisions: Map<number, DecisionInfo>;
       targetSpeed: Map<number, number>;
       decisionTick: number;
+      seed: number;
       metricTick: number;
       livePopulation: number;
       aliveOrderCache: number[] | null;
@@ -2624,6 +2640,9 @@ export class World {
 
     world.version = SIM_VERSION;
     world.tick = snapshot.tick;
+    // Tohum snapshot'tan gelir; `options.seed` açıkça verilmişse o üstün gelir
+    // (yeni bir dünya kurarken tohumu değiştirmek isteyenler için).
+    init.seed = options.seed ?? snapshot.seed;
     world.settings = { ...snapshot.settings, size: { ...size } };
     world.constraints = { ...snapshot.constraints };
     world.rng = new RngBundle(1);

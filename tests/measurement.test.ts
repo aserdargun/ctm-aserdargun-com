@@ -1193,4 +1193,64 @@ describe('ölçüm kodu · denetim zinciri bütünlüğü', () => {
       expect(open, `${f}: süşeli bozuk`).toBe(close);
     }
   });
+
+  it('enerji korunumu kapısı VAR ve vaatle örtüşüyor', () => {
+    // ⚠️ ÖLÇÜLEN SÖZLEŞME BOŞLUĞU: `arena.ts` başlığı "Her koşu muhasebe
+    // rezidüelini raporlar; **sıfırdan farklı bir rezidüel deney sonucunu
+    // geçersiz kılar**" diyordu. İlk kısım doğruydu, ikincisi **uygulanmıyordu**:
+    // rezidüel her bölümde raporlanıyordu ama hiçbir yerde **denetlenmiyordu**.
+    // Yani bir korunum kırılması sonuçları geçersiz kılmaz, yalnızca not edilir.
+    //
+    // Kapı mutasyonla doğrulandı: eşik 1e-30'a çekilince hızlı paket
+    // **EXIT=1** verdi, bölümleri adıyla listeledi ve "Rapor YAZILMADI" —
+    // yani geçersiz sayılar **yayımlanmadı**.
+    const runner = readFileSync(join(ROOT, 'scripts/run-experiments.ts'), 'utf8');
+    expect(runner, 'koşucuda enerji korunumu kapısı yok').toMatch(/RESIDUAL_LIMIT/);
+    expect(runner, 'kapı ihlalde çıkmıyor').toMatch(
+      /RESIDUAL_LIMIT[\s\S]{0,4000}?process\.exit\(1\)/,
+    );
+    expect(runner, 'kapı ihlalde raporu yazmıyor').toMatch(/Rapor YAZILMADI/);
+    // Eşik, `worker/evidence.ts`teki "korunum ihlali" eşiğiyle aynı olmalı
+    // (1e-3) — daha gevşek olsaydı gerçek bir kırılma geçebilirdi.
+    expect(runner, 'eşik 1e-3 değil').toMatch(/RESIDUAL_LIMIT = 1e-3/);
+
+    // Ve kanonik modülün **vaadi** gerçekten bir kapıya bağlı olmalı.
+    const arena = readFileSync(join(ROOT, 'src/sim/experiments/arena.ts'), 'utf8');
+    expect(arena, 'arena başlığı korunum vaadini taşımıyor').toMatch(
+      /rezidüel[\s\S]{0,120}?geçersiz kılar/,
+    );
+  });
+
+  it('ölçülen rezidüeller kapı eşiğinin ÇOK altında', () => {
+    // Ölçülen en büyük rezidüel: 7,5e-8 e (iki raporda da). Eşik 1e-3 e.
+    // Yani veri gerçekten sağlam; kapı bir **kıl payı** değil, gerçek bir
+    // kırılmayı yakalayacak kadar geniş.
+    const reports = ['docs/EXPERIMENTS.md', 'docs/EXPERIMENTS-DEEP.md'].map((f) =>
+      readFileSync(join(ROOT, f), 'utf8'),
+    );
+    // ⚠️ Sayı ayrıştırması **biçim-spesifik** olmalı. Rapor üç biçim
+    // kullanıyor: "rezidülü: 0.000000075 e", "rezidülü |e|  4.1e-8 → 5.2e-8"
+    // ve "rezidülü: kontrol |4.1e-8| · tedavi |5.2e-8| e".
+    // İlk sürüm "4.1e-8"i "4,1 e" sanıp **sahte bir ihlal** bildirdi; ikinci
+    // sürüm satırdaki "40" (tick sayısı) rezidüel sanıp yine sahte ihlal
+    // üretti. Doğrusu: yalnız (a) "|değer|" ve (b) "değer e" biçimleri.
+    const values: number[] = [];
+    for (const text of reports) {
+    for (const line of text.split('\n')) {
+      if (!/rezid[üü]l/i.test(line)) continue;
+      for (const m of line.matchAll(/\|(-?\d+(?:\.\d+)?(?:e[+-]?\d+)?)\|/g)) {
+        values.push(Math.abs(Number(m[1])));
+      }
+      for (const m of line.matchAll(/(-?\d+(?:\.\d+)?(?:e[+-]?\d+)?)\s+e\b/g)) {
+        values.push(Math.abs(Number(m[1])));
+      }
+    }
+    expect(values.length, 'raporda rezidüel bulunamadı').toBeGreaterThan(0);
+    const worst = Math.max(...values);
+    expect(
+      worst,
+      `ölçülen en büyük rezidüel ${worst} e, kapı eşiği 1e-3 e'nin üstünde!`,
+    ).toBeLessThan(1e-3);
+    }
+  });
 });
