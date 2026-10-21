@@ -108,8 +108,14 @@ const MAX_CELLS = 512;" \
 
 # 7) HUD kendi tavanını tanımlıyor
 check "HUD tek kaynaktan okuyor" "src/ui/Hud.tsx" \
-  "import { MAX_RENDER_CELLS, ORGANISM_LIST_LIMIT } from '../engine/limits.ts';" \
-  "import { MAX_RENDER_CELLS, ORGANISM_LIST_LIMIT } from '../engine/limits.ts';
+  "  MAX_RENDER_CELLS,
+  MAX_RENDER_RESOURCES,
+  ORGANISM_LIST_LIMIT,
+} from '../engine/limits.ts';" \
+  "  MAX_RENDER_CELLS,
+  MAX_RENDER_RESOURCES,
+  ORGANISM_LIST_LIMIT,
+} from '../engine/limits.ts';
 const ORGANISM_LIST_LIMIT = 300;" \
   "tests/caps.test.ts"
 
@@ -246,6 +252,42 @@ check "dünya içi evrim sınırı raporda" "scripts/run-experiments.ts" \
   "⚠️ **SINIR: TEK tohum, güven aralığı YOK.**" \
   "Ölçüm yapıldı." \
   "tests/docs.test.ts"
+
+# 30) Kanonik modülün kendi başlığı bayatlıyor (mlp.ts parametre sayısı)
+check "mlp.ts başlığı parametre sayısı" "src/sim/behavior/mlp.ts" \
+  "12*8 + 8 + 8*4 + 4 = **140**" \
+  "12*8 + 8 + 8*4 + 4 = **130**" \
+  "tests/measurement.test.ts"
+
+# 31) Algı vektörünün boyutu bayatlıyor
+check "perception.ts gözlem boyutu" "src/sim/behavior/perception.ts" \
+  "12 girdili gözlem vektörü" \
+  "14 girdili gözlem vektörü" \
+  "tests/measurement.test.ts"
+
+# 32) Uygulama başlangıç popülasyonunu elle yazıyor
+check "başlangıç popülasyonu sabitten" "src/App.tsx" \
+  "population: C.DEFAULT_POPULATION," \
+  "population: 48," \
+  "tests/measurement.test.ts"
+
+# 33) Arayüzün çok hücrelilik eşiği sayıyı elle yazıyor
+check "eşik metni yer tutucuda" "src/i18n/index.ts" \
+  "eşiği: {n}+ hücreli yapı." \
+  "eşiği: 4+ hücreli yapı." \
+  "tests/measurement.test.ts"
+
+# 34) Sahne kaynak tavanını elle yazıyor
+check "sahne kaynak tavanı sabitten" "src/scene/Props.tsx" \
+  "args={[geoA, matA, MAX_RENDER_RESOURCES]}" \
+  "args={[geoA, matA, 64]}" \
+  "tests/measurement.test.ts"
+
+# 35) Ölü dışa aktarım kalıyor
+check "ölü dışa aktarım yok" "src/sim/genome.ts" \
+  "export function founderGenomes" \
+  "export function founderGenomesUnused" \
+  "tests/measurement.test.ts"
 
 echo
 echo "ayırt edici: $pass · ayırt edici olmayan: $fail"

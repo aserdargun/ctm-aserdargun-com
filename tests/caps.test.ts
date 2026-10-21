@@ -32,6 +32,7 @@ import { World } from '../src/sim/world.ts';
 import {
   LINEAGE_DISPLAY_LIMIT,
   MAX_RENDER_CELLS,
+  MAX_RENDER_RESOURCES,
   OBSERVER_CLAIM_LIMIT,
   OBSERVER_MEASUREMENT_LIMIT,
   ORGANISM_LIST_LIMIT,
@@ -208,6 +209,27 @@ describe('görüntüleme tavanları TEK kaynaktan okunuyor', () => {
     ).not.toMatch(/claims\.slice\(0,\s*\d+\)/);
     expect(panel, 'iddia tablosunda görünür kırpma notu yok').toContain(
       `r.claims.slice(0, OBSERVER_CLAIM_LIMIT)`,
+    );
+  });
+
+  it('simülasyonun kaynak sayısı 3B görünüm tavanını aşmıyor', () => {
+    // ⚠️ Kaynak sayısı **kuruluşta** belirlenir ve sonradan artmaz
+    // (`addNutrient` mevcut bir düğümün rezervini doldurur, yeni düğüm
+    // yaratmaz). Yani sayı sabittir — ama `World` seçeneğiyle daha yüksek
+    // bir değer verilebilir, o zaman 3B sahne sessizce düşürürdü.
+    const world = new World({ seed: 11, population: 48 });
+    expect(
+      world.resources.length,
+      `dünya ${world.resources.length} kaynak üretti, görünüm tavanı ${MAX_RENDER_RESOURCES}`,
+    ).toBeLessThanOrEqual(MAX_RENDER_RESOURCES);
+
+    // Tavan tek yerde yazılıdır: sahne elle sayı yazmıyor.
+    const props = readFileSync(resolve(ROOT, 'src/scene/Props.tsx'), 'utf8');
+    expect(props, 'sahne kendi kaynak tavanını yazıyor — ortak sabit kullanmalı').not.toMatch(
+      /args=\{\[[^\]]*,\s*\d+\]\}/,
+    );
+    expect(props, 'sahne paylaşılan kaynak tavanını içe aktarmıyor').toMatch(
+      /import\s*\{[^}]*MAX_RENDER_RESOURCES[^}]*\}\s*from\s*'\.\.\/engine\/limits\.ts'/,
     );
   });
 });

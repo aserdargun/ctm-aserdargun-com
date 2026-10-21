@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { SimClient } from './engine/client.ts';
 import { setFrame } from './engine/frame.ts';
 import { useStore } from './engine/store.ts';
+import { C } from './sim/biology/energy.ts';
 import { Scene } from './scene/Scene.tsx';
 import { Hud, Notices, OrganismList, Toolbar } from './ui/Hud.tsx';
 import { InspectorPanel, LineagePanel, MicroscopePanel, ObserverPanel } from './ui/Panels.tsx';
@@ -53,6 +54,7 @@ export function App(): React.ReactElement {
             tick: data[H.TICK] as number,
             simTime: data[H.SIM_TIME] as number,
             population: data[H.POPULATION] as number,
+            resourceCount: data[H.RESOURCE_COUNT] as number,
             systemEnergy: data[H.SYSTEM_ENERGY] as number,
             externalInput: data[H.EXTERNAL_INPUT] as number,
             dissipated: data[H.DISSIPATED] as number,
@@ -143,7 +145,7 @@ export function App(): React.ReactElement {
       client.init({
         seed: 20261006,
         preset: 'standard',
-        population: 48,
+        population: C.DEFAULT_POPULATION,
         learningEnabled: true,
         selectionPressure: 0.18,
       });

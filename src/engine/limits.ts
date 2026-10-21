@@ -70,3 +70,17 @@ export const OBSERVER_MEASUREMENT_LIMIT = 24;
  * O yüzden burada sessiz kırpma kabul edilmiyor: kırpma **görünür** olur.
  */
 export const OBSERVER_CLAIM_LIMIT = 20;
+
+/**
+ * 3B sahnenin aynı anda gösterebileceği azami **kaynak düğümü** sayısı.
+ *
+ * ⚠️ Aynı sınıf, hücreler gibi: simülasyon kaynak sayısını kuruluşta belirler
+ * (varsayılan 34) ve sonradan kaynak **eklemez** — `addNutrient` mevcut bir
+ * düğümün rezervini doldurur, yeni düğüm yaratmaz. Yani düğüm sayısı sabittir.
+ *
+ * Ölçülen sınır (19 Ekim 2026): kod tabanında kullanılan en büyük
+ * `resourceCount` **34** (dünya varsayılanı ve arena kalibrasyonunun üst ucu).
+ * Tavan 64 → pay %47, yani bugün **bağlayıcı değil**. Yine de sayı tek yerde
+ * yazılıdır ve `tests/caps.test.ts` tavanın yeterliliğini ölçer.
+ */
+export const MAX_RENDER_RESOURCES = 64;

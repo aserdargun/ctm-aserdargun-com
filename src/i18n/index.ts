@@ -35,6 +35,9 @@ export const tr = {
     renderLimit: 'Görünüm sınırı',
     renderLimitNote:
       '3B görünüm en fazla {shown} hücre gösterir; {total} hücre var, {hidden} hücre görünmüyor.',
+    resourceLimit: 'Kaynak sınırı',
+    resourceLimitNote:
+      '3B görünüm en fazla {shown} kaynak gösterir; {total} kaynak var, {hidden} kaynak görünmüyor.',
   },
 
   actions: {
@@ -81,7 +84,8 @@ export const tr = {
     genome: 'Kalıtsal parametreler',
     learned: 'Bu yaşamda öğrenilen fark (‖θ_canlı − θ_kalıtsal‖)',
     updates: 'Politika güncellemesi',
-    threshold: 'Oyunun işletimsel çok hücrelilik eşiği: 4+ hücreli yapı. Bu biyolojik tanım değil, ölçümdür.',
+    threshold:
+      'Oyunun işletimsel çok hücrelilik eşiği: {n}+ hücreli yapı. Bu biyolojik tanım değil, ölçümdür.',
   },
 
   microscope: {
@@ -255,6 +259,9 @@ const en: Strings = {
     renderLimit: 'View limit',
     renderLimitNote:
       'The 3D view shows at most {shown} cells; {total} exist, {hidden} are not shown.',
+    resourceLimit: 'Resource limit',
+    resourceLimitNote:
+      'The 3D view shows at most {shown} resources; {total} exist, {hidden} are not shown.',
   },
   actions: {
     inspector: 'Inspector',
@@ -300,7 +307,7 @@ const en: Strings = {
     learned: 'Learned this lifetime (‖θ_live − θ_inherited‖)',
     updates: 'Policy update',
     threshold:
-      "The game's operational multicellularity threshold is a 4+ cell structure. This is a measurement, not a biological definition.",
+      "The game's operational multicellularity threshold is a {n}+ cell structure. This is a measurement, not a biological definition.",
   },
   microscope: {
     title: 'Neural microscope',

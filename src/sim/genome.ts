@@ -70,26 +70,6 @@ export function mutateGenome(g: Genome, rng: Rng, rate: number, scale = 1): Geno
   return clampGenome(out);
 }
 
-/** Rastgele başlangıç genomu. */
-export function randomGenome(rng: Rng): Genome {
-  const g: Genome = {
-    bondAffinity: 0,
-    bondStrength: 0,
-    motility: 0,
-    senseRadius: 0,
-    shareEfficiency: 0,
-    toleranceA: 0,
-    toleranceB: 0,
-    plasticity: 0,
-    cooperation: 0,
-  };
-  for (const key of GENOME_KEYS) {
-    const [lo, hi] = GENOME_BOUNDS[key];
-    g[key] = lo + rng.float() * (hi - lo);
-  }
-  return g;
-}
-
 /**
  * Kurucu genomlar: çeşitlilik için birbirine yakın ama farklı başlangıçlar.
  * Tüm popülasyon tek bir genomla başlamaz; aksi halde ilk soylar ayırt edilemez.

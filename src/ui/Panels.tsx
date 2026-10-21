@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../engine/store.ts';
 import type { SimClient } from '../engine/client.ts';
 import { genomeDistance } from '../sim/genome.ts';
+import { C } from '../sim/biology/energy.ts';
 import type { GenomeKey } from '../sim/genome.ts';
 import { actionLabels, format, getStrings, genomeLabels, inputLabels } from '../i18n/index.ts';
 import {
@@ -99,7 +100,9 @@ export function InspectorPanel(): React.ReactElement {
             <dt>{t.microscope.baseline}</dt>
             <dd>{num(org.baseline, 4)}</dd>
           </dl>
-          <p className="note">{t.inspector.threshold}</p>
+          <p className="note">
+            {format(t.inspector.threshold, { n: C.MULTICELL_THRESHOLD })}
+          </p>
         </>
       }
     />

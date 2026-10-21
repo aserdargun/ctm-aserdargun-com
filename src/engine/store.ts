@@ -88,6 +88,8 @@ interface StoreState {
   tick: number;
   simTime: number;
   population: number;
+  /** Kaynak düğümü sayısı — 3B görünüm tavanı denetimi için. */
+  resourceCount: number;
   systemEnergy: number;
   externalInput: number;
   dissipated: number;
@@ -138,6 +140,7 @@ interface StoreState {
     tick: number;
     simTime: number;
     population: number;
+    resourceCount: number;
     systemEnergy: number;
     externalInput: number;
     dissipated: number;
@@ -245,6 +248,7 @@ export const useStore = create<StoreState>((set, get) => ({
   tick: 0,
   simTime: 0,
   population: 0,
+  resourceCount: 0,
   systemEnergy: 0,
   externalInput: 0,
   dissipated: 0,
@@ -296,6 +300,7 @@ export const useStore = create<StoreState>((set, get) => ({
       tick: t.tick,
       simTime: t.simTime,
       population: t.population,
+      resourceCount: t.resourceCount,
       systemEnergy: t.systemEnergy,
       externalInput: t.externalInput,
       dissipated: t.dissipated,

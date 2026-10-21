@@ -8,7 +8,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../engine/store.ts';
 import { format, getStrings, genomeLabels } from '../i18n/index.ts';
-import { MAX_RENDER_CELLS, ORGANISM_LIST_LIMIT } from '../engine/limits.ts';
+import {
+  MAX_RENDER_CELLS,
+  MAX_RENDER_RESOURCES,
+  ORGANISM_LIST_LIMIT,
+} from '../engine/limits.ts';
 import type { SimClient, SpeedMultiplier } from '../engine/client.ts';
 
 function fmt(value: number, digits = 0): string {
@@ -48,6 +52,20 @@ export function Hud({ client }: { client: SimClient }): React.ReactElement {
               shown: fmt(MAX_RENDER_CELLS),
               total: fmt(s.population),
               hidden: fmt(s.population - MAX_RENDER_CELLS),
+            })}
+          />
+        )}
+        {s.resourceCount > MAX_RENDER_RESOURCES && (
+          // Aynı sınıf, kaynaklar için: düğüm sayısı tavanı aşarsa kaynak
+          // düğümleri görünmez olur ve kullanıcı bunu **öğrenmez**.
+          <Stat
+            label={t.hud.resourceLimit}
+            value={`${fmt(MAX_RENDER_RESOURCES)} / ${fmt(s.resourceCount)}`}
+            tone="damage"
+            title={format(t.hud.resourceLimitNote, {
+              shown: fmt(MAX_RENDER_RESOURCES),
+              total: fmt(s.resourceCount),
+              hidden: fmt(s.resourceCount - MAX_RENDER_RESOURCES),
             })}
           />
         )}

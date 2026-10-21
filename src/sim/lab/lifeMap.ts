@@ -36,19 +36,6 @@ export const LIFE_RANGE_MIN = GENOME_BOUNDS.senseRadius[0];
 export const LIFE_RANGE_MAX = GENOME_BOUNDS.senseRadius[1];
 export const LIFE_RANGE_SPAN = LIFE_RANGE_MAX - LIFE_RANGE_MIN;
 
-/** Bir organizmanın üç betimleyicisi. */
-export interface LifeDescriptors {
-  /** Yol uzunluğu / tick (mb/tick) — örneklem aralığına bağlı değildir. */
-  speed: number;
-  /** log2(hücre sayısı). */
-  size: number;
-  /** senseRadius − taban. */
-  range: number;
-  /** Ortalama enerji normu (kutu kalitesi). */
-  energyNorm: number;
-  lineageId: number;
-}
-
 export interface LifeCell {
   speedBin: number;
   sizeBin: number;

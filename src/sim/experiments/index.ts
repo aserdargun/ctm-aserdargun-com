@@ -85,16 +85,6 @@ export interface InvariantCheck {
   detail: string;
 }
 
-export interface ExperimentSuiteReport {
-  generatedAt: number;
-  tickMs: number;
-  experiments: ExperimentReport[];
-  invariants: InvariantCheck[];
-  /** Toplam koşu sayısı. */
-  totalRuns: number;
-  totalWallMs: number;
-}
-
 // ------------------------------------------------------------------ yardımcılar
 
 function armReport(label: string, values: number[], seed: number): ArmReport {

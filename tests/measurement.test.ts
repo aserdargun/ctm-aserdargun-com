@@ -31,7 +31,13 @@ import {
 import { formatShareThreshold, sweepShareThreshold } from '../src/sim/experiments/ecology.ts';
 import { fmtSigned } from '../src/sim/stats.ts';
 import { medianOf } from '../src/sim/experiments/ecology.ts';
-import { ACTION_LABELS_EN, ACTION_LABELS_TR, format, getStrings } from '../src/i18n/index.ts';
+import {
+  ACTION_LABELS_EN,
+  ACTION_LABELS_TR,
+  format,
+  getStrings,
+  inputLabels,
+} from '../src/i18n/index.ts';
 import { Rng } from '../src/sim/rng.ts';
 import type { Genome } from '../src/sim/types.ts';
 import { join, resolve } from 'node:path';
@@ -374,6 +380,44 @@ describe('ölçüm kodu · ölü ölçüm kapsamı koruması', () => {
       Number((ev as RegExpMatchArray)[1]),
       `evidence.ts başlığı ${(ev as RegExpMatchArray)[1]} parametreli ağ diyor, kod ${p.PARAM_COUNT} diyor`,
     ).toBe(p.PARAM_COUNT);
+
+    // ⚠️ **Kanonik modülün kendi başlığı** da aynı sayıları taşıyor ve
+    // denetlenmiyordu: `sim/behavior/mlp.ts` "12 → 8 → 4", "140 parametre",
+    // "W1 96 · b1 8 · W2 32 · b2 4", "24 birim", "128 ağırlıklı bağlantı",
+    // "12 bias" diyor. Mimari değişseydi (girdi 12 → 14) **kaynak modülün
+    // kendi başlığı** yanlış kalırdı — yani "bu sayı buradan geliyor" diyen
+    // her yer yanlış olurdu.
+    const mlpSrc = readFileSync(join(ROOT, 'src/sim/behavior/mlp.ts'), 'utf8');
+    const head = mlpSrc.slice(0, mlpSrc.indexOf('export const MLP_SHAPE'));
+    expect(head, 'mlp.ts başlığı okunamadı').toMatch(
+      new RegExp(`${p.INPUTS} → ${p.HIDDEN} → ${p.OUTPUTS} MLP`),
+    );
+    expect(head, 'mlp.ts başlığı parametre sayısı yanlış').toMatch(
+      new RegExp(`${p.INPUTS}\\*${p.HIDDEN} \\+ ${p.HIDDEN} \\+ ${p.HIDDEN}\\*${p.OUTPUTS} \\+ ${p.OUTPUTS} = \\*\\*${p.PARAM_COUNT}\\*\\*`),
+    );
+    expect(head, 'mlp.ts başlığı ağırlıklı bağlantı sayısı yanlış').toMatch(
+      new RegExp(`${p.INPUTS} \\+ ${p.HIDDEN} \\+ ${p.OUTPUTS} = \\*\\*${p.TOTAL_UNITS}\\*\\*`),
+    );
+    expect(head, 'mlp.ts başlığı ağırlıklı bağlantı sayısı yanlış').toMatch(
+      new RegExp(
+        `${p.INPUTS * p.HIDDEN} \\+ ${p.HIDDEN * p.OUTPUTS} = \\*\\*${p.WEIGHTED_CONNECTIONS}\\*\\*`,
+      ),
+    );
+    expect(head, 'mlp.ts başlığı matris boyutları yanlış').toMatch(
+      new RegExp(
+        `W1 ${p.INPUTS * p.HIDDEN} · b1 ${p.HIDDEN} · W2 ${p.HIDDEN * p.OUTPUTS} · b2 ${p.OUTPUTS}`,
+      ),
+    );
+    expect(head, 'mlp.ts başlığı bias sayısı yanlış').toMatch(
+      new RegExp(`${p.HIDDEN} \\+ ${p.OUTPUTS} = \\*\\*${p.BIASES}\\*\\*`),
+    );
+
+    // Algı vektörünün boyutu da kaynaktan gelmeli.
+    const perception = readFileSync(join(ROOT, 'src/sim/behavior/perception.ts'), 'utf8');
+    expect(perception, 'perception.ts gözlem boyutunu söylemiyor').toMatch(
+      new RegExp(`${p.INPUTS} (boyutlu )?gözlem`),
+    );
+    expect(inputLabels('tr').length, 'girdi etiketleri sayısı INPUTS ile uyuşmuyor').toBe(p.INPUTS);
   });
 
   it('i18n sözlüğünde kullanılmayan anahtar/sözlük kalmıyor', () => {    // Tarama sonucu (temiz negatif): 23 üst düzey anahtardan yalnız `units`
@@ -888,6 +932,105 @@ describe('ölçüm · hüküm kendi kanıtına bağlı mı', () => {
     // Tek tohum + güven aralığı yok sınırı metinde olmalı.
     expect(r, 'tek tohum sınırı yazılı değil').toMatch(/TEK tohum/);
     expect(r, 'güven aralığı yok sınırı yazılı değil').toMatch(/güven aralığı yok/);
+  });
+});
+
+describe('yapısal sayılar kaynağa bağlı', () => {
+  /**
+   * Kullanıcıya **görünen** sayılar ve uygulamanın başlangıç değerleri
+   * kaynak sabitten gelmelidir — elle yazıldığında sessizce ayrışırlar.
+   *
+   * · `App.tsx` başlangıç popülasyonunu `48` diye yazıyordu; `C.DEFAULT_POPULATION`
+   *   da 48. İkisi bağımsızdı: sabit değişseydi uygulama eskisini kullanırdı.
+   * · İnceleme panelinin metni "4+ hücreli yapı" diyordu; eşik `C.MULTICELL_THRESHOLD`
+   *   (4). Eşik değişseydi **arayüz yanlış sayı** yazardı.
+   */
+  it('uygulamanın başlangıç popülasyonu C.DEFAULT_POPULATION', () => {
+    const app = readFileSync(join(ROOT, 'src/App.tsx'), 'utf8');
+    expect(app, 'App.tsx popülasyonu sabitten almıyor').toMatch(
+      /population:\s*C\.DEFAULT_POPULATION/,
+    );
+    expect(app, 'App.tsx elle popülasyon yazıyor').not.toMatch(/population:\s*\d+/);
+  });
+
+  it('arayüzün çok hücrelilik eşiği metni C.MULTICELL_THRESHOLD', () => {
+    const i18n = readFileSync(join(ROOT, 'src/i18n/index.ts'), 'utf8');
+    // Metin artık **yer tutucu** taşıyor; sayı sabitten gelir.
+    expect(i18n, 'eşik metni sayıyı hâlâ elle yazıyor').toMatch(/threshold:\s*\n?\s*['"`][^'"`]*\{n\}/);
+    expect(i18n, 'eşik metni sayıyı hâlâ elle yazıyor').not.toMatch(/eşiği: \d\+ hücreli/);
+    expect(i18n, "İngilizce eşik metni sayıyı hâlâ elle yazıyor").not.toMatch(/a \d\+ cell structure/);
+
+    // Render yeri sabiti geçiriyor.
+    const panels = readFileSync(join(ROOT, 'src/ui/Panels.tsx'), 'utf8');
+    expect(panels, 'panel eşik metnini sabitle doldurmuyor').toMatch(
+      /format\(t\.inspector\.threshold,\s*\{\s*n:\s*C\.MULTICELL_THRESHOLD\s*\}\)/,
+    );
+  });
+
+  it('görüntüleme tavanı: sahne elle kaynak sayısı yazmıyor', () => {
+    // `Props.tsx` kaynak instancing kapasitesini **7 yerde** `64` diye yazıyordu
+    // ve ayrıca ölü bir `x > 0 ? 64 : 64` koşulu ile `void` ifadeleri
+    // taşıyordu. Artık tek sabit.
+    const props = readFileSync(join(ROOT, 'src/scene/Props.tsx'), 'utf8');
+    expect(props, 'sahne elle 64 yazıyor').not.toMatch(/(?<![0-9])64(?![0-9])/);
+    expect(props, 'ölü maxField koşulu kaldırılmamış').not.toMatch(/maxField/);
+  });
+});
+
+describe('ölü dışa aktarım kalmıyor', () => {
+  /**
+   * `src/` altındaki **hiçbir** dışa aktarım kullanılmıyor olmamalı.
+   *
+   * ⚠️ ÖLÇÜLEN: `C.MOBILE_CAPACITY` ve `C.COLONY_GENERATION_TARGET` gibi
+   * **sabitler** hiç kullanılmıyordu; kullanılmayan bir sabit, "varmış gibi
+   * duran" bir özellik vaadi. Aynı sınıf **tipler** için de geçerli:
+   * `LifeDescriptors` ve `ExperimentSuiteReport` hiç içe aktarılmıyordu.
+   *
+   * Bu denetim sınıfın tamamını kapatır: yeni bir dışa aktarım eklenip
+   * bağlanmazsa test kırmızıya döner ve **adını** yazar.
+   */
+  it('kullanılmayan dışa aktarım yok', () => {
+    const roots = ['src', 'scripts', 'tools', 'tests', 'e2e', 'server'];
+    const files: string[] = [];
+    const walk = (dir: string): void => {
+      for (const entry of readdirSync(join(ROOT, dir))) {
+        const rel = join(dir, entry);
+        if (statSync(join(ROOT, rel)).isDirectory()) walk(rel);
+        else if (/\.(ts|tsx)$/.test(entry)) files.push(rel);
+      }
+    };
+    for (const r of roots) walk(r);
+
+    const corpus = files
+      .map((f) => readFileSync(join(ROOT, f), 'utf8'))
+      .join('\n');
+
+    // ⚠️ **Yorumlar sayılmaz.** İlk sürüm ham metni tarıyordu ve koruma
+    // **kendi yorumuyla** kandırıldı: ölü tipin adı denetimin açıklama
+    // metninde geçtiği için "kullanılıyor" sayılıyordu. Yorum bir **bağ**
+    // değildir — ölü kodu belgelemek onu yaşatmaz.
+    const stripComments = (s: string): string =>
+      s.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/.*$/gm, '$1');
+    const code = stripComments(corpus);
+
+    const unused: string[] = [];
+    for (const rel of files.filter((f) => f.startsWith('src/'))) {
+      const src = stripComments(readFileSync(join(ROOT, rel), 'utf8'));
+      for (const m of src.matchAll(
+        /^export (?:const|function|class|interface|type|enum) ([A-Za-z_][A-Za-z0-9_]*)/gm,
+      )) {
+        const name = m[1] as string;
+        const uses = [...code.matchAll(new RegExp(`\\b${name}\\b`, 'g'))].length;
+        const defs = [...src.matchAll(
+          new RegExp(`^export (?:const|function|class|interface|type|enum) ${name}\\b`, 'gm'),
+        )].length;
+        if (uses - defs <= 0) unused.push(`${rel} :: ${name}`);
+      }
+    }
+    expect(
+      unused,
+      `kullanılmayan dışa aktarımlar (sil ya da bağla):\n${unused.join('\n')}`,
+    ).toEqual([]);
   });
 });
 

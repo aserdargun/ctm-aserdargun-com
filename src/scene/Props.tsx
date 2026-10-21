@@ -24,6 +24,7 @@ import {
 import { H, RES, RESOURCE_FLOATS } from '../worker/protocol.ts';
 import { getFrame } from '../engine/frame.ts';
 import { useStore } from '../engine/store.ts';
+import { MAX_RENDER_RESOURCES } from '../engine/limits.ts';
 
 const ROCK_PATHS = [
   'assets/rocks/rock_01.glb',
@@ -196,18 +197,14 @@ export function Resources(): React.ReactElement | null {
     const fieldB = fieldBRef.current;
     if (!data || !a || !b) return;
     const count = data[H.RESOURCE_COUNT] as number;
-    const base = H.CELL_COUNT as number;
     const cellCount = data[H.CELL_COUNT] as number;
     const offset = 16 + cellCount * 12;
-    void base;
 
     let ai = 0;
     let bi = 0;
     const t = state.clock.elapsedTime;
     const maxA = a.instanceMatrix.count;
     const maxB = b.instanceMatrix.count;
-    const maxField = fieldGeo.attributes.position.count > 0 ? 64 : 64;
-    void maxField;
 
     for (let i = 0; i < count; i++) {
       const o = offset + i * RESOURCE_FLOATS;
@@ -221,7 +218,7 @@ export function Resources(): React.ReactElement | null {
 
       // Besin alanı küresi GERÇEK etki yarıçapında çizilir; oyuncu
       // dokunulabilir alanı görebilsin.
-      if ((kindB ? fieldB : fieldA) && (kindB ? bi : ai) < 64) {
+      if ((kindB ? fieldB : fieldA) && (kindB ? bi : ai) < MAX_RENDER_RESOURCES) {
         scratch.position.set(px, py, pz);
         scratch.rotation.set(0, 0, 0);
         scratch.scale.setScalar(radius);
@@ -246,11 +243,11 @@ export function Resources(): React.ReactElement | null {
     a.count = Math.min(ai, maxA);
     b.count = Math.min(bi, maxB);
     if (fieldA) {
-      fieldA.count = Math.min(ai, 64);
+      fieldA.count = Math.min(ai, MAX_RENDER_RESOURCES);
       fieldA.instanceMatrix.needsUpdate = true;
     }
     if (fieldB) {
-      fieldB.count = Math.min(bi, 64);
+      fieldB.count = Math.min(bi, MAX_RENDER_RESOURCES);
       fieldB.instanceMatrix.needsUpdate = true;
     }
     a.instanceMatrix.needsUpdate = true;
@@ -261,10 +258,10 @@ export function Resources(): React.ReactElement | null {
   if (!geoA || !geoB) return null;
   return (
     <>
-      <instancedMesh ref={aRef} args={[geoA, matA, 64]} frustumCulled={false} />
-      <instancedMesh ref={bRef} args={[geoB, matB, 64]} frustumCulled={false} />
-      <instancedMesh ref={fieldARef} args={[fieldGeo, fieldMatA, 64]} frustumCulled={false} />
-      <instancedMesh ref={fieldBRef} args={[fieldGeo, fieldMatB, 64]} frustumCulled={false} />
+      <instancedMesh ref={aRef} args={[geoA, matA, MAX_RENDER_RESOURCES]} frustumCulled={false} />
+      <instancedMesh ref={bRef} args={[geoB, matB, MAX_RENDER_RESOURCES]} frustumCulled={false} />
+      <instancedMesh ref={fieldARef} args={[fieldGeo, fieldMatA, MAX_RENDER_RESOURCES]} frustumCulled={false} />
+      <instancedMesh ref={fieldBRef} args={[fieldGeo, fieldMatB, MAX_RENDER_RESOURCES]} frustumCulled={false} />
     </>
   );
 }
