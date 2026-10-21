@@ -9,7 +9,8 @@
  */
 
 export const OBSERVER_SUMMARY_TR = {
-  simProgress: 'Simülasyon {tick} tick ({seconds} s) ilerlemiş; {events} olay kaydı bulunuyor.',
+  simProgress:
+    'Simülasyon {tick} tick ({seconds} s) ilerlemiş; dünya {events} olay kaydı tutuyor (son {sampled} incelendi).',
   population: 'Canlı hücre sayısı: {value}.',
   largestColony: 'En büyük bağlı küme: {value} hücre.',
   multiCell:
@@ -48,7 +49,8 @@ export const OBSERVER_SUMMARY_TR = {
 }
 
 export const OBSERVER_SUMMARY_EN = {
-  simProgress: 'Simulation advanced {tick} ticks ({seconds} s); {events} event records.',
+  simProgress:
+    'Simulation advanced {tick} ticks ({seconds} s); the world holds {events} event records (the last {sampled} were examined).',
   population: 'Living cells: {value}.',
   largestColony: 'Largest bonded cluster: {value} cells.',
   multiCell:

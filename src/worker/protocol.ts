@@ -205,7 +205,17 @@ export interface EvidencePack {
   question: string;
   /** Özet ve gözlem metinlerinin dili. */
   language: Language;
+  /** Kanıt olarak incelenen son olayların kimlikleri (örneklem). */
   eventIds: number[];
+  /**
+   * Dünyanın **tuttuğu** olay kaydı sayısı.
+   *
+   * ⚠️ `eventIds.length` ÖRNEKLEM sayısıdır (son 80 olay), dünyadaki toplam
+   * değil. ÖLÇÜLDÜ (19 Ekim 2026): 1000 tick'lik koşuda dünya 164 olay
+   * üretti ama özet "80 olay kaydı bulunuyor" diyordu — yani **yanlış** bir
+   * sayı ve "bulunuyor" ifadesiyle yanlış bir iddia.
+   */
+  eventCount: number;
   events: unknown[];
   measurements: { metricRef: string; value: number; unit: string }[];
   interventions: unknown[];

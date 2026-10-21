@@ -30,6 +30,7 @@ function pack(measurements: { metricRef: string; value: number; unit: string }[]
     question: 'ne oluyor?',
     language: 'tr',
     eventIds: [7, 8],
+    eventCount: 2,
     events: [],
     measurements,
     interventions: [],
@@ -185,6 +186,18 @@ describe('gözlemci · yerel kural özeti', () => {
 
   it('her zaman bir sonraki deney önerisi üretir', () => {
     expect(buildLocalSummary(BASE).nextExperiment.length).toBeGreaterThan(10);
+  });
+
+  it('olay sayısı ÖRNEKLEM değil, dünyanın tuttuğu sayıdır', () => {
+    // ⚠️ ÖLÇÜLEN (19 Ekim 2026): özet "80 olay kaydı bulunuyor" diyordu,
+    // ama 80 **örneklem** sayısıydı (son 80 olay); dünya 164 olay üretmişti.
+    // Yani panel gerçeğin yarısından azını "bulunuyor" diye söylüyordu —
+    // bilimsel özet panelinde yanlış bir sayı.
+    const p = { ...BASE, eventIds: [1, 2, 3], eventCount: 164 } as unknown as EvidencePack;
+    const text = buildLocalSummary(p, 'tr').observations.join(' ');
+    expect(text, 'örneklem sayısı (3) dünyanın tuttuğu sayı (164) olarak yazıldı').toContain('164');
+    expect(text, 'örneklem sayısı hiç yazılmadı').toMatch(/3/);
+    expect(text, 'dünyanın tuttuğu sayı yok').not.toContain('3 olay kaydı bulunuyor');
   });
 
   it('deterministiktir', () => {

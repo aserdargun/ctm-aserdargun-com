@@ -417,7 +417,15 @@ describe('ölçüm kodu · ölü ölçüm kapsamı koruması', () => {
     expect(perception, 'perception.ts gözlem boyutunu söylemiyor').toMatch(
       new RegExp(`${p.INPUTS} (boyutlu )?gözlem`),
     );
-    expect(inputLabels('tr').length, 'girdi etiketleri sayısı INPUTS ile uyuşmuyor').toBe(p.INPUTS);
+    // ⚠️ Etiket listeleri **dört** yerde duruyor: gözlem modülündeki kanonik
+    // liste ve i18n'deki TR/EN listeleri. Sıra eşleşmezse mikroskop yanlış
+    // etiketi gösterir. Üçünün de uzunluğu INPUTS ile aynı olmalı.
+    const perceptionSrc = readFileSync(join(ROOT, 'src/sim/behavior/perception.ts'), 'utf8');
+    const canonical = perceptionSrc.match(/export const INPUT_LABELS: readonly string\[\] = \[([\s\S]*?)\];/)?.[1] ?? '';
+    const canonicalCount = (canonical.match(/'[^']+'/g) ?? []).length;
+    expect(canonicalCount, 'gözlem modülündeki etiket listesi okunamadı').toBe(p.INPUTS);
+    expect(inputLabels('tr').length, 'TR etiket sayısı INPUTS ile uyuşmuyor').toBe(p.INPUTS);
+    expect(inputLabels('en').length, 'EN etiket sayısı INPUTS ile uyuşmuyor').toBe(p.INPUTS);
   });
 
   it('i18n sözlüğünde kullanılmayan anahtar/sözlük kalmıyor', () => {    // Tarama sonucu (temiz negatif): 23 üst düzey anahtardan yalnız `units`

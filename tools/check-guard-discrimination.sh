@@ -375,6 +375,21 @@ check "hata bildirimi korunuyor" "src/engine/store.ts" \
   "const dropIndex = 0;" \
   "tests/measurement.test.ts"
 
+# 49) Girdi etiketi listelerinden biri kısalıyor (mikroskop yanlış etiket gösterir)
+check "girdi etiket listeleri eşit uzunlukta" "src/i18n/index.ts" \
+  "  'A teması',
+  'B teması',
+] as const;" \
+  "  'A teması',
+] as const;" \
+  "tests/measurement.test.ts"
+
+# 50) Gözlemci özeti ÖRNEKLEM sayısını dünyanın tuttuğu sayı gibi yazıyor
+check "olay sayısı örneklem değil" "src/worker/evidence.ts" \
+  "events: pack.eventCount," \
+  "events: pack.eventIds.length," \
+  "tests/observer.test.ts"
+
 echo
 echo "ayırt edici: $pass · ayırt edici olmayan: $fail"
 [ "$fail" -eq 0 ]

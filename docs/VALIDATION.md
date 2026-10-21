@@ -14,7 +14,7 @@ Bu raporda **yalnızca gerçekten çalıştırılan** kontroller yer alır.
 
 ```
 Test Files  12 passed (12)
-     Tests  323 passed (323)
+     Tests  324 passed (324)
 ```
 
 ### 1.1 MLP sayısal doğruluğu (`tests/mlp.test.ts`, 14 test)

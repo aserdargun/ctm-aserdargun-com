@@ -142,6 +142,7 @@ describe('metin bütünlüğü', () => {
       question: 'q',
       language: 'tr',
       eventIds: [],
+      eventCount: 0,
       events: [],
       measurements: [{ metricRef: 'largestColonySize', value: 1, unit: 'cells' }],
       interventions: [],

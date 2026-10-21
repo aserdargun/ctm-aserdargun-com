@@ -117,6 +117,8 @@ export function buildEvidencePack(
     question,
     language,
     eventIds: recent.map((e) => e.id),
+    // Dünyanın **tuttuğu** olay sayısı — `recent` bir ÖRNEKLEM (son 80 olay).
+    eventCount: world.events.size,
     events: recent,
     measurements,
     interventions: world.interventions.slice(-40),
@@ -172,7 +174,11 @@ export function buildLocalSummary(pack: EvidencePack, language: Language = 'tr')
     format(S.simProgress, {
       tick: pack.tick,
       seconds: pack.simTimeSeconds.toFixed(1),
-      events: pack.eventIds.length,
+      // ⚠️ Dünyanın **tuttuğu** olay sayısı, örneklem değil. Ölçüldü: 1000
+      // tick'te dünya 164 olay üretti; örneklem (80) yazılınca panel gerçeğin
+      // yarısından azını "bulunuyor" diye söylüyordu.
+      events: pack.eventCount,
+      sampled: pack.eventIds.length,
     }),
   );
 
