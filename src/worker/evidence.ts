@@ -16,6 +16,8 @@ import { learnedDeltaNorm } from '../sim/behavior/policy.ts';
 import { genomeDistance } from '../sim/genome.ts';
 import type { World } from '../sim/world.ts';
 import type { EvidencePack } from './protocol.ts';
+import { format, getStrings } from '../i18n/index.ts';
+import type { Language } from '../engine/store.ts';
 
 export interface LocalSummary {
   observations: string[];
@@ -32,6 +34,7 @@ export function buildEvidencePack(
   kind: 'A' | 'B',
   organismId: number | null,
   worldId: string,
+  language: Language = 'tr',
 ): EvidencePack {
   void kind; // kaynak türü kanıt paketine gömülür ama karar girdisi DEĞİLDİR
   const metrics = world.latestMetrics();
@@ -112,7 +115,7 @@ export function buildEvidencePack(
     tick: world.tick,
     simTimeSeconds: world.tick * (C.TICK_MS / 1000),
     question,
-    language: 'tr',
+    language,
     eventIds: recent.map((e) => e.id),
     events: recent,
     measurements,
@@ -122,19 +125,19 @@ export function buildEvidencePack(
     imageHint: {
       tick: world.tick,
       simTimeSeconds: world.tick * (C.TICK_MS / 1000),
-      camera: 'free — gözlemci karesi tarayıcı tarafında yakalanır',
+      camera: getStrings(language).observer.notMeasured.free,
     },
     constraints: [
-      'Simgulasyon 50 ms sabit adımla ilerler; olaylar tick kimliğiyle eşleşir.',
-      'Kaynak rezervleri sonludur; enerji paylaşımı enerji üretmez.',
-      'Rejenerasyon ve oyuncu besini dış girdidir ve ölçülür.',
-      'Kontrol deneyi yapılmadan nedensellik iddiası kurulamaz.',
+      getStrings(language).observer.notMeasured.fixedStep,
+      getStrings(language).observer.notMeasured.reserves,
+      getStrings(language).observer.notMeasured.regeneration,
+      getStrings(language).observer.notMeasured.control,
     ],
     notMeasured: [
-      'Bilinç veya genel zekâ ölçülmez.',
-      'Görsel sayım telemetrinin yerine geçmez.',
-      'Gözlemci canlılara hazır cevap veremez; ağırlıkları düzenleyemez.',
-      'Ölçülmemiş her şey `uncertainties` içinde listelenir.',
+      getStrings(language).observer.notMeasured.consciousness,
+      getStrings(language).observer.notMeasured.visualCounting,
+      getStrings(language).observer.notMeasured.readOnly,
+      getStrings(language).observer.notMeasured.listNote,
     ],
   };
 }
@@ -146,13 +149,16 @@ export function buildEvidencePack(
  * ölçümleri ve olayları okur; yorumları bunlara dayandırır ve belirsizlikleri
  * açıkça listeler.
  */
-export function buildLocalSummary(pack: EvidencePack): LocalSummary {
+export function buildLocalSummary(pack: EvidencePack, language: Language = 'tr'): LocalSummary {
   const observations: string[] = [];
   const evidenceIds: number[] = [];
   const interpretations: string[] = [];
   const uncertainties: string[] = [];
 
   const metric = (ref: string): number | undefined => pack.measurements.find((m) => m.metricRef === ref)?.value;
+  // ⚠️ Özet metinleri artık **i18n**'den gelir: dil İngilizce'ye geçtiğinde
+  // panelin tamamı İngilizce olur (önce hepsi Türkçeydi).
+  const S = getStrings(language).observer.summary;
 
   const population = metric('population');
   const largest = metric('largestColonySize');
@@ -163,61 +169,66 @@ export function buildLocalSummary(pack: EvidencePack): LocalSummary {
   const residual = metric('energyResidual');
 
   observations.push(
-    `Simülasyon ${pack.tick} tick (${pack.simTimeSeconds.toFixed(1)} s) ilerlemiş; ${pack.eventIds.length} olay kaydı bulunuyor.`,
+    format(S.simProgress, {
+      tick: pack.tick,
+      seconds: pack.simTimeSeconds.toFixed(1),
+      events: pack.eventIds.length,
+    }),
   );
 
-  if (population !== undefined) observations.push(`Canlı hücre sayısı: ${population}.`);
+  if (population !== undefined) observations.push(format(S.population, { value: population }));
   if (largest !== undefined) {
-    observations.push(`En büyük bağlı küme: ${largest} hücre.`);
+    observations.push(format(S.largestColony, { value: largest }));
     if (largest >= C.MULTICELL_THRESHOLD) evidenceIds.push(pack.eventIds[pack.eventIds.length - 1] ?? -1);
   }
   if (colonies4 !== undefined) {
     observations.push(
-      `${C.MULTICELL_THRESHOLD}+ hücreli yapı sayısı: ${colonies4} (oyunun işletimsel eşiği, biyolojik tanım değil).`,
+      format(S.multiCell, { threshold: C.MULTICELL_THRESHOLD, value: colonies4 }),
     );
   }
-  if (bonds !== undefined) observations.push(`Aktif hücre bağı sayısı: ${bonds}.`);
-  if (predator !== undefined) observations.push(`Avcı enerjisi: ${predator.toFixed(1)} e (yerel seçilim baskısı).`);
-  if (updates !== undefined) observations.push(`Tamamlanmış politika güncellemesi: ${updates}.`);
+  if (bonds !== undefined) observations.push(format(S.bonds, { value: bonds }));
+  if (predator !== undefined)
+    observations.push(format(S.predatorEnergy, { value: predator.toFixed(1) }));
+  if (updates !== undefined) observations.push(format(S.learningUpdates, { value: updates }));
   if (residual !== undefined && Math.abs(residual) > 1e-3) {
-    observations.push(`Enerji muhasebesinde ${residual.toFixed(4)} e fark var — korunum ihlali işareti.`);
+    observations.push(format(S.residualViolation, { value: residual.toFixed(4) }));
   } else if (residual !== undefined) {
-    observations.push('Enerji muhasebesi korunuyor (bakiye farkı ihmal edilebilir).');
+    observations.push(S.residualOk);
   }
 
   const interventions = pack.interventions.length;
   if (interventions > 0) {
-    observations.push(`Kayıtta ${interventions} oyuncu müdahalesi var; müdahalesiz karşılaştırma için uygun değil.`);
+    observations.push(format(S.interventions, { value: interventions }));
   }
 
   if (largest !== undefined && largest >= C.MULTICELL_THRESHOLD) {
-    interpretations.push(
-      'Bağlı kümeler oluştuğu için çok hücreli yapılar gözlenmiş sayılır; bu yalnız gözlemdir, nedensellik değildir.',
-    );
+    interpretations.push(S.multicellObserved);
   } else {
     interpretations.push(
-      `Şu ana kadar ${C.MULTICELL_THRESHOLD} eşiğin üzerinde bağlı küme yok. Bu "henüz gözlenmedi" demektir; olmayan bir sonuç değildir.`,
+      format(S.multicellNotObserved, { threshold: C.MULTICELL_THRESHOLD }),
     );
   }
 
   if (pack.lineage && Array.isArray(pack.lineage) && pack.lineage.length > 0) {
     const top = pack.lineage[0] as { label?: string; latestGeneration?: number; ancestorToLatestDistance?: number };
     interpretations.push(
-      `En derin soy ${top.label} (${top.latestGeneration ?? 0}. nesil); atasal–torun genom uzaklığı ${(top.ancestorToLatestDistance ?? 0).toFixed(4)}. Bu bir gözlemdir, adaptasyon kanıtı değildir.`,
+      format(S.deepestLineage, {
+        label: top.label ?? '?',
+        generation: top.latestGeneration ?? 0,
+        distance: (top.ancestorToLatestDistance ?? 0).toFixed(4),
+      }),
     );
   }
 
   if (networkSummaryIsPresent(pack)) {
-    interpretations.push(
-      'Seçili canlının ağında bu yaşamda öğrenilmiş fark sıfırdan büyük; bu, ağırlıkların değiştiğini gösterir. Öğrenmenin BAŞARILI olduğunu göstermez — başarı için ayrılmış tohumlarda kontrol deneyi gerekir.',
-    );
+    interpretations.push(S.networkDelta);
   }
 
-  uncertainties.push('Kontrol dalı olmadan nedensellik kurulamadı; gözlemler yalnızca birliktelik düzeyindedir.');
-  uncertainties.push('Popülasyon dinamiği kaynak rezervlerinin sonluluğuyla sınırlıdır; dış girdi müdahaleleri ölçümü değiştirebilir.');
-  uncertainties.push('Ödül sinyali net enerji/hasar/maliyetlerden üretilir; kaynağın "doğru" olduğuna dair gizli etiket kullanılmaz.');
+  uncertainties.push(S.noControl);
+  uncertainties.push(S.populationDynamics);
+  uncertainties.push(S.rewardSignal);
   if (!networkSummaryIsPresent(pack)) {
-    uncertainties.push('Bu soru için seçili bir canlının ağ özeti yok; mikroskop verisi üretilmedi.');
+    uncertainties.push(S.noNetworkSummary);
   }
 
   return {
@@ -225,7 +236,7 @@ export function buildLocalSummary(pack: EvidencePack): LocalSummary {
     evidenceIds: [...new Set(evidenceIds.filter((id) => id >= 0))],
     interpretations,
     uncertainties,
-    nextExperiment: suggestNextExperiment(pack),
+    nextExperiment: suggestNextExperiment(pack, language),
     sourceMode: 'local-summary',
   };
 }
@@ -251,22 +262,23 @@ function networkSummaryIsPresent(pack: EvidencePack): boolean {
 const HIGH_PREDATOR_ENERGY = C.PREDATOR_CAPACITY / 6;
 
 /** Tek değişkenli sonraki deney önerisi. */
-function suggestNextExperiment(pack: EvidencePack): string {
+function suggestNextExperiment(pack: EvidencePack, language: Language = 'tr'): string {
+  const S = getStrings(language).observer.summary;
   const metric = (ref: string): number | undefined => pack.measurements.find((m) => m.metricRef === ref)?.value;
   const colonies4 = metric('coloniesOverFourCells') ?? 0;
   const largest = metric('largestColonySize') ?? 0;
   const predator = metric('predatorEnergy') ?? 0;
 
   if (largest < C.MULTICELL_THRESHOLD) {
-    return 'Deney 1 (Birlikte kalmak): aynı kayıttan iki dal aç; yalnız bağlı kalma eğilimini değiştir, baskıyı sabit tut. Koloni üreme neslini karşılaştır.';
+    return S.nextTogether;
   }
   if (colonies4 === 0) {
-    return 'Deney 2 (Adaptasyon): atasal ve torun genotiplerini aynı ortamda, öğrenme ve yeni mutasyon kapalıyken karşılaştır.';
+    return S.nextAdaptation;
   }
   if (predator > HIGH_PREDATOR_ENERGY) {
-    return 'Seçilim baskısını düşür, aynı tohumla tekrar etkileşimi ve koloni kalıcılığını ölç (tek değişkenli).';
+    return S.nextPressure;
   }
-  return 'Deney 3 (Öğrenme): aynı kalıtsal ağla eğitilmiş/eğitilmemiş politikayı, büyüme ve mutasyon kapalıyken ayrılmış tohumlarda karşılaştır.';
+  return S.nextLearning;
 }
 
 /** Gözlemci sunucu yanıtını kanıt paketine göre denetler (uydurma sayı yakalar). */

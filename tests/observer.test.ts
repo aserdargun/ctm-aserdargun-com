@@ -12,10 +12,12 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+  buildEvidencePack,
   buildLocalSummary,
   extractNumericClaims,
   verifyNumericClaims,
 } from '../src/worker/evidence.ts';
+import { World } from '../src/sim/world.ts';
 import type { EvidencePack } from '../src/worker/protocol.ts';
 
 function pack(measurements: { metricRef: string; value: number; unit: string }[]): EvidencePack {
@@ -187,5 +189,32 @@ describe('gözlemci · yerel kural özeti', () => {
 
   it('deterministiktir', () => {
     expect(JSON.stringify(buildLocalSummary(BASE))).toBe(JSON.stringify(buildLocalSummary(BASE)));
+  });
+
+  it('İngilizce dilde İngilizce yazar', () => {
+    // ⚠️ ÖLÇÜLEN: gözlemci özeti **Türkçe sabit** metinlerdi ve kanıt paketinin
+    // `language` alanı sabit `'tr'` idi. Yani dil İngilizce'ye geçse bile
+    // panelin TAMAMI Türkçe kalıyordu — 30 metin.
+    const tr = buildLocalSummary(BASE, 'tr');
+    const en = buildLocalSummary(BASE, 'en');
+    const enText = [...en.observations, ...en.interpretations, ...en.uncertainties].join(' ');
+    expect(enText, 'İngilizce özet Türkçe kalıyor').not.toMatch(/[ğüşıİç]/);
+    expect(enText, 'İngilizce özet boş').toMatch(/\w/);
+    expect(en.nextExperiment, 'İngilizce deney önerisi Türkçe kalıyor').not.toMatch(/[ğüşıİç]/);
+    // İki dil gerçekten farklı metin üretmeli.
+    expect(en.observations.join(' ')).not.toBe(tr.observations.join(' '));
+  });
+
+  it('kanıt paketi dili taşır (sabit değil)', () => {
+    // Paketin `language` alanı istekten gelmeli; sabit `'tr'` iken dil
+    // değiştirme panelde hiçbir iz bırakmıyordu.
+    const world = new World({ seed: 3, population: 6 });
+    const packEn = buildEvidencePack(world, 'q', 'A', null, 'w', 'en');
+    expect(packEn.language, 'paket dili istekten gelmiyor').toBe('en');
+    const packTr = buildEvidencePack(world, 'q', 'A', null, 'w', 'tr');
+    expect(packTr.language).toBe('tr');
+    // Kısıtlar ve "ölçülmeyenler" de dile uyar.
+    expect(packEn.constraints.join(' ')).not.toMatch(/[ğüşıİç]/);
+    expect(packEn.notMeasured.join(' ')).not.toMatch(/[ğüşıİç]/);
   });
 });

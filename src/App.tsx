@@ -190,7 +190,7 @@ export function App(): React.ReactElement {
     const s = useStore.getState();
     // 1) Her zaman yerel kural özeti üretilir — dürüst taban çizgi.
     const pack = s.evidence;
-    if (pack) s.setLocalSummary(buildLocalSummary(pack));
+    if (pack) s.setLocalSummary(buildLocalSummary(pack, pack.language));
 
     // 2) Sunucu rotası denenir. Anahtar yoksa/hata olursa OYUN DEVAM EDER ve
     //    yerel özet kalır. Sahte model yanıtı üretilmez.
@@ -277,7 +277,7 @@ function DownloadBridge({ client }: { client: SimClient }): null {
   useEffect(() => {
     const handler = (): void => {
       armedRef.current = true;
-      useStore.getState().notify('info', 'JSON hazırlanıyor…');
+      useStore.getState().notify('info', getStrings(useStore.getState().language).data.preparing);
     };
     (globalThis as unknown as { __ctmExport?: () => void }).__ctmExport = handler;
   }, []);

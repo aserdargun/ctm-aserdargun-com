@@ -18,6 +18,7 @@ import React from 'react';
 import { useStore } from '../engine/store.ts';
 import type { SimClient } from '../engine/client.ts';
 import { LIFE_RANGE_MIN, LIFE_RANGE_MAX, type LifeSnapshot } from '../sim/lab/lifeMap.ts';
+import { getStrings } from '../i18n/index.ts';
 
 const POLL_MS = 1500;
 
@@ -36,21 +37,40 @@ function heatColor(energyNorm: number | null): string {
   return `hsla(${hue.toFixed(0)}, 78%, ${(34 + v * 22).toFixed(0)}%, .85)`;
 }
 
+/**
+ * Yaşam haritası eksenleri.
+ *
+ * ⚠️ Anahtarlar **Türkçe**ydi ('hız' | 'boyut' | 'menzil') ve aynı zamanda
+ * hem mantık anahtarı hem **görünen etiket** olarak kullanılıyordu — yani
+ * veri yapısı dile bağlıydı ve İngilizce arayüzde eksen adları Türkçe
+ * kalıyordu. Artık anahtarlar nötr, etiketler i18n'den.
+ */
+export type LifeAxis = 'speed' | 'size' | 'range';
+
+const AXIS_LABEL_KEY: Record<LifeAxis, 'speed' | 'size' | 'range'> = {
+  speed: 'speed',
+  size: 'size',
+  range: 'range',
+};
+
 function Layer({ snapshot, axisName, layer }: {
   snapshot: LifeSnapshot;
-  axisName: 'hız' | 'boyut' | 'menzil';
+  axisName: LifeAxis;
   layer: number;
 }): React.ReactElement {
+  const language = useStore((s) => s.language);
+  const t = getStrings(language);
+  const axisLabel = (a: LifeAxis): string => t.lifeMap.axis[AXIS_LABEL_KEY[a]];
   const B = snapshot.bins;
   const byKey = new Map<string, (typeof snapshot.cells)[number]>();
   for (const c of snapshot.cells) byKey.set(`${c.speedBin}.${c.sizeBin}.${c.rangeBin}`, c);
-  // 'hız' = satır, 'boyut' = sütun, 'menzil' = katman.
-  const rowOf = axisName === 'hız' ? 0 : 1;
-  const colOf = axisName === 'boyut' ? 1 : 0;
+  // 'speed' = satır, 'size' = sütun, 'range' = katman.
+  const rowOf = axisName === 'speed' ? 0 : 1;
+  const colOf = axisName === 'size' ? 1 : 0;
 
   return (
     <div className="lifemap__layer">
-      <div className="lifemap__layerLabel">{axisName} {layer}</div>
+      <div className="lifemap__layerLabel">{axisLabel(axisName)} {layer}</div>
       <div className="lifemap__grid" style={{ gridTemplateColumns: `repeat(${B}, 1fr)` }}>
         {Array.from({ length: B * B }, (_, i) => {
           const row = Math.floor(i / B);
@@ -61,14 +81,14 @@ function Layer({ snapshot, axisName, layer }: {
           bins[2] = layer;
           const cell = byKey.get(bins.join('.'));
           const title = cell
-            ? `${cell.count} organizma · en iyi enerji ${fmt(cell.bestEnergyNorm)} · soy ${cell.bestLineage}`
-            : 'boş';
+            ? `${cell.count} ${t.lifeMap.organisms} · ${t.lifeMap.bestEnergy} ${fmt(cell.bestEnergyNorm)} · ${t.lifeMap.lineage} ${cell.bestLineage}`
+            : t.lifeMap.empty;
           return (
             <div
               key={i}
               className={`lifemap__cell${cell ? ' lifemap__cell--filled' : ''}`}
               style={{ background: heatColor(cell ? cell.bestEnergyNorm : null) }}
-              title={`${axisName}=${rowOf === 0 ? row : layer} ${axisName === 'boyut' ? col : ''} ${title}`}
+              title={`${axisName}=${rowOf === 0 ? row : layer} ${axisName === 'size' ? col : ''} ${title}`}
             >
               {cell ? cell.count : ''}
             </div>
@@ -81,6 +101,7 @@ function Layer({ snapshot, axisName, layer }: {
 
 export function LifeMapPanel({ client }: { client: SimClient }): React.ReactElement {
   const language = useStore((s) => s.language);
+  const t = getStrings(language);
   const snapshot = useStore((s) => s.lifeMap);
 
   // Panel açıkken düşük frekanlı yoklama: kare başına gönderim yok.
@@ -121,7 +142,7 @@ export function LifeMapPanel({ client }: { client: SimClient }): React.ReactElem
 
           <div className="lifemap__stack">
             {Array.from({ length: snapshot.bins }, (_, i) => i).map((layer) => (
-              <Layer key={layer} snapshot={snapshot} axisName="menzil" layer={layer} />
+              <Layer key={layer} snapshot={snapshot} axisName="range" layer={layer} />
             ))}
           </div>
 
@@ -165,9 +186,7 @@ export function LifeMapPanel({ client }: { client: SimClient }): React.ReactElem
               </tbody>
             </table>
             <p className="panel__hint">
-              {tr
-                ? 'Üst sınırın altındaki tüm gözlemler üst kutuya kırpılır; sıfır olması eksenin çalıştığının işaretidir.'
-                : 'Observations at or above the upper bound are clipped into the top bin; zero means the axis is working.'}
+              {t.lifeMap.clippedNote}
             </p>
           </details>
         </>

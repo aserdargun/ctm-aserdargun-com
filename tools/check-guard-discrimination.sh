@@ -78,10 +78,10 @@ check "U+FFFD taraması" "src/worker/evidence.ts" \
   "tests/encoding.test.ts"
 
 # 2) Eşik metni koruması: sabiti geri sayıya çevir
-check "eşik sayısı metinde" "src/worker/evidence.ts" \
-  '`Şu ana kadar ${C.MULTICELL_THRESHOLD} eşiğin üzerinde bağlı küme yok.' \
-  "'Şu ana kadar 4 eşiğin üzerinde bağlı küme yok." \
-  "tests/encoding.test.ts"
+check "eşik sayısı metinde" "src/i18n/observerSummary.ts" \
+  "{threshold} eşiğin üzerinde bağlı küme yok" \
+  "4 eşiğin üzerinde bağlı küme yok" \
+  "tests/measurement.test.ts"
 
 # 3) Ölü sabit koruması: MOBILE_CAPACITY'i geri koy
 check "ölü C sabidi" "src/sim/biology/energy.ts" \
@@ -327,6 +327,20 @@ check "snapshot gerçek tohumu yazıyor" "src/sim/persistence/snapshot.ts" \
   "seed: world.seed," \
   "seed: 0," \
   "tests/world.test.ts"
+
+# 42) Gözlemci özeti dil seçmiyor (panel hep Türkçe)
+check "gözlemci özeti iki dilli" "src/worker/evidence.ts" \
+  "  language: Language = 'tr',
+): EvidencePack {" \
+  "  language: Language = 'tr',
+): EvidencePack { void language; language = 'tr';" \
+  "tests/observer.test.ts"
+
+# 43) Arayüze Türkçe sabit metin geri giriyor
+check "arayüzde Türkçe sabit metin yok" "src/ui/EventsPanel.tsx" \
+  "{t.events.recordNote}" \
+  "{'Simülasyonun kaydı. Bu veri zaten üretiliyordu; panel onu görünür kılıyor.'}" \
+  "tests/encoding.test.ts"
 
 echo
 echo "ayırt edici: $pass · ayırt edici olmayan: $fail"

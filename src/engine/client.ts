@@ -15,6 +15,7 @@ import type {
   WorkerRequest,
   WorkerResponse,
 } from '../worker/protocol.ts';
+import type { Language } from './store.ts';
 
 export type ClientStatus = 'idle' | 'starting' | 'running' | 'paused' | 'error' | 'unsupported';
 
@@ -177,8 +178,13 @@ export class SimClient {
   clearEvents(): void {
     this.send({ type: 'clearEvents' });
   }
-  evidencePack(question: string, kind: 'A' | 'B', organismId: number | null): void {
-    this.send({ type: 'evidencePack', question, kind, organismId });
+  evidencePack(
+    question: string,
+    kind: 'A' | 'B',
+    organismId: number | null,
+    language: Language,
+  ): void {
+    this.send({ type: 'evidencePack', question, kind, organismId, language });
   }
   /**
    * Evrim Atölyesi: seçili organizmanın politikasını arena üzerinde (μ+λ)

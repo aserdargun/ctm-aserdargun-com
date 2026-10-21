@@ -8,6 +8,7 @@
 
 import type { Language } from '../engine/store.ts';
 import type { GenomeKey } from '../sim/genome.ts';
+import { OBSERVER_SUMMARY_EN, OBSERVER_SUMMARY_TR } from './observerSummary.ts';
 
 export const tr = {
   title: 'Cell to Mind',
@@ -76,6 +77,19 @@ export const tr = {
     generation: 'Nesil',
     birthMode: 'Doğuş biçimi',
     birthModeValue: { genesis: 'Kurucu', bud: 'Tomurcuk', fragment: 'Parçalanma' },
+    allLineages: 'tüm soylar',
+    eventType: {
+      genesis: 'kuruluş',
+      'cell-division': 'hücre bölünmesi',
+      'bud-separation': 'tomurcuk ayrılması',
+      'bond-formation': 'bağ kuruldu',
+      'bond-break': 'bağ koptu',
+      fragmentation: 'parçalanma',
+      death: 'ölüm',
+      predation: 'avlanma',
+      'learning-update': 'öğrenme güncellemesi',
+      intervention: 'oyuncu müdahalesi',
+    },
     cells: 'Hücre sayısı',
     totalEnergy: 'Toplam enerji',
     parent: 'Ebeveyn',
@@ -123,6 +137,28 @@ export const tr = {
     truncated: 'İlk {shown} / {total} soy gösteriliyor.',
   },
 
+  events: {
+    recordNote:
+      'Simülasyonun kaydı. Bu veri zaten üretiliyordu; panel onu görünür kılıyor.',
+    shown: 'Son {shown} olay gösteriliyor ({total} kayıtlı).',
+  },
+  evolution: {
+    generationCurve: 'nesil eğrisi',
+    reset: 'Evrim atölyesi sıfırlandı',
+    applied: 'Bulunan politika organizmaya yazıldı.',
+    dryRunOnly: 'Yalnız denendi, organizma değiştirilmedi.',
+    heldOut: 'Kazanç yalnız görülmemiş tohumlarda raporlanır; arama bunları görmedi.',
+  },
+  lifeMap: {
+    axis: { speed: 'hız', size: 'boyut', range: 'menzil' },
+    organisms: 'organizma',
+    bestEnergy: 'en iyi enerji',
+    lineage: 'soy',
+    speed: 'hız',
+    empty: 'boş',
+    clippedNote:
+      'Üst sınırın altındaki tüm gözlemler üst kutuya kırpılır; sıfır olması bir bulgu değil, ölçüm sınırıdır.',
+  },
   experiments: {
     title: 'Deneyler',
     hint: 'Üç deney, npm run experiments ile Node\'da koşar (tarayıcıdan tetiklenmez).',
@@ -167,11 +203,24 @@ export const tr = {
     evidence: 'Kanıt kimlikleri',
     measurements: 'Ölçümler',
     sourceLocal: 'Yerel kural özeti — dil/görsel model kullanılmadı',
+    notMeasured: {
+      free: 'Ücretsiz — gözlemci karesi tarayıcı tarafında yakalanır',
+      fixedStep: 'Simülasyon 50 ms sabit adımla ilerler; olaylar tick kimliğiyle eşleşir',
+      reserves: 'Kaynak rezervleri sonludur; enerji paylaşımı enerji üretmez',
+      regeneration: 'Rejenerasyon ve oyuncu besini dış girdidir ve ölçülür',
+      control: 'Kontrol deneyi yapılmadan nedensellik iddiası kurulamaz',
+      consciousness: 'Bilinç veya genel zekâ ölçülmez',
+      visualCounting: 'Görsel sayım telemetrinin yerine geçmez',
+      readOnly: 'Gözlemci canlılara hazır cevap veremez; ağırlıkları düzenleyemez',
+      listNote: 'Ölçülmemiş her şey `uncertainties` içinde listelenir.',
+    },
     sourceModel: 'Dil modeli yanıtı',
     sourceVision: 'Görsel destekli analiz',
     unverifiedNumbers: 'Doğrulanamayan sayılar çıkarıldı.',
+    preparing: 'JSON hazırlanıyor…',
     measurementsTruncated: 'İlk {shown} / {total} ölçüm gösteriliyor.',
     claimsTruncated: 'İlk {shown} / {total} sayı iddiası gösteriliyor.',
+    summary: OBSERVER_SUMMARY_TR,
     modelUnavailable: 'API erişimi yok — yerel kural özeti üretildi. Sahte model yanıtı gösterilmez.',
     timeout: 'Model zaman aşımına uğradı; oyun devam ediyor.',
   },
@@ -189,6 +238,7 @@ export const tr = {
     saved: 'Kayıt alındı',
     corrupt: 'Bozuk kayıt reddedildi — mevcut dünya korundu.',
     storageError: 'Depolama hatası: kayıt yazılamadı.',
+    preparing: 'JSON hazırlanıyor…',
     branchCreated: 'Dal oluşturuldu',
   },
 
@@ -298,6 +348,19 @@ const en: Strings = {
     generation: 'Generation',
     birthMode: 'Birth mode',
     birthModeValue: { genesis: 'Founder', bud: 'Bud', fragment: 'Fragmentation' },
+    allLineages: 'all lineages',
+    eventType: {
+      genesis: 'genesis',
+      'cell-division': 'cell division',
+      'bud-separation': 'bud separation',
+      'bond-formation': 'bond formed',
+      'bond-break': 'bond broken',
+      fragmentation: 'fragmentation',
+      death: 'death',
+      predation: 'predation',
+      'learning-update': 'learning update',
+      intervention: 'player intervention',
+    },
     cells: 'Cell count',
     totalEnergy: 'Total energy',
     parent: 'Parent',
@@ -342,6 +405,29 @@ const en: Strings = {
     note: 'Adaptation is never declared from mean gene change alone; a common-garden experiment is required.',
     truncated: 'Showing first {shown} of {total} lineages.',
   },
+  events: {
+    recordNote:
+      "The simulation's own record. This data was already produced; the panel makes it visible.",
+    shown: 'Showing last {shown} events ({total} recorded).',
+  },
+  evolution: {
+    generationCurve: 'generation curve',
+    reset: 'Evolution lab reset',
+    applied: 'The found policy was written to the organism.',
+    dryRunOnly: 'Dry run only; the organism was not changed.',
+    heldOut:
+      'The gain is reported only on held-out seeds; the search did not see them.',
+  },
+  lifeMap: {
+    axis: { speed: 'speed', size: 'size', range: 'range' },
+    organisms: 'organisms',
+    bestEnergy: 'best energy',
+    lineage: 'lineage',
+    speed: 'speed',
+    empty: 'empty',
+    clippedNote:
+      'All observations below the upper bound are clipped into the top box; a zero is a measurement limit, not a finding.',
+  },
   experiments: {
     title: 'Experiments',
     hint: 'Three experiments run in Node via npm run experiments (not from the browser).',
@@ -385,11 +471,24 @@ const en: Strings = {
     evidence: 'Evidence IDs',
     measurements: 'Measurements',
     sourceLocal: 'Local rule summary — no language/vision model used',
+    notMeasured: {
+      free: 'Free — the observer frame is captured in the browser',
+      fixedStep: 'The simulation advances in fixed 50 ms steps; events match by tick identity',
+      reserves: 'Source reservoirs are finite; energy sharing does not create energy',
+      regeneration: 'Regeneration and player feed are external inputs and are measured',
+      control: 'No causal claim without a control experiment',
+      consciousness: 'Consciousness or general intelligence is not measured',
+      visualCounting: 'Visual counting does not replace telemetry',
+      readOnly: 'The observer cannot answer for the organisms; it cannot edit their weights',
+      listNote: 'Everything not measured is listed in `uncertainties`.',
+    },
     sourceModel: 'Language model answer',
     sourceVision: 'Vision-assisted analysis',
     unverifiedNumbers: 'Unverifiable numbers were removed.',
+    preparing: 'Preparing JSON…',
     measurementsTruncated: 'Showing first {shown} of {total} measurements.',
     claimsTruncated: 'Showing first {shown} of {total} number claims.',
+    summary: OBSERVER_SUMMARY_EN,
     modelUnavailable: 'No API access — a local rule summary was produced. No fake model answer is shown.',
     timeout: 'The model timed out; the game keeps running.',
   },
@@ -406,6 +505,7 @@ const en: Strings = {
     saved: 'Record saved',
     corrupt: 'Corrupt record rejected — the current world was preserved.',
     storageError: 'Storage error: the record could not be written.',
+    preparing: 'Preparing JSON…',
     branchCreated: 'Branch created',
   },
   settings: {

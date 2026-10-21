@@ -410,7 +410,7 @@ export function ObserverPanel({ client }: { client: SimClient }): React.ReactEle
     const text = q.trim();
     if (!text) return;
     useStore.getState().setPanel('observer');
-    client.evidencePack(text, 'A', selectedId);
+    client.evidencePack(text, 'A', selectedId, language);
   };
 
   return (

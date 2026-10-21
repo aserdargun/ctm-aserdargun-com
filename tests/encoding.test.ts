@@ -78,6 +78,49 @@ describe('metin bütünlüğü', () => {
     ).toEqual([]);
   });
 
+  it('arayüzde Türkçe sabit metin kalmıyor (dil değiştirme her yere geçer)', () => {
+    // ⚠️ ÖLÇÜLEN (19 Ekim 2026): uygulama iki dilli ama **42** Türkçe sabit
+    // metin vardı — 30'u gözlemci panelinin **tüm** bilimsel çıktısında, 12'si
+    // bileşenlerde. Dil İngilizce'ye geçtiğinde panel Türkçe kalıyordu.
+    //
+    // Buradaki koruma **genel**: arayüz dosyalarında (ve kanıt paketinin
+    // metinlerinde) Türkçe'ye özgü karakter içeren, iki dilli olmayan sabit
+    // metin kalmaz. Yorumlar temizlenir (JSX yorumları dâhil), iki dilli
+    // kalıplar (`tr ? ... : ...`) muaftır.
+    const UI_FILES = [
+      'src/ui/EventsPanel.tsx',
+      'src/ui/EvolutionPanel.tsx',
+      'src/ui/LifeMapPanel.tsx',
+      'src/ui/Panels.tsx',
+      'src/ui/Hud.tsx',
+      'src/ui/ExperimentPanels.tsx',
+      'src/App.tsx',
+      'src/worker/evidence.ts',
+    ];
+    const TR = /[ğüşıİç]/;
+    const stripComments = (src: string): string =>
+      src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/.*$/gm, '$1');
+
+    const offenders: string[] = [];
+    for (const rel of UI_FILES) {
+      const src = stripComments(readFileSync(resolve(ROOT, rel), 'utf8'));
+      src.split('\n').forEach((line, i) => {
+        if (/^\s*import\s/.test(line)) return;
+        for (const m of line.matchAll(/(['"`])([^'"`]*)\1/g)) {
+          const text = m[2] as string;
+          if (text.length < 3 || !TR.test(text)) continue;
+          // İki dilli kalıp (tr ? ... : ...) sorun değil.
+          if (line.includes('?') && line.includes(':')) continue;
+          offenders.push(`${rel}:${i + 1}  ${text.slice(0, 60)}`);
+        }
+      });
+    }
+    expect(
+      offenders,
+      `Türkçe sabit metin kalmış — dil değiştirildiğinde bu metinler Türkçe kalır:\n${offenders.join('\n')}`,
+    ).toEqual([]);
+  });
+
   it('gözlemci özeti eşiği SAYIYLA yazar (bozuk metin yeniden dönmüyor)', () => {
     // Koruma, düzeltmenin kendisine bağlanır: eşik dalı gerçekten çalışıyor
     // mu, yoksa "düzelttim" kaydı mı tutuyor?

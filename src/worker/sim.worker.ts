@@ -448,7 +448,14 @@ function handle(request: WorkerRequest): void {
       if (!w) break;
       post({
         type: 'evidence',
-        pack: buildEvidencePack(w, request.question, request.kind, request.organismId, worldId),
+        pack: buildEvidencePack(
+          w,
+          request.question,
+          request.kind,
+          request.organismId,
+          worldId,
+          request.language,
+        ),
       });
       break;
     }

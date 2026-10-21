@@ -7,6 +7,7 @@
  */
 
 import type { Genome, SimEvent, Vec3 } from '../sim/types.ts';
+import type { Language } from '../engine/store.ts';
 import type { LifeSnapshot } from '../sim/lab/lifeMap.ts';
 
 /** Kare paketi başlık uzunluğu (float). */
@@ -110,7 +111,14 @@ export type Command =
    * dolu liste dönüyordu — düğmenin söylediği şeyi yapmadığı bir durum.
    */
   | { type: 'clearEvents' }
-  | { type: 'evidencePack'; question: string; kind: 'A' | 'B'; organismId: number | null }
+  | {
+      type: 'evidencePack';
+      question: string;
+      kind: 'A' | 'B';
+      organismId: number | null;
+      /** Özet hangi dilde yazılsın? Kanıt paketi de bu dili taşır. */
+      language: Language;
+    }
   /**
    * Evrim Atölyesi: seçili organizmanın politikasını arena üzerinde (μ+λ)
    * aramayla iyileştirir. Canlı dünyayı **değiştirmez**; arama ayrı arena
@@ -195,7 +203,8 @@ export interface EvidencePack {
   tick: number;
   simTimeSeconds: number;
   question: string;
-  language: string;
+  /** Özet ve gözlem metinlerinin dili. */
+  language: Language;
   eventIds: number[];
   events: unknown[];
   measurements: { metricRef: string; value: number; unit: string }[];

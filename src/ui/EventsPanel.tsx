@@ -22,6 +22,7 @@
 
 import React from 'react';
 import { useStore } from '../engine/store.ts';
+import { format, getStrings } from '../i18n/index.ts';
 import type { SimClient } from '../engine/client.ts';
 import type { SimEvent, SimEventType } from '../sim/types.ts';
 
@@ -38,18 +39,9 @@ const PAGE = 400;
  */
 const SHOWN_EVENTS = 120;
 
-const TYPE_LABEL: Record<SimEventType, string> = {
-  genesis: 'kuruluş',
-  'cell-division': 'hücre bölünmesi',
-  'bud-separation': 'tomurcuk ayrılması',
-  'bond-formation': 'bağ kuruldu',
-  'bond-break': 'bağ koptu',
-  fragmentation: 'parçalanma',
-  death: 'ölüm',
-  predation: 'avlanma',
-  'learning-update': 'öğrenme güncellemesi',
-  intervention: 'oyuncu müdahalesi',
-};
+// ⚠️ Bu sözlük **Türkçe**ydi ve bileşenin içinde duruyordu; dil İngilizce'ye
+// geçtiğinde olay türleri Türkçe kalıyordu. Artık i18n sözlüğündeki
+// `inspector.eventType` kullanılıyor (her iki dil).
 
 /** Tıklama sayısını azaltmak için en sık görülen türler üstte. */
 function countByType(events: readonly SimEvent[]): [SimEventType, number][] {
@@ -65,6 +57,9 @@ export function EventsPanel({ client }: { client: SimClient }): React.ReactEleme
   const clearEvents = useStore((s) => s.clearEvents);
   const notify = useStore((s) => s.notify);
   const tr = language === 'tr';
+  const t = getStrings(language);
+  const typeLabel = (type: string): string =>
+    (t.inspector.eventType as Record<string, string>)[type] ?? type;
 
   const [filter, setFilter] = React.useState<SimEventType | 'all'>('all');
 
@@ -84,9 +79,7 @@ export function EventsPanel({ client }: { client: SimClient }): React.ReactEleme
       </header>
 
       <p className="panel__hint">
-        {tr
-          ? 'Simülasyonun kaydı. Bu veri zaten üretiliyordu; panel onu görünür kılıyor.'
-          : 'The simulation record. This data was already produced; the panel makes it visible.'}
+        {t.events.recordNote}
       </p>
 
       <div className="panel__row" style={{ marginTop: 10 }}>
@@ -127,7 +120,7 @@ export function EventsPanel({ client }: { client: SimClient }): React.ReactEleme
                 className={filter === type ? 'is-active' : ''}
                 onClick={() => setFilter(type)}
               >
-                {TYPE_LABEL[type] ?? type} ({n})
+                {typeLabel(type)} ({n})
               </button>
             ))}
           </div>
@@ -139,7 +132,7 @@ export function EventsPanel({ client }: { client: SimClient }): React.ReactEleme
               .map((e) => (
                 <li key={e.id} className="events__item">
                   <span className="events__tick">{e.tick}</span>
-                  <span className="events__type">{TYPE_LABEL[e.type] ?? e.type}</span>
+                  <span className="events__type">{typeLabel(e.type)}</span>
                   <span className="events__detail">
                     {e.detail
                       ? Object.entries(e.detail)
@@ -154,9 +147,7 @@ export function EventsPanel({ client }: { client: SimClient }): React.ReactEleme
 
           {shown.length > SHOWN_EVENTS && (
             <p className="panel__hint">
-              {tr
-                ? `Son ${SHOWN_EVENTS} olay gösteriliyor (${shown.length} kayıtlı).`
-                : `Showing last ${SHOWN_EVENTS} of ${shown.length}.`}
+              {format(t.events.shown, { shown: SHOWN_EVENTS, total: shown.length })}
             </p>
           )}
         </>

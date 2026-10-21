@@ -14,6 +14,7 @@
 
 import React from 'react';
 import { useStore } from '../engine/store.ts';
+import { getStrings } from '../i18n/index.ts';
 import type { SimClient } from '../engine/client.ts';
 
 const GENERATIONS = 8;
@@ -26,6 +27,7 @@ function fmt(v: number, digits = 3): string {
 
 /** Nesil eğrisini küçük bir SVG grafiğine çevirir. */
 function Sparkline({ history, width = 260, height = 64 }: { history: number[]; width?: number; height?: number }): React.ReactElement | null {
+  const language = useStore((s) => s.language);
   if (history.length < 2) return null;
   const min = Math.min(...history);
   const max = Math.max(...history);
@@ -42,7 +44,7 @@ function Sparkline({ history, width = 260, height = 64 }: { history: number[]; w
     .join(' ');
   const area = `${pad},${pad + h} ${points} ${pad + w},${pad + h}`;
   return (
-    <svg width={width} height={height} role="img" aria-label="nesil eğrisi" style={{ display: 'block', marginTop: 8 }}>
+    <svg width={width} height={height} role="img" aria-label={getStrings(language).evolution.generationCurve} style={{ display: 'block', marginTop: 8 }}>
       <polygon points={area} fill="rgba(56,189,248,.12)" />
       <polyline points={points} fill="none" stroke="#38bdf8" strokeWidth="2" />
       {history.map((v, i) => {
@@ -111,7 +113,7 @@ export function EvolutionPanel({ client }: { client: SimClient }): React.ReactEl
             type="button"
             onClick={() => {
               reset();
-              notify('info', 'Evrim atölyesi sıfırlandı');
+              notify('info', getStrings(language).evolution.reset);
             }}
           >
             {language === 'tr' ? 'Temizle' : 'Clear'}
@@ -175,17 +177,11 @@ export function EvolutionPanel({ client }: { client: SimClient }): React.ReactEl
 
           <p className="panel__hint" style={{ marginTop: 8 }}>
             {evo.result.applied
-              ? language === 'tr'
-                ? 'Bulunan politika organizmaya yazıldı.'
-                : 'Found policy written to the organism.'
-              : language === 'tr'
-                ? 'Yalnız denendi, organizma değiştirilmedi.'
-                : 'Dry run — organism unchanged.'}
+              ? getStrings(language).evolution.applied
+              : getStrings(language).evolution.dryRunOnly}
           </p>
           <p className="panel__hint">
-            {language === 'tr'
-              ? 'Kazanç yalnız görülmemiş tohumlarda raporlanır; arama bunları görmedi.'
-              : 'Gain is reported only on held-out seeds; the search never saw them.'}
+            {getStrings(language).evolution.heldOut}
           </p>
         </div>
       )}
