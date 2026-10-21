@@ -22,7 +22,13 @@ FILES="$(node -e '
 const fs=require("node:fs");
 console.log(fs.readdirSync("tests").filter(f=>f.endsWith(".test.ts")).length);
 ')"
-echo "hedef sayılar türetildi: $UNIT test / $FILES dosya"
+# ⚠️ Belge hedefleri de **belgeden** türetilir. Koddan türetmek yanlıştı:
+# koruma tam da belgenin bayatlamasını yakaladığı için, kod doğruyken bile
+# belge eskiyse hedef "bulunamadı" hatası veriyordu.
+README_RUNS="$(grep -oE 'Vitest — [0-9]+ test' README.md | grep -oE '[0-9]+' | head -1)"
+PROGRESS_RUNS="$(grep -oE '[0-9]+ test, [0-9]+ dosya' docs/PROGRESS.md | grep -oE '[0-9]+' | head -1)"
+PROGRESS_FILES="$(grep -oE '[0-9]+ test, [0-9]+ dosya' docs/PROGRESS.md | grep -oE '[0-9]+' | tail -1)"
+echo "hedef sayılar türetildi: $UNIT test / $FILES dosya · README $README_RUNS · PROGRESS $PROGRESS_RUNS/$PROGRESS_FILES"
 
 check() {
   local name="$1" file="$2" from="$3" to="$4" test="$5"
@@ -109,14 +115,14 @@ const ORGANISM_LIST_LIMIT = 300;" \
 
 # 8) README komut tablosundaki test sayısı bayatlıyor
 check "README tablo test sayısı" "README.md" \
-  "| \`npm test\` | Vitest — ${UNIT} test |" \
-  "| \`npm test\` | Vitest — $((UNIT - 1)) test |" \
+  "| \`npm test\` | Vitest — ${README_RUNS} test |" \
+  "| \`npm test\` | Vitest — $((README_RUNS - 1)) test |" \
   "tests/docs.test.ts"
 
 # 9) PROGRESS.md dosya sayısı bayatlıyor
 check "PROGRESS dosya sayısı" "docs/PROGRESS.md" \
-  "${UNIT} test, ${FILES} dosya" \
-  "${UNIT} test, $((FILES - 2)) dosya" \
+  "${PROGRESS_RUNS} test, ${PROGRESS_FILES} dosya" \
+  "${PROGRESS_RUNS} test, $((PROGRESS_FILES - 2)) dosya" \
   "tests/docs.test.ts"
 
 # 10) İngilizce metinde yer tutucu adı kaymış
@@ -195,6 +201,50 @@ check "§1 özet bloğu" "docs/VALIDATION.md" \
 check "§1 alt başlık sayısı" "docs/VALIDATION.md" \
   "\`tests/world.test.ts\`, 29 test" \
   "\`tests/world.test.ts\`, 22 test" \
+  "tests/docs.test.ts"
+
+# 23) Paylaşma eşiği okuması bayat cümleyi geri getiriyor
+# ⚠️ Hedef metin hem backtick hem tek tırnak içeriyor; kabukta tek tırnak
+# içinde yazılır, içteki tek tırnak '\'' ile kaçırılır.
+check "paylaşma okuması veriden türüyor" "src/sim/experiments/ecology.ts" \
+  '` Enerji korunumu |${firstLive.worstLedgerResidual.toExponential(1)}|.`' \
+  '` Varsayılan 0,82'\''de aktarım **0**. Enerji korunumu |${firstLive.worstLedgerResidual.toExponential(1)}|.`' \
+  "tests/measurement.test.ts"
+
+# 24) Dünya içi evrim hükümü gürültü tabanını düşmüyor
+check "net etki hükümü" "src/sim/experiments/index.ts" \
+  "const net = treatment.gain - control.gain;" \
+  "const net = treatment.gain;" \
+  "tests/measurement.test.ts"
+
+# 25) Okuma metni verinin yönünün TERSİNİ iddia ediyor
+check "okuma yönü veriden" "src/sim/experiments/ecology.ts" \
+  "const dir = lowest.transfers > firstLive.transfers ? 'artırıyor' : 'azaltıyor';" \
+  "const dir = 'artırıyor';" \
+  "tests/measurement.test.ts"
+
+# 26) İşaretli sayı biçimi çift işaret üretiyor
+check "işaretli sayı biçimi" "src/sim/stats.ts" \
+  "  return value > 0 ? \`+\${s}\` : s;" \
+  "  return \`+\${s}\`;" \
+  "tests/measurement.test.ts"
+
+# 27) Koşucunun ilerleme paydası adım sayısıyla eşleşmiyor
+check "ilerleme paydası" "scripts/run-experiments.ts" \
+  "const TOTAL_STEPS = 31;" \
+  "const TOTAL_STEPS = 30;" \
+  "tests/docs.test.ts"
+
+# 28) Yeni bölümün SINIRI rapordan düşüyor
+check "yeni bölüm sınırı raporda" "scripts/run-experiments.ts" \
+  "· **Güven aralığı YOK**: bu bir tarama, fark testi değil." \
+  "· Bu bir tarama, fark testi değil." \
+  "tests/docs.test.ts"
+
+# 29) Yeni bölümün SINIRI rapordan düşüyor (dünya içi evrim)
+check "dünya içi evrim sınırı raporda" "scripts/run-experiments.ts" \
+  "⚠️ **SINIR: TEK tohum, güven aralığı YOK.**" \
+  "Ölçüm yapıldı." \
   "tests/docs.test.ts"
 
 echo

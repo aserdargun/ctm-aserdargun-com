@@ -23,7 +23,13 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { GENOME_KEYS, founderGenomes, genomeDistance } from '../src/sim/genome.ts';
 import { ACTION_NAMES, MLP_SHAPE } from '../src/sim/behavior/mlp.ts';
-import { baselineThetas, readInWorldEvolution } from '../src/sim/experiments/index.ts';
+import {
+  baselineThetas,
+  formatInWorldEvolution,
+  readInWorldEvolution,
+} from '../src/sim/experiments/index.ts';
+import { formatShareThreshold, sweepShareThreshold } from '../src/sim/experiments/ecology.ts';
+import { fmtSigned } from '../src/sim/stats.ts';
 import { medianOf } from '../src/sim/experiments/ecology.ts';
 import { ACTION_LABELS_EN, ACTION_LABELS_TR, format, getStrings } from '../src/i18n/index.ts';
 import { Rng } from '../src/sim/rng.ts';
@@ -797,6 +803,8 @@ describe('ölçüm · hüküm kendi kanıtına bağlı mı', () => {
     endEnergy: 58,
     spentMs: 1000,
   };
+  // Kontrol kolu: arama YOK. Kendi kazancı **gürültü tabanıdır**.
+  const CONTROL = { gain: 2.214, endEnergy: 58 };
 
   it('sonlu olmayan kazanç "işe yarıyor" hükmü ÜRETMEZ', () => {
     for (const bad of [
@@ -805,7 +813,7 @@ describe('ölçüm · hüküm kendi kanıtına bağlı mı', () => {
       { baseline: 41.8, best: 64.8, gain: Number.NaN },
       { baseline: 41.8, best: 64.8, gain: Infinity },
     ]) {
-      const r = readInWorldEvolution({ ...arm, ...bad }, 58);
+      const r = readInWorldEvolution({ ...arm, ...bad }, CONTROL);
       expect(r, `hüküm "${r}" kanıtsız olumlu`).toContain('ÖLÇÜLEMEDİ');
       expect(r, `hüküm "${r}" kanıtsız olumlu`).not.toContain('işe yarıyor');
     }
@@ -850,13 +858,132 @@ describe('ölçüm · hüküm kendi kanıtına bağlı mı', () => {
   });
 
   it('sonlu ve pozitif kazanç olumlu hükmü korur', () => {
-    expect(readInWorldEvolution(arm, 58)).toContain('işe yarıyor');
+    expect(readInWorldEvolution(arm, CONTROL)).toContain('işe yarıyor');
   });
 
   it('sonlu ve negatif kazanç kazanç üretmedi der', () => {
-    const r = readInWorldEvolution({ ...arm, gain: -3 }, 58);
+    const r = readInWorldEvolution({ ...arm, gain: -3 }, CONTROL);
     expect(r).toContain('kazanç üretmedi');
     expect(r).not.toContain('işe yarıyor');
+  });
+
+  it('⚠️ hüküm TEK kazanca değil NET etkiye bakar (gürültü tabanı düşülür)', () => {
+    // ÖLÇÜLEN HATA (19 Ekim 2026): kontrol kolu — yani **arama YOK** — kendi
+    // kazancı +2,214 gösteriyordu. Sebep: taban örneği aramanın RNG akışından
+    // ayrı çekildiği için "bulunan" ile taban **farklı örneklemlerden**
+    // geliyor; fark sıfır değil, örneklem gürültüsü. Raporlanan kazanç
+    // (12,251) bu gürültüyü içeriyordu.
+    //
+    // Burada: tedavi kazancı pozitif ama kontrolünki daha büyükse, ham
+    // kazanç "işe yarıyor" derken **net** etki negatiftir. Hüküm NET'e bakar.
+    const r = readInWorldEvolution(arm, { gain: 99, endEnergy: 58 });
+    expect(r, 'gürültü tabanı düşülmedi').toContain('kazanç üretmedi');
+    expect(r).not.toContain('işe yarıyor');
+  });
+
+  it('gürültü tabanı hükümde AÇIKÇA yazılır', () => {
+    const r = readInWorldEvolution(arm, CONTROL);
+    expect(r, 'gürültü tabanı okunmuyor').toContain('2.214');
+    expect(r, 'net etik okunmuyor').toContain('net etki');
+    // Tek tohum + güven aralığı yok sınırı metinde olmalı.
+    expect(r, 'tek tohum sınırı yazılı değil').toMatch(/TEK tohum/);
+    expect(r, 'güven aralığı yok sınırı yazılı değil').toMatch(/güven aralığı yok/);
+  });
+});
+
+describe('ölçüm · paylaşma eşiği taraması okuması veriden türüyor', () => {
+  // ⚠️ ÖLÇÜLEN HATA (19 Ekim 2026): okuma metni "Varsayılan 0,82'de aktarım
+  // **0**" diye **sert kodlanmıştı** ve artık yanlıştı (ölçüm: 0,82'de 4 tohumda
+  // 2.140 aktarım). Dahası cümle kendi kendisiyle çelişiyordu: "0,82 ilk kez
+  // tetikleniyor … 0,82'de aktarım 0".
+  it('okuma ölçülen tohum sayısını taşır, bayat cümleyi taşımaz', () => {
+    const r = sweepShareThreshold({ idleLevels: [0.82, 0.3], seeds: 1, ticks: 400 });
+    const text = r.reading;
+    expect(text, 'okuma tohum sayısını taşımıyor').toMatch(/\d+\/\d+ \*\*tohumda|tohumda tetikleniyor/);
+    expect(text, "bayat 'Varsayılan 0,82'de aktarım 0' iddiası hâlâ var").not.toContain(
+      "Varsayılan 0,82'de aktarım",
+    );
+    expect(text, 'okuma enerji korunumunu taşımıyor').toMatch(/Enerji korunumu/);
+  });
+
+  it('her eşik noktası kaç tohumda tetiklendiğini raporlar', () => {
+    const r = sweepShareThreshold({ idleLevels: [0.82, 0.3], seeds: 1, ticks: 400 });
+    for (const p of r.points) {
+      expect(p.liveSeeds, `eşik ${p.idleLevel}: canlı tohum sayısı yok`).toBeGreaterThanOrEqual(0);
+      expect(p.liveSeeds, `eşik ${p.idleLevel}: canlı tohum sayısı tohumları aşıyor`).toBeLessThanOrEqual(r.seeds);
+    }
+    // Formatter "kaç tohumda" sütununu basmalı.
+    const text = formatShareThreshold(r);
+    expect(text, 'formatter canlı tohum sütununu basmıyor').toMatch(/canlı tohum/);
+  });
+
+  it('⚠️ okuma metni verinin TERSİNİ iddia edemez', () => {
+    // ⚠️ ÖLÇÜLEN HATA (19 Ekim 2026): okuma metni "eşiğin düşürülmesi
+    // aktarımı artırıyor" diyordu — ama ölçülen veri bunun **tersini**
+    // söylüyordu (0,5'te 12.610 aktarım, 0,3'te 2.026). Metin, verinin
+    // söylediğinin tersini iddia ediyordu.
+    //
+    // Koruma: okuma metnindeki **yön** ile verideki yön aynı olmalı.
+    const r = sweepShareThreshold({ idleLevels: [0.82, 0.5, 0.3], seeds: 1, ticks: 1200 });
+    const live = r.points.filter((p) => p.liveSeeds > 0);
+    if (live.length < 2) return; // veri bu koşuda ayrım üretmediyse sınır yok
+    const first = live[0] as (typeof live)[number];
+    const last = live[live.length - 1] as (typeof live)[number];
+    const text = r.reading;
+    if (last.transfers > first.transfers) {
+      expect(text, 'veri artıyor ama metin azalıyor diyor').not.toContain('azaltıyor');
+    } else if (last.transfers < first.transfers) {
+      expect(text, 'veri azalıyor ama metin artıyor diyor').not.toContain('artırıyor');
+    }
+  });
+
+  it('işaretli sayılar çift işaret üretmez', () => {
+    // ⚠️ "kazanç +" elle yazılınca negatif değerde "+-12.739" oluyordu.
+    expect(fmtSigned(3.316)).toBe('+3.316');
+    expect(fmtSigned(-12.739)).toBe('-12.739');
+    expect(fmtSigned(0)).toBe('0.000');
+    expect(fmtSigned(Number.NaN)).toBe('—');
+    const r = readInWorldEvolution(
+      { baseline: 69.6, best: 61.7, gain: -7.9, startEnergy: 55, endEnergy: 62, spentMs: 100 },
+      { gain: -12.7, endEnergy: 62 },
+    );
+    expect(r, 'çift işaret var').not.toContain('+-');
+    expect(r, 'çift işaret var').not.toContain('++');
+
+    // ⚠️ Aynı hata **formatter** satırında da vardı ve ilk düzeltmede
+    // kaçmıştı: okuma metni düzeldi, tablo satırı "gürültü tabanı:
+    // +-17.741" olarak kaldı. Koruma ikisini birlikte denetler.
+    const point = {
+      generations: 0,
+      history: [] as number[],
+      baseline: 65.983,
+      baselineMean: 60.977,
+      baselineDeaths: 0,
+      baselineN: 4,
+      best: 56.846,
+      gain: -12.739,
+      startEnergy: 55,
+      endEnergy: 62,
+      spentMs: 1626,
+      finalPopulation: 139,
+      finalMultiCellColonies: 1,
+      largestColony: 3,
+      worstLedgerResidual: 0,
+    };
+    const formatted = formatInWorldEvolution({
+      seed: 11,
+      forkTick: 3000,
+      evaluateTicks: 1000,
+      runs: 3,
+      arms: [
+        { label: 'kontrol (arama yok)', point },
+        { label: 'evrim (6 nesil)', point: { ...point, generations: 6, best: 69.299, gain: 3.316 } },
+      ],
+      reading: 'x',
+    });
+    expect(formatted, 'formatter çift işaret üretiyor').not.toContain('+-');
+    expect(formatted, 'formatter çift işaret üretiyor').not.toContain('++');
+    expect(formatted, 'formatter gürültü tabanını göstermiyor').toMatch(/gürültü tabanı/);
   });
 });
 

@@ -14,7 +14,7 @@ Bu raporda **yalnızca gerçekten çalıştırılan** kontroller yer alır.
 
 ```
 Test Files  12 passed (12)
-     Tests  298 passed (298)
+     Tests  307 passed (307)
 ```
 
 ### 1.1 MLP sayısal doğruluğu (`tests/mlp.test.ts`, 14 test)
@@ -749,6 +749,74 @@ gereksizdir. Ödül zaten karar-bağımlı.
 **S-3 artık bir "geri çekilme" değil, yapıya uyan yöntemdir.** Ürüne alınması
 hâlinde "yaşam öğrenir" anlatısının değişmesi bir bedeldir; ama bu bedel artık
 teknik bir zorunluluk değil, **bilinçli bir seçimdir** — çünkü ölçüldü.
+
+### 4.13 Paylaşma eşiği duyarlılık taraması — **rapora yeni girdi**
+
+**Komut:** `npm run experiments` · `src/sim/experiments/ecology.ts`
+**Durum:** Bu deney daha önce **rapora hiç bağlı değildi** (ölü). Kullanıcı
+kararıyla "kendi sınırlarıyla" rapora alındı.
+
+Paylaşma mekanizmasının tetiklendiği boşta eşiğini tarar: eşik düşürülürse
+mekanizma ne kadar sık çalışır ve **ürün değişir mi?**
+
+| Sınır | Değer |
+|---|---|
+| Tasarım | **Eşleştirilmiş** — her eşik noktası aynı tohum kümesini kullanır (3001+i) |
+| Güven aralığı | **YOK** — bu bir tarama, fark testi değil |
+| Taban çizgisi | Varsayılan ayar (0,82 e); oyun varsayılanı **değişmez** |
+
+**Bulgu ve sınırı:** eşik **çok** değişken — paylaşma mekanizmasının tetiklenme
+sıklığı eşikle birkaç yüz kat değişiyor. Buna karşılık **zirve koloni
+büyüklüğü her eşikte aynı** (24 hücre) — yani *tetikleme eşiği değişken, sonuç
+değişmiyor*. Bu, "paylaşma mekanizması işe yaramıyor" demek **değildir**;
+"mekanizmanın sıklığı ürünün başarısını ölçmüyor" demektir.
+
+**Dürüstlük notu:** tarama "fark ne kadar büyük, güvenilir mi" sorusuna
+**cevap vermez**. Yalnız "hangi eşikte mekanizma ne kadar sık çalışır ve
+ürün değişir mi" sorusuna cevap verir.
+
+### 4.14 Dünya içi evrim (canlı dünyanın dalında) — **rapora yeni girdi**
+
+**Komut:** `npm run experiments` · `src/sim/experiments/index.ts`
+**Durum:** Bu deney de daha önce **rapora hiç bağlı değildi** (ölü). Aynı
+kararla, kendi sınırlarıyla rapora alındı.
+
+§4.9'daki arena araması öğrenmenin üst sınırını aradı; bu ölçüm aynı yöntemin
+**canlı dünyanın anlık görüntüsünden açılan bir dalda** da çalışıp çalışmadığını
+sorar.
+
+| Sınır | Değer |
+|---|---|
+| Tohum | **TEK** (11) — tekrar yok |
+| Güven aralığı | **YOK** |
+| Karşılaştırma | Eşleştirilmiş iki kol (kontrol: arama yok / tedavi: arama var) |
+| Ölçülen | Değerlendirme **skoru**; canlı dünya çıktısı ayrıca raporlanır |
+
+**Bulgu:** arama, canlı dünyanın dalında da skoru yükseltiyor. Ama ölçülen
+kazanç **değerlendirme skorkasında**; iki kolun **canlı dünya sonucu**
+(population, koloni sayısı, organizma enerjisi) ölçüldüğü gibi **aynıdır**.
+Yani mekanizma uçtan uca çalışıyor (protokol doğrulaması) — ama bundan
+"canlı dünyada öğrenme işe yarıyor" sonucu **çıkmaz**.
+
+**Bu bölüm rapora alınırken iki gerçek hata bulundu ve düzeltildi:**
+
+1. **Kontrol kolunun "kazancı" gürültüydü.** Kontrol kolu (arama **yok**)
+   kazanç olarak −17,7 üretiyordu — çünkü taban örneği aramanın RNG akışından
+   ayrı çekildiği için "bulunan" ile taban **farklı rastgele örneklemlerden**
+   geliyor. Yani arama yapılmadığı halde fark sıfır değil, **örnekleme
+   gürültüsü** — ve bu gürültü tedavi kolunun ham kazancından (+3,3) **büyüktü**.
+   Ham rakam gürültü tabanından küçükse anlam taşımaz. Düzeltme: etki =
+   tedavi kazancı − **gürültü tabanı**; net etki **+21,1** (ölçülen) ve iki
+   farklı yapılandırmada kararlı (+21,1 ve +21,9).
+2. **Bayat okuma metni.** Taramanın okumasında "Varsayılan 0,82'de aktarım
+   **0**" diye **sert kodlanmış** ve artık **yanlış** bir cümle vardı; üstelik
+   kendi cümlesiyle çelişiyordu ("0,82 ilk kez tetikleniyor … 0,82'de aktarım
+   0"). Okuma artık **ölçülen veriden** türer ve her eşikte "kaç tohumda
+   tetiklendiğini" bildirir.
+
+**Sınırlar gizlenmedi:** tek tohum, güven aralığı yok ve "işe yarıyor" hükmü
+**mekanizmanın çalıştığına** dairdir, genellenebilir bir etkiye değil. Bu
+bölüm §9'un "Doğrulanmayanlar" listesinin parçasıdır.
 
 ---
 
@@ -3047,6 +3115,19 @@ Bu maddeler **yapılmadı** ve dokümana sayı uydurulmadı:
     simülasyonda **yapısal** olarak belirlenir (soylar kuruluşta doğar, sonradan
     doğmaz), yani orada örneklemeye değil **yapıya** dayanan bir garanti
     vardır; ölçüm (40.000 tick, 7 senaryo → tepe 12) bunu doğruluyor.
+15. **Dünya içi evrimin etkisi **TEK tohumla** ölçüldü.** §4.14: arama canlı
+    dünyanın dalında skoru yükseltiyor (net +21,1), ama bu **tek tohum**, **güven
+    aralığı yok** bir ölçüm ve ölçülen kazanç **değerlendirme skorkasında** —
+    iki kolun canlı dünya çıktısı (popülasyon, koloni, organizma enerjisi)
+    ölçüldüğü gibi **aynıdır**. Yani "canlı dünyada öğrenme işe yarıyor"
+    sonucu **çıkmaz**; yalnız "mekanizma uçtan uca çalışıyor" doğrulanır.
+    Tekrarlama (birden çok tohum) **yapılmadı** ve **vaat edilmiyor**.
+16. **Paylaşma eşiği taraması bir fark testi DEĞİLDİR.** §4.13: eşleştirilmiş
+    tasarımlı bir tarama (her eşik noktası aynı tohum kümesi) ve **güven aralığı
+    yok**. "Eşik farkı ne kadar büyük ve güvenilir mi" sorusuna cevap vermez;
+    yalnız "hangi eşikte mekanizma ne kadar sık çalışır" sorusuna cevap verir.
+    Taramadaki okuma metni **ölçülen veriden** türer (sert kodlanmış bir
+    "varsayılan eşikte aktarım 0" iddiası kaldırıldı — §10/70).
 
 ---
 
@@ -3056,6 +3137,9 @@ Bunlar testlerin bulduğu, düzeltildiği ve **yeniden test edildiği** hatalard
 
 | # | Hata | Belirti | Düzeltme |
 |---|---|---|---|
+| 70 | İki **ölü deney** rapora alınırken **iki gerçek hata** bulundu | (a) `sweepShareThreshold`in okuma metni "Varsayılan 0,82'de aktarım **0**" diye **sert kodlanmıştı** ve artık yanlıştı: ölçümde 0,82 eşiğinde 4 tohumda **2.140 aktarım** vardı. Dahası cümle **kendi kendisiyle çelişiyordu** ("0,82 ilk kez tetikleniyor … 0,82'de aktarım 0"). (b) `experimentInWorldEvolution`ın **kontrol kolu** (arama **YOK**) kazanç olarak **−17,7** üretiyordu — yani gürültü, hatta negatif; tedavi kolunun ham kazancı ise yalnız **+3,3**, yani **gürültü tabanından küçüktü**. Sebep: taban örneği aramanın RNG akışından ayrı çekildiği için "bulunan" ile taban **farklı rastgele örneklemlerden** geliyor. Bu, §10/31'deki "maksimum yerine ortalama" hatasının **aynı sınıfı**, ters yönde | (a) Okuma artık **ölçülen veriden** türer: her eşikte "kaç tohumda tetiklendi" yazar (`liveSeeds`), tetikleme eşiğinin duyarlılığını **ölçülen** bir oranla bildirir ve zirve koloni sabitse "**tetikleme eşiği değişken, sonuç değişmiyor**" der. (b) Hüküm **net etkiye** bakar: etki = tedavi kazancı − **gürültü tabanı** (kontrol kolunun kendi kazancı). Ölçülen net etki **+21,1** ve iki farklı yapılandırmada kararlı (+21,1 / +21,9). Koruma: hüküm, kontrolün gürültüsü tedavi kazancından büyükse "işe yarıyor" **demez**; okuma metnindeki **yön** ile verideki yön aynı olmalıdır. Üç mutasyonla doğrulandı |
+| 71 | Raporun **ilerleme numaraları** birbiriyle tutarsızdı | Koşucunun satırlarında elle yazılmış, birbiriyle **çelişen** paydalar vardı: "1/22 … 8/8 … 14/14 … 23/23". "14/14" **iki kez** geçiyordu (Faz B1b ve Faz C1) ve "22/22 dal" satırı "28/28"den **sonra** geliyordu. Yani paket kaç adımdan oluşuyordu, ilerleme çıktısı **söylemiyordu** — ve yeni bir bölüm eklemek elle 30+ satırı yeniden numaralamak demekti | Sayaç artık **kendini artırıyor** (`progress(...)`), payda tek yerde (`TOTAL_STEPS`) yazılı. Koruma: `TOTAL_STEPS` ile `progress(` çağrısı sayısı **eşleşmek zorunda** — mutasyonla doğrulandı (31 → 30 yapıldı → kırmızı) |
+| 72 | Negatif sayılar raporda **çift işaret** üretiyordu | "kazanç +…" elle yazılınca negatif değerde "**+-12.739**" oluyordu (`fmt()` negatif sayıyı `-12.739` verir, metindeki "+" eklenir). Sessiz bir biçim hatası: okuyucu "12,739 kazanç" sanabilir | `stats.ts`e **işaretli** biçimlendirici (`fmtSigned`) eklendi ve kazanç gösteren yerlerde kullanıldı. Koruma: çift işaret (`+-`, `++`) üretilemez |
 | 69 | `VALIDATION.md` §1 — **kendi test paketini anlatan bölüm** 145 test bayattı | §1'in başındaki özet blok "Test Files 4 passed (4) / Tests 151 passed (151)" diyordu. Bu blok, test dosyası sayısı 4 iken kopyalanmış bir **terminal çıktısıydı** ve o günden beri güncellenmemişti: gerçekte 12 dosya / 298 test. Aynı sınıftan §1.2 `tests/world.test.ts` için "22 test" diyordu, dosyada 29 vardı. Bu, projenin en görünür kendi-kendini-denetleyen bölümü — sayının bayatlaması orada en çok zarar verir | Sayılar kaynağa bağlandı: (a) §1 özet bloğunun dosya ve test sayısı, (b) her §1.x alt başlığının dosya bazlı test sayısı, (c) alt başlıkların anmadığı dosya adları **gerçekten var mı** — üçü de denetleniyor. Düzeltme elle değil `tools/sync-test-counts.mjs` ile yapılıyor: araç README, PROGRESS.md **ve** VALIDATION.md §1'i kaynaktan türetilen sayılarla yazıyor. İki mutasyonla doğrulandı (§1 özet bloğu 11'e, §1.2 sayısı 22'ye çevrildi → ikisi de kırmızı) |
 | 68 | Ağ parametre sayısı **belgelerde** korunmuyordu — kullanıcıya görünen metin dâhil | `tests/mlp.test.ts` koddaki 140 sayısını ve formülü doğru koruyor, ama **belgeler** korunmuyordu. "140" **beş** yerde elle yazılıydı: `MODEL.md` (formülle birlikte), `PROGRESS.md`, `ROADMAP.md`, `VALIDATION.md` ve — **kullanıcıya görünen** — gözlemci panelinin i18n metni ("Gözlemci canlıların içindeki **140** parametreli ağdan AYRIDIR"). Mimari değişseydi (örn. girdi sayısı 12→14) hepsi sessizce yanlış olurdu; en kötüsü **arayüzün** kullanıcıya yanlış mimari anlatması | Koruma: sayı artık **koddan** (`MLP_SHAPE.PARAM_COUNT`) türetiliyor ve dört belge ile i18n metniyle karşılaştırılıyor; ayrıca `MODEL.md`deki formülün **her sayısı** (12·8 + 8 + 8·4 + 4) koddaki topolojiden türüyor. İki mutasyonla doğrulandı (belge ve arayüz metni 120'ye çevrildi → ikisi de kırmızı) |
 | 67 | RNG akış sayısı **dört** idi, belgeler **üç** diyordu | `src/sim/rng.ts` başlığı "simülasyonun **üç** ayrı rastgele akışı vardır (`env`, `inherit`, `action`)" diyordu; `RngBundle` ise **dört** akış taşıyor: `env`, `inherit`, `action` ve **`evolve`**. Eksik olan akış, rastgele bir akış değil: `evolve` üstel arama pertürbasyonlarını taşıyor ve ayrı olması **şart** (`world.ts:2056` → `this.rng.evolve`; kod yorumu: "Ayrı akış olması **şarttır** … çatallanan dünyalar yanlış sebeple farklılaşır"). Yani yanlış sayı, **deney geçerliliğini** ilgilendiren bir alanda sessizce eksik bir akışı gizliyordu. Aynı yanlış sayı `docs/MODEL.md` §6 (Determinizm), `docs/ROADMAP.md` G3 ve `src/sim/experiments/index.ts`te (dünya akışları listesi) de vardı | Beş yerde de "dört" yapıldı ve `evolve` akışının **neden ayrı olması gerektiği** yazıldı. Koruma **genel**: akış sayısı artık **koddan** (`StreamName` birleşimi + `RngBundle` alanları) türetiliyor ve `MODEL.md`, `ROADMAP.md` ile kaynak modülün yazdığı sayıyla karşılaştırılıyor; ayrıca kanonik yerler akış **adlarını** da listelemek zorunda. İki mutasyonla doğrulandı (kaynak modül ve `MODEL.md` sırasıyla "üç"e döndürüldü → ikisi de kırmızı). ⚠️ Korumayı yazarken **iki tuzak** çıktı: (a) `/i` bayrağı yakalanan kelimeyi özgün büyük harfle döndürüyor ("Dört" → sözlükte yok), (b) `ROADMAP.md` tek satırlık bir özet olduğu için akış adlarını listelemiyor — kural dosyaya göre ayrıldı |

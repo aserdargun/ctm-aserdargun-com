@@ -39,6 +39,8 @@ import {
   formatDiagnosis,
   formatEcologyTable,
   sweepBondDurability,
+  sweepShareThreshold,
+  formatShareThreshold,
   diagnoseLongRunLimit,
   sweepLongRunDurability,
   sweepResourceRegen,
@@ -79,9 +81,25 @@ import {
   measureRewardSignal,
   sweepSignStep,
   sweepVarianceReduction,
+  experimentInWorldEvolution,
+  formatInWorldEvolution,
   type ExperimentReport,
 } from '../src/sim/experiments/index.ts';
 import { fmt } from '../src/sim/stats.ts';
+
+/**
+ * Paketteki **adım sayısı** — ilerleme çıktısının paydası.
+ *
+ * ⚠️ Bu sayı elle yazılmıştı ve **tutarsızdı**: "1/22 … 8/8 … 14/14 … 23/23"
+ * gibi paydalar birbiriyle tutmuyordu, "14/14" iki kez geçiyordu ve
+ * "22/22 dal" satırı "28/28"den sonra geliyordu. Yani paket kaç adımdan
+ * oluşuyordu, çıktı **söylemiyordu**.
+ *
+ * Artık adım sayacı kendi kendini artırır (`progress(...)`) ve payda tek
+ * yerde yazılıdır. Değer `progress(` çağrısı sayısıyla eşleşmelidir;
+ * `tests/docs.test.ts` bunu denetler.
+ */
+const TOTAL_STEPS = 31;
 
 interface Args {
   quick: boolean;
@@ -129,7 +147,21 @@ function main(): void {
 
   const profile = args.quick ? 'HIZLI TEST' : args.deep ? 'TAM (derin pencere)' : 'standart';
   process.stdout.write(`Cell to Mind · deney paketi [${profile}]\n\n`);
-  process.stdout.write(`1/22  değişmez kontroller…\n`);
+
+  // ⚠️ **İlerleme numarası artık TÜRETİLİR.** Önce her satırda "N/22",
+  // "8/8", "14/14", "23/23" gibi elle yazılmış, birbiriyle **tutarsız**
+  // paydalar vardı: "14/14" iki kez geçiyordu (Faz B1b ve Faz C1) ve
+  // "22/22 dal" satırı "28/28"den **sonra** geliyordu. Yani paket kaç
+  // adımdan oluşuyordu, ilerleme çıktısı bunu **söylemiyordu** — ve yeni
+  // bir bölüm eklemek elle 30+ satırı yeniden numaralamak demekti.
+  // Şimdi sayaç kendi kendini artırır; payda tek yerde yazılıdır.
+  let step = 0;
+  const progress = (label: string): void => {
+    step++;
+    process.stdout.write(`${step === 1 ? '' : '\n'}${step}/${TOTAL_STEPS}  ${label}…\n`);
+  };
+
+  progress('değişmez kontroller');
   const invariants = runInvariants();
   process.stdout.write(`${formatInvariant(invariants)}\n\n`);
   // ⚠️ Dürüstlük sözleşmesinin KAPISI. Proje "sayılar bu kontrollerden biri
@@ -150,7 +182,7 @@ function main(): void {
     process.stderr.write(`\nUYARI: kırık değişmez kontroller (--allow-invariant-failure):\n${msg}\n`);
   }
 
-  process.stdout.write(`2/22  arena zorluk kalibrasyonu…\n`);
+  progress('arena zorluk kalibrasyonu');
   const difficulty = calibrateArena({
     seeds: args.quick ? 3 : 8,
     ticks: args.quick ? 600 : 4000,
@@ -158,13 +190,13 @@ function main(): void {
   });
   process.stdout.write(`${formatDifficulty(difficulty)}\n\n`);
 
-  process.stdout.write(`3/22  Deney 1 · bağ gücü…\n`);
+  progress('Deney 1 · bağ gücü');
   const exp1 = experiment1({ seeds: args.quick ? 3 : 12, ticks: scale.colonyTicks });
 
-  process.stdout.write(`4/22  Deney 2 · evrim…\n`);
+  progress('Deney 2 · evrim');
   const exp2 = experiment2({ seeds: args.quick ? 3 : 12, ticks: scale.colonyTicks });
 
-  process.stdout.write(`5/22  Deney 3 · öğrenme…\n`);
+  progress('Deney 3 · öğrenme');
   const exp3 = experiment3({
     seeds: args.quick ? 3 : scale.seeds,
     trainTicks: scale.trainTicks,
@@ -172,7 +204,7 @@ function main(): void {
     resourceCount: scale.resourceCount,
   });
 
-  process.stdout.write(`\n6/22  öğrenme · zorluk taraması (önceden kaydedilmiş eksen)…\n`);
+  progress('öğrenme · zorluk taraması (önceden kaydedilmiş eksen)');
   const sweep = args.quick
     ? sweepLearning({ resourceCounts: [8, 34], seeds: 3, trainTicks: 900, evalTicks: 600 })
     : sweepLearning({
@@ -183,7 +215,7 @@ function main(): void {
       });
   process.stdout.write(`${formatLearningSweep(sweep)}\n`);
 
-  process.stdout.write(`\n7/22  öğrenme sinyali duyarlılığı (ağırlık hareketi ne zaman davranışa yansır)…\n`);
+  progress('öğrenme sinyali duyarlılığı (ağırlık hareketi ne zaman davranışa yansır)');
   const signal = args.quick
     ? sweepLearningSignal({ trajectoryLimits: [16], learnRates: [0.02, 0.5], seeds: 2, trainTicks: 900, evalTicks: 600 })
     : sweepLearningSignal({
@@ -195,13 +227,13 @@ function main(): void {
       });
   process.stdout.write(`${formatSignalSweep(signal)}\n`);
 
-  process.stdout.write(`\n8/8  politika uzayı araştırması (öğrenmenin üst sınırı)…\n`);
+  progress('politika uzayı araştırması (öğrenmenin üst sınırı)');
   const survey = args.quick
     ? surveyPolicySpace({ resourceCount: 14, samples: 12, ticks: 600 })
     : surveyPolicySpace({ resourceCount: 14, samples: 160, ticks: 4000 });
   process.stdout.write(`${formatPolicySurvey(survey)}\n`);
 
-  process.stdout.write(`\n9/9  evrimsel politika araması (RL ile aynı ölçüm, ayrık tohumlar)…\n`);
+  progress('evrimsel politika araması (RL ile aynı ölçüm, ayrık tohumlar)');
   const evolution = args.quick
     ? evolvePolicy({ generations: 5, population: 6, offspring: 2, trainSeeds: 2, trainTicks: 1500, evalTicks: 1500 })
     : evolvePolicy({
@@ -214,25 +246,25 @@ function main(): void {
       });
   process.stdout.write(`${formatEvolution(evolution)}\n`);
 
-  process.stdout.write(`\n10/10 S-1 varyans azaltma (VARSAYILAN adım ayarlarında)…\n`);
+  progress('S-1 varyans azaltma (VARSAYILAN adım ayarlarında)');
   const variance = args.quick
     ? sweepVarianceReduction({ seeds: 3, trainTicks: 900, evalTicks: 600 })
     : sweepVarianceReduction({ seeds: 20, trainTicks: 6000, evalTicks: 4000 });
   process.stdout.write(`${formatVarianceSweep(variance)}\n`);
 
-  process.stdout.write(`\n11/11 S-1b · işaret avantajı + ölçülü adım artışı…\n`);
+  progress('S-1b · işaret avantajı + ölçülü adım artışı');
   const signStep = args.quick
     ? sweepSignStep({ learnRates: [0.02, 0.5], seeds: 3, trainTicks: 900, evalTicks: 600 })
     : sweepSignStep({ learnRates: [0.02, 0.1, 0.5, 2.0], seeds: 20, trainTicks: 6000, evalTicks: 4000 });
   process.stdout.write(`${formatSignStep(signStep)}\n`);
 
-  process.stdout.write(`\n12/12 S-2 teşhisi · ödül sinyali politikanın kararlarına bağlı mı?\n`);
+  progress('S-2 teşhisi · ödül sinyali politikanın kararlarına bağlı mı?');
   const rewardSignal = args.quick
     ? measureRewardSignal({ samples: 10, seedsPerSample: 1, ticks: 900 })
     : measureRewardSignal({ samples: 48, seedsPerSample: 2, ticks: 4000 });
   process.stdout.write(`${formatRewardSignal(rewardSignal)}\n`);
 
-  process.stdout.write(`\n13/13 Faz B1 · ekolojik sönümlenme teşhisi…\n`);
+  progress('Faz B1 · ekolojik sönümlenme teşhisi');
   const longTicks = args.deep ? 40_000 : 12_000;
   const sweepSeeds = args.quick ? 3 : 12;
   const signalSeeds = args.quick ? 2 : 8;
@@ -246,61 +278,61 @@ function main(): void {
   process.stdout.write(`${formatDiagnosis(ecology)}\n\n`);
   process.stdout.write(`${formatEcologyTable(ecology, args.quick ? 1000 : 1000)}\n`);
 
-  process.stdout.write(`\n14/14 Faz B1b · bağ ömrü duyarlılığı (teşhisin doğrudan sınaması)…\n`);
+  progress('Faz B1b · bağ ömrü duyarlılığı (teşhisin doğrudan sınaması)');
   const durability = args.quick
     ? sweepBondDurability({ settings: [{ strainDecayK: 0.02, bondFatigue: 2e-5 }, { strainDecayK: 0.005, bondFatigue: 5e-6 }], ticks: 4000, seeds: 1 })
     : sweepBondDurability({ ticks: longTicks, seeds: 4 });
   process.stdout.write(`${formatBondDurability(durability)}\n`);
 
-  process.stdout.write(`\n15/22 Y-2 · bağ ömrünün kalıtılabilirliği…\n`);
+  progress('Y-2 · bağ ömrünün kalıtılabilirliği');
   const heritability = args.quick
     ? experimentBondLifeHeritability({ seeds: 2, ticks: 4000 })
     : experimentBondLifeHeritability({ seeds: 6, ticks: longTicks });
   process.stdout.write(`${formatHeritability(heritability)}\n`);
 
-  process.stdout.write(`\n16/22 üreme tıkanması teşhisi…\n`);
+  progress('üreme tıkanması teşhisi');
   const repro = args.quick
     ? diagnoseReproductiveStall({ seed: 11, ticks: 8000, sampleEvery: 1000 })
     : diagnoseReproductiveStall({ seed: 11, ticks: longTicks, sampleEvery: 4000 });
   process.stdout.write(`${formatReproDiagnosis(repro)}\n`);
 
-  process.stdout.write(`\n17/17 uzun vadeli dayanıklılık (§5.4 genelleniyor mu?)…\n`);
+  progress('uzun vadeli dayanıklılık (§5.4 genelleniyor mu?)');
   const longRun = args.quick
     ? sweepLongRunDurability({ settings: [{ strainDecayK: 0.02, bondFatigue: 2e-5 }], ticks: 6000 })
     : sweepLongRunDurability({ ticks: longTicks });
   process.stdout.write(`${formatLongRun(longRun)}\n`);
 
-  process.stdout.write(`\n18/22 40.000 tick sınırı · erişilebilirlik mi avcı mı?…\n`);
+  progress('40.000 tick sınırı · erişilebilirlik mi avcı mı?');
   const limit = args.quick
     ? diagnoseLongRunLimit({ ticks: 8000, sampleEvery: 2000 })
     : diagnoseLongRunLimit({ ticks: longTicks, sampleEvery: longTicks > 20_000 ? 4000 : 2000 });
   process.stdout.write(`${formatLongRunLimit(limit)}\n`);
 
-  process.stdout.write(`\n19/22 kaynak rejenerasyonu A/B (kapalı enerji sistemi)…\n`);
+  progress('kaynak rejenerasyonu A/B (kapalı enerji sistemi)');
   const regen = args.quick
     ? sweepResourceRegen({ regens: [0, 0.01], ticks: 6000 })
     : sweepResourceRegen({ ticks: longTicks });
   process.stdout.write(`${formatRegen(regen)}\n`);
 
-  process.stdout.write(`\n20/20 popülasyon-ES (seçilen öğrenme yönü)…\n`);
+  progress('popülasyon-ES (seçilen öğrenme yönü)');
   const popUpdate = args.quick
     ? experimentPopulationUpdate({ seeds: 2, ticks: 6000 })
     : experimentPopulationUpdate({ seeds: 8, ticks: 20_000 });
   process.stdout.write(`${formatPopulationUpdate(popUpdate)}\n`);
 
-  process.stdout.write(`\n21/22 ödül hızı yayılımı (paylaşılan dünya siler mi?)…\n`);
+  progress('ödül hızı yayılımı (paylaşılan dünya siler mi?)');
   const dispersion = args.quick
     ? measureRewardDispersion({ ticks: 4000, acrossWorlds: 2 })
     : measureRewardDispersion({ ticks: 15_000 });
   process.stdout.write(`${formatDispersion(dispersion)}\n`);
 
-  process.stdout.write(`\n14/14 Faz C1 · MODES açık uçluluk metrikleri…\n`);
+  progress('Faz C1 · MODES açık uçluluk metrikleri');
   const modes = args.quick
     ? measureModes({ seed: 11, ticks: 6000, sampleEvery: 2000 })
     : measureModes({ seed: 11, ticks: 12_000, sampleEvery: 2000 });
   process.stdout.write(`${formatModes(modes)}\n`);
 
-  process.stdout.write(`\n24/24 Faz D · niş kapsama (yaşam haritası çekirdeği)…\n`);
+  progress('Faz D · niş kapsama (yaşam haritası çekirdeği)');
   // ⚠️ Hızlı kademede `sampleEvery` 2000 kalırsa 3 örnek düşer ve eğilim
   // (bilinçli olarak) hiç okunmaz. 1000 ile 6 örnek düşüyor; maliyet farkı
   // yok çünkü yol uzunluğu her koşuda zaten her tick biriktiriliyor.
@@ -311,37 +343,61 @@ function main(): void {
   });
   process.stdout.write(`${formatNiche(niche)}\n`);
 
-  process.stdout.write(`\n25/25 Faz D · arşivin seçilime katılması (ε > 0)…\n`);
+  progress('Faz D · arşivin seçilime katılması (ε > 0)');
   const nicheSeeding = experimentNicheSeeding({
     seeds: args.quick ? 2 : 4,
     ticks: args.quick ? 6000 : 12_000,
   });
   process.stdout.write(`${formatNicheSeeding(nicheSeeding)}\n`);
 
-  process.stdout.write(`\n26/26 Paylaşma mekaniğinin ölçülebilir etkisi…\n`);
+  progress('Paylaşma mekaniğinin ölçülebilir etkisi');
   const sharingEffect = experimentSharingEffect(args.quick ? { ticks: 4000 } : {});
   process.stdout.write(`${formatSharingEffect(sharingEffect)}\n`);
 
-  process.stdout.write(`\n27/27 Faz D · işbirliği aktı (hücre bağını enerjiyle yeniler)…\n`);
+  progress('Faz D · işbirliği aktı (hücre bağını enerjiyle yeniler)');
   const cooperation = experimentCooperation(args.quick ? { ticks: 4000 } : {});
   process.stdout.write(`${formatCooperation(cooperation)}\n`);
 
-  process.stdout.write(`\n28/28 Faz D · işbirliği eğilimine seçilim var mı…\n`);
+  progress('Faz D · işbirliği eğilimine seçilim var mı');
   const coopDrift = experimentCooperationDrift(args.quick ? { ticks: 8000 } : {});
   process.stdout.write(`${formatCooperationDrift(coopDrift)}\n`);
 
-  process.stdout.write(`\n22/22 dal (branch) doğruluğu ve maliyeti…\n`);
+  progress('dal (branch) doğruluğu ve maliyeti');
   const branch = args.quick
     ? verifyBranchIndependence({ forkTick: 1200, forkTicks: 400 })
     : verifyBranchIndependence({ forkTick: 3000, forkTicks: 1500 });
   process.stdout.write(`${formatBranch(branch)}\n`);
 
-  process.stdout.write(`\n23/23 S-4 · çatallanmış ortamda yaşam içi üstel arama…\n`);
+  progress('S-4 · çatallanmış ortamda yaşam içi üstel arama');
   const esSparse = args.quick
     ? experimentEvolutionStrategy({ seeds: 2, ticks: 2500, perturbations: 3, evaluateTicks: 80, population: 6, resourceCount: 6 })
     : experimentEvolutionStrategy({ seeds: 3, ticks: 4000, perturbations: 4, evaluateTicks: 120, population: 6, resourceCount: 6 });
   process.stdout.write(`  [seyrek dünya: pop ${esSparse.treatment ? 6 : 6} · kaynak 6]\n`);
   process.stdout.write(`${formatEvolutionStrategy(esSparse)}\n`);
+
+  // ⚠️ Bu iki bölüm daha önce **rapora hiç bağlı değildi** (ölü deneyler).
+  // Kullanıcı kararı: "ikisini de al, ama kendi sınırlarıyla" — yani
+  // sınırları gizlenmeden, ölçüm neyi gösteriyorsa onu göstererek.
+  //
+  // ⚠️ Ölçüm sırasında **iki gerçek hata** bulundu ve düzeltildi:
+  //   (a) Paylaşma taramasının okuma metni "Varsayılan 0,82'de aktarım **0**"
+  //       diye SERT KODLANMIŞTI ve artık yanlıştı; üstelik kendi cümlesiyle
+  //       çelişiyordu ("0,82 ilk kez tetikleniyor … 0,82'de aktarım 0").
+  //   (b) Dünya içi evrimin **kontrol kolu** (arama YOK) kendi kazancı olarak
+  //       −17,7 (yani **gürültü**) gösteriyordu; tedavi kolunun ham kazancı
+  //       ise yalnız +3,3 — yani ham rakam gürültüden **küçüktü**. Etki
+  //       ancak gürültü tabanı düşülünce anlamlı: net +21,1.
+  progress('paylaşma eşiği duyarlılık taraması');
+  const shareSweep = args.quick
+    ? sweepShareThreshold({ seeds: 1, ticks: 1200, idleLevels: [0.82, 0.5, 0.3] })
+    : sweepShareThreshold({ seeds: 4, ticks: 8000 });
+  process.stdout.write(`${formatShareThreshold(shareSweep)}\n`);
+
+  progress('dünya içi evrim (canlı dünyanın dalında)');
+  const inWorld = args.quick
+    ? experimentInWorldEvolution({ generations: 2, evaluateTicks: 400, population: 4, offspring: 2, forkTick: 1200, trainTicks: 600 })
+    : experimentInWorldEvolution({ generations: 6, evaluateTicks: 1000, population: 6, offspring: 3 });
+  process.stdout.write(`${formatInWorldEvolution(inWorld)}\n`);
 
   // Örneklem sayıları (koşu sayımı için).
   const ecologySamples = args.quick ? 10 : Math.floor(longTicks / 200) + 1;
@@ -373,7 +429,13 @@ function main(): void {
     regen.length +
     popUpdate.control.seeds * 2 +
     1 +
-    dispersion.acrossWorlds;
+    dispersion.acrossWorlds +
+    // Yeni bölümler: her koşu bir **dünya/trial koşusudur**.
+    //   · paylaşma taraması: her eşik noktası × tohum sayısı dünya koşusu
+    //   · dünya içi evrim: 1 kaynak dünya + her kol için 1 dal + her nesilde
+    //     (population + offspring) değerlendirme dalı
+    shareSweep.runs +
+    inWorld.runs;
 
   process.stdout.write(`toplam koşu: ${totalRuns} · süre: ${(elapsed / 1000).toFixed(1)} s\n`);
 
@@ -688,6 +750,54 @@ function main(): void {
       '',
       '```',
       formatEvolutionStrategy(esSparse),
+      '```',
+      '',
+      '## Paylaşma eşiği duyarlılık taraması',
+      '',
+      'Paylaşma mekanizmasının tetiklendiği boşta eşiğini tarar: eşik',
+      'düşürülürse mekanizma ne kadar sık çalışır ve **ürün değişir mi**?',
+      '',
+      '⚠️ **Bu bölüm daha önce rapora hiç bağlı değildi (ölü deney).**',
+      'Sınırları açıkça yazılarak buraya alındı:',
+      '',
+      '· **Eşleştirilmiş tasarım**: her eşik noktası aynı tohum kümesini',
+      '  kullanır (3001+i), yani eşikler arası karşılaştırma eşleştirilmiştir.',
+      '· **Güven aralığı YOK**: bu bir tarama, fark testi değil. "Eşik etkili mi"',
+      '  sorusuna cevap verir; "fark ne kadar büyük, güvenilir mi" sorusuna değil.',
+      '· Taban çizgisi **varsayılan ayar** (0,82 e) — oyun varsayılanı değişmez.',
+      '',
+      '```',
+      formatShareThreshold(shareSweep),
+      '```',
+      '',
+      '## Dünya içi evrim (canlı dünyanın dalında)',
+      '',
+      'S-3 · Arena deneyi öğrenmenin üst sınırını aradı; bu ölçüm aynı yöntemin',
+      '**canlı dünyanın anlık görüntüsünden açılan bir dalda** da çalışıp',
+      'çalışmadığını sorar.',
+      '',
+      '⚠️ **Bu bölüm daha önce rapora hiç bağlı değildi (ölü deney)** ve',
+      'rapora alınırken **iki gerçek hata** bulundu:',
+      '',
+      '1. **Kontrol kolunun kazancı gürültüydü.** Kontrol kolu (arama YOK) de',
+      '   kazanç olarak bir sayı üretiyordu — çünkü taban örneği aramanın RNG',
+      '   akışından ayrı çekildiği için "bulunan" ile taban **farklı rastgele',
+      '   örneklemlerden** geliyor. Ölçülen değer: kontrol kolu **−17,7**, yani',
+      '   arama yapılmadığı halde gürültü tedavi kolunun ham kazancından',
+      '   (+3,3) **büyüktü**. Ham rakam gürültü tabanından küçükse anlam taşımaz.',
+      '   Düzeltme: etki = tedavi kazancı − **gürültü tabanı** (kontrol kolunun',
+      '   kendi kazancı).',
+      '2. Sentinel (-Infinity) hâlâ hükmü **reddeder**: sonlu olmayan değerle',
+      '   hüküm verilmez ("ÖLÇÜLEMEDİ").',
+      '',
+      '⚠️ **SINIR: TEK tohum, güven aralığı YOK.** Bu bir **protokol doğrulaması**',
+      '("mekanizma canlı dünyanın dalında uçtan uca çalışıyor mu"), genellenebilir',
+      'bir **etki** ölçümü değildir. Ayrıca ölçülen kazanç **dünya çıktısında**',
+      'değil **değerlendirme skorkasında**; iki kolun canlı dünya sonucu (popülasyon,',
+      'koloni sayısı, organizma enerjisi) ölçüldüğü gibi **aynıdır**.',
+      '',
+      '```',
+      formatInWorldEvolution(inWorld),
       '```',
       '',
       ...[exp1.report, exp2.report, exp3.report].flatMap((r) => [

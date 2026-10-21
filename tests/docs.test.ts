@@ -280,6 +280,98 @@ describe('belge tutarlılığı · üretilmiş rapor', () => {
     expect(baseRow, `§4.9 değerlendirme tabanı ${base} taşımıyor`).toContain(base as string);
   });
 
+  it('raporda iki yeni bölüm var ve SINIRLARI yazılı', () => {
+    // Kullanıcı kararı: iki ölü deney rapora "kendi sınırlarıyla" alındı.
+    // Buradaki koruma: bölümler **ve** sınır cümleleri kaybolamaz. Sınır
+    // yazılmadan bölüm "işe yarıyor" diye okunur — ki bu tam olarak
+    // düzeltmeye çalıştığımız sınıf.
+    const report = read('docs/EXPERIMENTS.md');
+    const deep = read('docs/EXPERIMENTS-DEEP.md');
+    for (const [name, text] of [['EXPERIMENTS.md', report], ['EXPERIMENTS-DEEP.md', deep]] as const) {
+      expect(text, `${name}: paylaşma taraması bölümü yok`).toContain(
+        '## Paylaşma eşiği duyarlılık taraması',
+      );
+      expect(text, `${name}: dünya içi evrim bölümü yok`).toContain(
+        '## Dünya içi evrim (canlı dünyanın dalında)',
+      );
+    }
+
+    const share = section(report, ['## Paylaşma eşiği duyarlılık taraması', '\n## ']);
+    expect(share, 'paylaşma bölümü okunamadı').not.toBe('');
+    expect(share, 'paylaşma bölümü eşleştirilmiş tasarımı söylemiyor').toMatch(/[Ee]şleştirilmiş/);
+    // ⚠️ Metin "**Güven aralığı YOK**" biçiminde — yani `**` işaretleri
+    // ifadenin tamamının çevresinde, "YOK" kelimesinin çevresinde değil.
+    expect(share, 'paylaşma bölümü güven aralığı yok sınırını söylemiyor').toMatch(
+      /[Gg]üven aralığı[^\n]{0,12}YOK/,
+    );
+
+    const inWorld = section(report, ['## Dünya içi evrim (canlı dünyanın dalında)', '\n## ']);
+    expect(inWorld, 'dünya içi evrim bölümü okunamadı').not.toBe('');
+    expect(inWorld, 'tek tohum sınırı yazılı değil').toMatch(/TEK tohum/);
+    expect(inWorld, 'güven aralığı yok sınırı yazılı değil').toMatch(/güven aralığı/i);
+    // "İşe yarıyor" hükmü mekanizmayla sınırlı olmalı, dünya çıktısıyla değil.
+    expect(inWorld, 'ölçülen kazancın skorkasında olduğu belirtilmiyor').toMatch(/skor|değerlendirme/);
+  });
+
+  it('VALIDATION §4.13/§4.14 sayıları raporla AYNI', () => {
+    // Yeni bölümler belgeye elle yazıldı; sayıları **rapordan** gelmeli.
+    // Aksi hâlde belge "24 hücre" derken rapor "18 hücre" der ve ikisi sessizce
+    // ayrışır — oysa bölümün tek amacı ölçümü aktarmak.
+    const report = read('docs/EXPERIMENTS.md');
+    const validation = read('docs/VALIDATION.md');
+    // Belge ondalık ayracı olarak virgül kullanır; rapor nokta.
+    const norm = (s: string): string => s.replace(/,/g, '.');
+
+    // (a) Dünya içi evrimin net etkisi
+    // ⚠️ **Basamak farkı:** belge yuvarlar ("21,1"), rapor daha çok basamak
+    // basar ("21.057"). Dize eşleştirme burada yanlış olurdu; doğrusu belgenin
+    // basamağına **yuvarlamak** (p-değeri denetimiyle aynı yaklaşım).
+    const inWorld = section(report, ['## Dünya içi evrim (canlı dünyanın dalında)', '\n## ']);
+    const netRaw = inWorld.match(/net etki ([+-]?\d+\.\d+)/)?.[1];
+    expect(netRaw, 'raporda net etki okunamadı').toBeTruthy();
+    const vRaw =
+      norm(section(validation, ['### 4.14 ', '\n### ']).match(/net etki \*\*([+−]?\d+[.,]?\d*)\*\*/)?.[1] ?? '')
+        .replace('−', '-')
+        .replace(/^\+/, '');
+    expect(vRaw, 'VALIDATION §4.14 net etki taşımıyor').not.toBe('');
+    const docDecimals = (vRaw.split('.')[1] ?? '').length;
+    const netNum = Number(netRaw);
+    expect(
+      netNum.toFixed(docDecimals),
+      `rapor net etki ${netRaw}, VALIDATION §4.14 ${vRaw} diyor (${docDecimals} basamak)`,
+    ).toBe(vRaw);
+
+    // (b) Paylaşma taramasında zirve koloni büyüklüğü
+    const share = section(report, ['## Paylaşma eşiği duyarlılık taraması', '\n## ']);
+    const peak = share.match(/her eşikte (\d+) hücre/)?.[1];
+    expect(peak, 'raporda "her eşikte N hücre" okunamadı').toBeTruthy();
+    const vSec13 = section(validation, ['### 4.13 ', '\n### ']);
+    expect(
+      vSec13,
+      `VALIDATION §4.13 zirve koloni sayısını taşımıyor (rapor: ${peak})`,
+    ).toContain(`(${peak} hücre)`);
+  });
+
+  it('deney koşucusunda ilerleme paydası ADIM SAYISIYLA aynı', () => {
+    // ⚠️ ÖLÇÜLEN: koşucunun ilerleme satırlarında elle yazılmış, birbiriyle
+    // **tutarsız** paydalar vardı: "1/22 … 8/8 … 14/14 … 23/23"; "14/14" iki
+    // kez geçiyordu ve "22/22 dal" satırı "28/28"den **sonra** geliyordu.
+    // Yani paket kaç adımdan oluşuyordu, çıktı söylemiyordu — ve yeni bir
+    // bölüm eklemek elle 30+ satırı yeniden numaralamak demekti.
+    //
+    // Artık sayaç kendi kendini artırıyor (`progress(...)`); payda tek yerde
+    // (`TOTAL_STEPS`) yazılı. Bu denetim ikisinin eşleştiğini zorlar.
+    const runner = read('scripts/run-experiments.ts');
+    const steps = (runner.match(/^ {2}progress\(/gm) ?? []).length;
+    expect(steps, 'koşucuda progress() çağrısı sayılamadı').toBeGreaterThan(10);
+    const total = runner.match(/const TOTAL_STEPS = (\d+);/)?.[1];
+    expect(total, 'koşucuda TOTAL_STEPS tanımı yok').toBeDefined();
+    expect(
+      Number(total),
+      `koşucu TOTAL_STEPS = ${total} diyor ama ${steps} adım var`,
+    ).toBe(steps);
+  });
+
   it('VALIDATION §1 test sayıları kaynaktan AYNI', () => {
     // ⚠️ ÖLÇÜLEN: §1'in başındaki özet blok ("Test Files 4 passed (4) /
     // Tests 151 passed (151)") **145 test bayattı** — o blok, test dosyası

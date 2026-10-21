@@ -63,5 +63,26 @@ validation = validation.replace(
 );
 if (validation !== before) writeFileSync(validationPath, validation);
 
+// README'nin "N bölüm, M koşu" iddiası **rapordan** türer. Bu sayı elle
+// yazılmıştı ve rapor yeni bölüm aldığında sessizce bayatlıyordu.
+const reportPath = join(ROOT, 'docs/EXPERIMENTS.md');
+const report = readFileSync(reportPath, 'utf8');
+const reportSections = (report.match(/^## /gm) ?? []).length;
+const reportRuns = report.match(/\*\*Toplam koşu:\*\* (\d+)/)?.[1];
+if (reportSections > 0 && reportRuns) {
+  const runsTr = Number(reportRuns).toLocaleString('tr-TR');
+  const before2 = readme;
+  readme = readme.replace(
+    /(\d+) bölüm, (\d[\d.]*) koşu/g,
+    (_m, _s, _r) => `${reportSections} bölüm, ${runsTr} koşu`,
+  );
+  readme = readme.replace(
+    /\((\d[\d.]*) koşu, (\d+) bölüm\)/g,
+    (_m, _r, _s) => `(${runsTr} koşu, ${reportSections} bölüm)`,
+  );
+  if (readme !== before2) writeFileSync(readmePath, readme);
+  console.log(`README: ${reportSections} bölüm, ${runsTr} koşu`);
+}
+
 console.log(`birim: ${unit} test / ${unitFiles} dosya · e2e: ${e2e} test`);
 console.log('README, PROGRESS.md ve VALIDATION.md §1 güncellendi');

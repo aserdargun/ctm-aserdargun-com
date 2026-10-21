@@ -34,11 +34,11 @@ Anahtar yoksa uygulama **çalışır** ve gözlemci panelinde dürüstçe
 | `npm run dev` | Geliştirme sunucusu (port 5183) |
 | `npm run build` | Tip denetimi + üretim derlemesi |
 | `npm run preview` | Üretim çıktısını sunar (port 4173) |
-| `npm test` | Vitest — 298 test |
+| `npm test` | Vitest — 307 test |
 | `npm run e2e` | Playwright — 12 tarayıcı testi (üretim yapısı üzerinden) |
 | `npm run check` | Tip denetimi + birim + uçtan uca (dağıtım öncesi kapı) |
 | `npm run typecheck` | `tsc --noEmit` |
-| `npm run experiments` | Deney paketini headless koşar — 28 bölüm, 1.921 koşu, ~14 dk → `docs/EXPERIMENTS.md` |
+| `npm run experiments` | Deney paketini headless koşar — 30 bölüm, 2.088 koşu, ~14 dk → `docs/EXPERIMENTS.md` |
 | `npm run experiments -- --deep` | Derin paket: 40.000 tick pencereleri, ekolojik çöküş görünür (yavaş) |
 | `npm run experiments:quick` | Deney paketinin duman testi (~40 sn) |
 | `npm run assets:build` | Blender 5.1.1 ile varlıkları yeniden üretir |
@@ -47,7 +47,7 @@ Anahtar yoksa uygulama **çalışır** ve gözlemci panelinde dürüstçe
 
 ### Sürekli doğrulama
 
-`master` dalına her push'ta ve her PR'da **CI koşar**: tip denetimi + 298 birim
+`master` dalına her push'ta ve her PR'da **CI koşar**: tip denetimi + 307 birim
 testi + 12 tarayıcı testi + niş ekseni kalibrasyon denetimi (`npm run check`).
 Başarısızsa tarayıcı kanıtları artifact olarak yüklenir.
 
@@ -108,7 +108,7 @@ baskısını değiştirip sonucu izler; bir canlıyı ve soyunu takip eder.
 > etkisi yok (§4.5–4.7). Ayrıntı ve kanıt: `docs/VALIDATION.md`.
 
 **Deney paketi yazıldı ve koşuyor.** `npm run experiments` deney paketi
-(1.921 koşu, 28 bölüm) headless koşturur; sonuçlar `docs/EXPERIMENTS.md` içinde ham koşu değerleriyle
+(2.088 koşu, 30 bölüm) headless koşturur; sonuçlar `docs/EXPERIMENTS.md` içinde ham koşu değerleriyle
 durur.
 
 | Deney | Sonuç |

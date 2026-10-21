@@ -1955,6 +1955,15 @@ export interface ShareThresholdPoint {
   idleLevel: number;
   idleEnergy: number;
   transfers: number;
+  /**
+   * Bu eşikte paylaşmanın **kaç tohumda** tetiklendiği.
+   *
+   * ⚠️ Toplam aktarım sayısı tek başına yanıltıcıdır: 0,82 eşiğinde 4 tohumla
+   * 2.140, 12 tohumla **yine** 2.140 aktarım ölçüldü — yani aktarımların
+   * tamamı **tek bir tohumdan** geliyor. "Toplam aktarım" yerine "kaç tohumda
+   * tetiklendi" demek, mekanizmanın ne kadar **seyrek** çalıştığını gösterir.
+   */
+  liveSeeds: number;
   maxSurplus: number;
   peakColony: number;
   finalColony: number;
@@ -1967,6 +1976,8 @@ export interface ShareThresholdPoint {
 export interface ShareThresholdReport {
   seeds: number;
   ticks: number;
+  /** Bu taramada koşan **dünya/trial koşusu** sayısı (eşik noktası × tohum). */
+  runs: number;
   points: ShareThresholdPoint[];
   reading: string;
 }
@@ -1999,6 +2010,7 @@ export function sweepShareThreshold(options?: {
 
   const points = idleLevels.map((idleLevel) => {
     let transfers = 0;
+    let liveSeeds = 0;
     let maxSurplus = 0;
     let peakColony = 0;
     let finalColony = 0;
@@ -2020,6 +2032,7 @@ export function sweepShareThreshold(options?: {
       const st = world.sharingStats();
       const m = world.latestMetrics();
       transfers += st.transfers;
+      if (st.transfers > 0) liveSeeds++;
       maxSurplus = Math.max(maxSurplus, st.maxSurplus);
       peakColony = Math.max(peakColony, peak);
       finalColony += m?.largestColonySize ?? 0;
@@ -2035,6 +2048,7 @@ export function sweepShareThreshold(options?: {
       idleLevel,
       idleEnergy: Math.round(100 * idleLevel),
       transfers,
+      liveSeeds,
       maxSurplus,
       peakColony,
       finalColony: Math.round(finalColony / seeds),
@@ -2045,22 +2059,65 @@ export function sweepShareThreshold(options?: {
     };
   });
 
-  const firstLive = points.find((p) => p.transfers > 0);
+  // ⚠️ **Okuma artık ölçülmüş veriden türer.** Önce burada "Varsayılan 0,82'de
+  // aktarım **0**" diye **sert kodlanmış** bir cümle vardı; o cümle eşiğin
+  // tetiklenmediği dönemden kalmıştı ve artık **yanlıştı** (ölçüm: 0,82'de
+  // 4 tohumda 2.140 aktarım, yani mekanizma tetikleniyordu). Daha kötüsü,
+  // cümle kendi cümlesiyle çelişiyordu: "0,82 ilk kez tetikleniyor … 0,82'de
+  // aktarım 0".
+  //
+  // Şimdi okuma: (a) her eşikte kaç tohumun tetiklendiği, (b) tetikleme
+  // eşiğinin aşırı duyarlılığı, (c) buna karşılık **zirve koloni büyüklüğünün
+  // değişmemesi**. Üçü de veriden hesaplanır.
+  const firstLive = points.find((p) => p.liveSeeds > 0);
+  const peakColonies = [...new Set(points.map((p) => p.peakColony))];
+  const peakConstant = peakColonies.length === 1;
+  const lowest = points[points.length - 1];
+
+  // ⚠️ **Yön veriden okunur, elle yazılmaz.** İlk denemede metin "eşiğin
+  // düşürülmesi aktarımı artırıyor" diyordu — ama ölçülen veri bunun
+  // ** tersini** söylüyordu (0,5'te 12.610 aktarım, 0,3'te 2.026). Yani metin
+  // verinin söylediğinin tersini iddia ediyordu. Karşılaştırma tabanı da
+  // "ilk canlı nokta" olmalı: varsayılan eşikte aktarım **0** ise oraya
+  // bölmek zaten tanımsızdı.
+  const transferTrend = (() => {
+    if (!firstLive || !lowest || firstLive.idleLevel === lowest.idleLevel) return '';
+    if (lowest.transfers === firstLive.transfers) {
+      return ` Eşiğin ${lowest.idleLevel}’ye inilmesi aktarım sayısını **değiştirmiyor** (${lowest.transfers}).`;
+    }
+    const ratio = firstLive.transfers > 0 ? lowest.transfers / firstLive.transfers : Number.NaN;
+    const dir = lowest.transfers > firstLive.transfers ? 'artırıyor' : 'azaltıyor';
+    const factor = Number.isFinite(ratio) ? `**${ratio < 1 ? (1 / ratio).toFixed(1) : ratio.toFixed(1)} kat**` : 'belirgin biçimde';
+    return (
+      ` Eşiğin ${firstLive.idleLevel}’den ${lowest.idleLevel}’ye inilmesi aktarım sayısını ` +
+      `${dir} (${factor}; ${firstLive.transfers} → ${lowest.transfers} aktarım, ` +
+      `${lowest.liveSeeds}/${seeds} tohum).`
+    );
+  })();
+
   const reading = firstLive
-    ? `Paylaşma **${firstLive.idleLevel}** eşiğinde (${firstLive.idleEnergy} e) ilk kez tetikleniyor: ` +
-      `${firstLive.transfers} aktarım. Bu noktada çok hücreli yapılar ` +
-      `${firstLive.finalMultiCellColonies.toFixed(2)} (zirve ${firstLive.peakColony}) ve enerji korunumu ` +
-      `|${firstLive.worstLedgerResidual.toExponential(1)}|. Varsayılan 0.82'de aktarım **0**.`
+    ? `Paylaşma **${firstLive.idleLevel}** eşiğinde (${firstLive.idleEnergy} e) ` +
+      `**${firstLive.liveSeeds}/${seeds}** tohumda tetikleniyor: ${firstLive.transfers} aktarım` +
+      (firstLive.liveSeeds < seeds
+        ? ` (aktarımların tamamı az sayıda tohumdan geliyor — mekanizma **seyrek** çalışıyor).`
+        : '.') +
+      transferTrend +
+      (peakConstant
+        ? ` Buna karşılık zirve koloni büyüklüğü **her eşikte ${peakColonies[0]} hücre** — ` +
+          `**tetikleme eşiği çok değişken, sonuç değişmiyor.**`
+        : ` Zirve koloni büyüklüğü eşikler arasında değişiyor (${peakColonies.join(', ')} hücre).`) +
+      ` Enerji korunumu |${firstLive.worstLedgerResidual.toExponential(1)}|.`
     : 'Listelenen hiçbir eşikte paylaşma tetiklenmedi.';
 
-  return { seeds, ticks, points, reading };
+  return { seeds, ticks, runs: points.length * seeds, points, reading };
 }
 
 export function formatShareThreshold(r: ShareThresholdReport): string {
   const header =
-    '  eşik   eşikEn   aktarım   maxFazla   zirve küme   son küme   son 4+   son pop   son enerji   rezidüel';
+    '  eşik   eşikEn   aktarım   canlı tohum   maxFazla   zirve küme   son küme   son 4+   son pop   son enerji   rezidüel';
   const rows = r.points.map((p) =>
     `  ${fmt(p.idleLevel, 5)}   ${String(p.idleEnergy).padStart(6)}   ${String(p.transfers).padStart(8)}   ` +
+    `${String(`${p.liveSeeds}/${r.seeds}`).padStart(12)}   ` +
     `${fmt(p.maxSurplus, 8)}   ${String(p.peakColony).padStart(9)}   ${String(p.finalColony).padStart(8)}   ` +
     `${fmt(p.finalMultiCellColonies, 6).padStart(6)}   ${String(p.finalPopulation).padStart(7)}   ` +
     `${fmt(p.finalMeanEnergyNorm, 10).padStart(11)}   ${fmt(p.worstLedgerResidual, 9)}`,

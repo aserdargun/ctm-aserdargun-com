@@ -290,6 +290,19 @@ export function fmt(value: number, digits = 3): string {
   return value.toFixed(digits);
 }
 
+/**
+ * **İşaretli** sayı biçimi: `+12.739` / `-12.739`.
+ *
+ * ⚠️ Neden ayrı fonksiyon: `fmt()` negatif sayıyı `-12.739` olarak verir ve
+ * metin içinde elle eklenen "+" işareti **çift işaret** üretir (`+-12.739`).
+ * Raporda "kazanç +..." yazan yerlerde bu sessizce görüyordu.
+ */
+export function fmtSigned(value: number, digits = 3): string {
+  if (!Number.isFinite(value)) return '—';
+  const s = value.toFixed(digits);
+  return value > 0 ? `+${s}` : s;
+}
+
 /** `x ± y` biçiminde ortalama ve güven aralığı genişliği. */
 export function fmtInterval(interval: Interval, digits = 3): string {
   return `${fmt(interval.estimate, digits)} [${fmt(interval.lower, digits)}, ${fmt(interval.upper, digits)}]`;

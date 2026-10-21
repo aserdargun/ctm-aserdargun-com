@@ -30,6 +30,7 @@ import {
   quantile,
   stdDev,
   summarize,
+  fmtSigned,
   type HypothesisTest,
   type Interval,
   type Summary,
@@ -1571,6 +1572,14 @@ export interface InWorldEvolutionReport {
   seed: number;
   forkTick: number;
   evaluateTicks: number;
+  /**
+   * Bu ölçümde koşan **dünya/trial koşusu** sayısı.
+   *
+   * ⚠️ Sayı elle korunmamalı: her nesilde `population × (1 + offspring)` aday
+   * değerlendirilir ve her değerlendirme bir **dünya dalı** demektir. Sayı
+   * ölçüm noktasında hesaplanır, raporun koşu toplamına bu haliyle girer.
+   */
+  runs: number;
   arms: { label: string; point: InWorldEvolutionPoint }[];
   reading: string;
 }
@@ -1699,9 +1708,15 @@ export function experimentInWorldEvolution(options?: {
     { label: `evrim (${generations} nesil)`, point: treatment },
   ];
 
-  const reading = readInWorldEvolution(treatment, control.endEnergy);
+  const reading = readInWorldEvolution(treatment, { gain: control.gain, endEnergy: control.endEnergy });
 
-  return { seed, forkTick, evaluateTicks, arms, reading };
+  // Koşu sayısı: 1 kaynak dünya + her kol için 1 dal + her nesilde
+  // `population × (1 + offspring)` değerlendirme dalı.
+  const evaluationsPerGeneration = population * (1 + offspring);
+  const runs =
+    1 + arms.reduce((sum, arm) => sum + 1 + arm.point.generations * evaluationsPerGeneration, 0);
+
+  return { seed, forkTick, evaluateTicks, runs, arms, reading };
 }
 
 export function formatInWorldEvolution(r: InWorldEvolutionReport): string {
@@ -1711,7 +1726,7 @@ export function formatInWorldEvolution(r: InWorldEvolutionReport): string {
   for (const arm of r.arms) {
     const p = arm.point;
     lines.push(
-      `  ${arm.label.padEnd(24)} taban(en iyi) ${fmt(p.baseline, 3)} · ort ${fmt(p.baselineMean, 3)} · taban ölümü ${p.baselineDeaths}/${p.baselineN} → bulunan ${fmt(p.best, 3)} (kazanç ${fmt(p.gain, 3)}) · bölünme sonrası enerji ${fmt(p.endEnergy, 0)} e · pop ${p.finalPopulation} · 4+ ${p.finalMultiCellColonies} · süre ${fmt(p.spentMs, 0)} ms`,
+      `  ${arm.label.padEnd(24)} taban(en iyi) ${fmt(p.baseline, 3)} · ort ${fmt(p.baselineMean, 3)} · taban ölümü ${p.baselineDeaths}/${p.baselineN} → bulunan ${fmt(p.best, 3)} (kazanç ${fmtSigned(p.gain, 3)}) · bölünme sonrası enerji ${fmt(p.endEnergy, 0)} e · pop ${p.finalPopulation} · 4+ ${p.finalMultiCellColonies} · süre ${fmt(p.spentMs, 0)} ms`,
     );
     if (p.history.length > 0) {
       const step = Math.max(1, Math.floor(p.history.length / 8));
@@ -1719,6 +1734,13 @@ export function formatInWorldEvolution(r: InWorldEvolutionReport): string {
       lines.push(`    nesil eğrisi: ${curve}`);
     }
   }
+  // ⚠️ Kontrol kolunun kazancı **gürültü tabanıdır** (arama yok). Etki, onun
+  // çıkarılmasıyla bulunur; raporlanan "kazanç" tek başına yanıltıcıdır.
+  const controlGain = r.arms[0]?.point.gain ?? 0;
+  const treatmentGain = r.arms[1]?.point.gain ?? 0;
+  lines.push(
+    `  gürültü tabanı (arama yok): ${fmtSigned(controlGain, 3)} → net etki ${fmtSigned(treatmentGain - controlGain, 3)}`,
+  );
   lines.push(`  enerji rezidülü: ${fmt(r.arms[1]?.point.worstLedgerResidual ?? 0, 9)} e`);
   lines.push(`  → ${r.reading}`);
   return lines.join('\n');
@@ -1735,12 +1757,32 @@ export function formatInWorldEvolution(r: InWorldEvolutionReport): string {
  * ÖLÇÜLDÜ (tohum 11, `generations: 0`): taban **-Infinity**, kazanç **+Infinity**,
  * hüküm **"canlı dünyanın dalında da işe yarıyor"** — oysa ölçüm yoktu.
  * Bu yüzden sonlu olmayan değerle **hüküm verilmez**.
+ *
+ * ⚠️ **İKİNCİ HATA (ölçüldü, 19 Ekim 2026): kazanç, gürültü tabanını
+ * içermiyordu.** Kontrol kolu (`generations: 0`, yani **arama yok**) de
+ * +2,214 "kazanç" gösteriyordu. Sebep: taban örneği aramanın RNG akışından
+ * **ayrı** çekiliyor (kasıtlı), dolayısıyla kontrol kolunun "bulunan" değeri
+ * ile taban **farklı rastgele örneklemlerden** geliyor; arama yapılmadığı
+ * halde fark sıfır değil, **örnekleme gürültüsü**.
+ *
+ * Bu, arama kolundaki maksimumun ayrı bir örneklemin maksimumuyla
+ * karşılaştırılmasıdır — VALIDATION §10/31'deki "maksimum yerine ortalama"
+ * hatasının **aynı sınıfı**, ama ters yönde.
+ *
+ * Düzeltme: etki, **tedavi kazancı − kontrol kazancı** olarak hesaplanır.
+ * Kontrol kolu aynı kestiricinin **gürültü tabanıdır**; onu çıkarmadan
+ * raporlanan kazanç, aramanın etkisini olduğundan **küçük** göstermez —
+ * tam tersi, gürültüyü etki sanma riski doğurur.
  */
 export function readInWorldEvolution(
   treatment: { baseline: number; best: number; gain: number; startEnergy: number; endEnergy: number; spentMs: number },
-  controlEndEnergy: number,
+  control: { gain: number; endEnergy: number },
 ): string {
-  if (!Number.isFinite(treatment.baseline) || !Number.isFinite(treatment.gain)) {
+  if (
+    !Number.isFinite(treatment.baseline) ||
+    !Number.isFinite(treatment.gain) ||
+    !Number.isFinite(control.gain)
+  ) {
     return (
       `Çevrimiçi evrim **ÖLÇÜLEMEDİ**: rastgele taban ${fmt(treatment.baseline, 3)}. ` +
       `Sentinel (-Infinity) bir taban örneğinin organizmayı öldürdüğünü anlatıyor ve ` +
@@ -1748,11 +1790,17 @@ export function readInWorldEvolution(
       `artefakttır, kanıt değildir.`
     );
   }
-  return treatment.gain > 0
+  const net = treatment.gain - control.gain;
+  return net > 0
     ? `Çevrimiçi evrim **canlı dünyanın dalında da işe yarıyor**: rastgele taban ` +
       `${fmt(treatment.baseline, 3)} → bulunan politika ${fmt(treatment.best, 3)} ` +
-      `(kazanç +${fmt(treatment.gain, 3)}). Bölünmenin ardından organizmanın enerjisi ` +
-      `${fmt(treatment.startEnergy, 0)} → ${fmt(treatment.endEnergy, 0)} e ` +
-      `(kontrol ${fmt(controlEndEnergy, 0)} e). Arama ${fmt(treatment.spentMs, 0)} ms sürdü.`
-    : `Çevrimiçi evrim canlı dünyanın dalında kazanç üretmedi: ${fmt(treatment.gain, 3)}.`;
+      `(kazanç ${fmtSigned(treatment.gain, 3)}). Buna karşılık **arama yapmayan kontrol ` +
+      `kolunun** kendi kazancı ${fmtSigned(control.gain, 3)} — yani örneklem ` +
+      `gürültüsü bu kadar; **net etki ${fmtSigned(net, 3)}**. Bölünmenin ardından ` +
+      `organizmanın enerjisi ${fmt(treatment.startEnergy, 0)} → ${fmt(treatment.endEnergy, 0)} e ` +
+      `(kontrol ${fmt(control.endEnergy, 0)} e). Arama ${fmt(treatment.spentMs, 0)} ms sürdü. ` +
+      `⚠️ **TEK tohum, güven aralığı yok** — bu bir protokol doğrulamasıdır, ` +
+      `genellenebilir bir etki ölçümü değildir.`
+    : `Çevrimiçi evrim canlı dünyanın dalında kazanç üretmedi: net etki ` +
+      `${fmt(net, 3)} (tedavi ${fmt(treatment.gain, 3)} − kontrol gürültüsü ${fmt(control.gain, 3)}).`;
 }

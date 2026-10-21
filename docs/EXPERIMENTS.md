@@ -1,8 +1,8 @@
 # Cell to Mind — Deney Sonuçları
 
-**Körüldü:** 2026-10-21T05:19:29.879Z
+**Körüldü:** 2026-10-21T07:00:16.270Z
 **Ortam:** darwin (arm64) · Node v22.23.1
-**Toplam koşu:** 1921 · **duvar süresi:** 697.4 s
+**Toplam koşu:** 2088 · **duvar süresi:** 841.4 s
 **Mod:** standart
 **Pencere:** 12.000 tick (40.000 tick'lik ekolojik çöküşü kapsamak için `--deep` kullanın)
 
@@ -459,9 +459,9 @@ bozuktu**. Düzeltildi; regresyon testi eklendi.
 ```
   çatal noktası: tick 3000 · 1500 adım sonra karşılaştırma
   snapshot boyutu: 2.371.910 bayt
-  çatallama süresi: 39.65 ms · iki dalın koşusu: 2201.1 ms · oran 1.8%
+  çatallama süresi: 35.65 ms · iki dalın koşusu: 2316.7 ms · oran 1.5%
   dallar bit düzeyinde aynı: evet · müdahale sızıntısı: yok · müdahale etkili: evet
-  → Çatallama **doğru**: iki dal bit düzeyinde aynı ilerliyor ve müdahale diğerine sızmıyor. Snapshot 2.37 MB; bir dal açmak 19.8 ms, bir simülasyon adımı 0.734 ms → **bir çatal ≈ 27 tick** maliyetinde. Yani 500 tick'te bir, 16 pertürbasyonlu güncelleme ≈ 86% ek yük demek: üstel strateji yaşam içinde pratikte **bütçelenebilir**. Müdahale testi: müdahalesiz dal referansla AYNI, müdahale görmüş dal AYRILDI. **DİKKAT:** bu maliyet 3000. tick'te ölçüldü ve snapshot boyutuyla ölçeklenir; geç pencerelerde farklı olabilir ve **ölçülmedi**.
+  → Çatallama **doğru**: iki dal bit düzeyinde aynı ilerliyor ve müdahale diğerine sızmıyor. Snapshot 2.37 MB; bir dal açmak 17.8 ms, bir simülasyon adımı 0.772 ms → **bir çatal ≈ 23 tick** maliyetinde. Yani 500 tick'te bir, 16 pertürbasyonlu güncelleme ≈ 74% ek yük demek: üstel strateji yaşam içinde pratikte **bütçelenebilir**. Müdahale testi: müdahalesiz dal referansla AYNI, müdahale görmüş dal AYRILDI. **DİKKAT:** bu maliyet 3000. tick'te ölçüldü ve snapshot boyutuyla ölçeklenir; geç pencerelerde farklı olabilir ve **ölçülmedi**.
 ```
 
 ## S-4 · Çatallanmış ortamda yaşam içi üstel arama
@@ -475,10 +475,71 @@ ortalaması boyunca kaydırılır. Seyrek dünyada koşulur (pop 6, kaynak 6).
   kontrol (arama kapalı): medyan enerji 47.56 e · pop 15 · arama 0
   tedavi  (arama açık) : medyan enerji 47.56 e · pop 15 · arama 24 (4 pertürbasyon × 120 tick)
   ağırlık hareketi: kontrol 0.00000 · tedavi 0.00066
-  maliyet: 4000 tick'in koşusu 46 ms · arama 158 ms → ek yük ≈ 2181 tick
+  maliyet: 4000 tick'in koşusu 48 ms · arama 172 ms → ek yük ≈ 2205 tick
   enerji rezidülü: 0.000000000 e
   eşleştirilmiş fark 0.000 [0.000, 0.000] · p = 1.0000
-  → Çatallanmış arama **ölçülebilir performans artışı üretmedi**: fark 0.000 [0.000, 0.000], p = 1.0000. Ağırlık hareketi: medyan ‖Δθ‖ = 0.0007 (kontrol 0.0000) — yani arama θ'yı hareket ettirdi ama davranış kazanmadı. Ek yük ≈ 2181 tick'lik eşdeğer.
+  → Çatallanmış arama **ölçülebilir performans artışı üretmedi**: fark 0.000 [0.000, 0.000], p = 1.0000. Ağırlık hareketi: medyan ‖Δθ‖ = 0.0007 (kontrol 0.0000) — yani arama θ'yı hareket ettirdi ama davranış kazanmadı. Ek yük ≈ 2205 tick'lik eşdeğer.
+```
+
+## Paylaşma eşiği duyarlılık taraması
+
+Paylaşma mekanizmasının tetiklendiği boşta eşiğini tarar: eşik
+düşürülürse mekanizma ne kadar sık çalışır ve **ürün değişir mi**?
+
+⚠️ **Bu bölüm daha önce rapora hiç bağlı değildi (ölü deney).**
+Sınırları açıkça yazılarak buraya alındı:
+
+· **Eşleştirilmiş tasarım**: her eşik noktası aynı tohum kümesini
+  kullanır (3001+i), yani eşikler arası karşılaştırma eşleştirilmiştir.
+· **Güven aralığı YOK**: bu bir tarama, fark testi değil. "Eşik etkili mi"
+  sorusuna cevap verir; "fark ne kadar büyük, güvenilir mi" sorusuna değil.
+· Taban çizgisi **varsayılan ayar** (0,82 e) — oyun varsayılanı değişmez.
+
+```
+  4 tohum × 8000 tick (strainK 0.005)
+  eşik   eşikEn   aktarım   canlı tohum   maxFazla   zirve küme   son küme   son 4+   son pop   son enerji   rezidüel
+  0.82000       82       2140            2/4   17.76911945          24          3   0.250000       148   0.3052706931   -0.000000064
+  0.60000       60     439713            4/4   33.19410559          24          3   0.250000       151   0.3415789734   -0.000000035
+  0.50000       50     361445            4/4   20.24862381          24          4   0.750000       156   0.3136115540   -0.000000045
+  0.40000       40     401226            4/4   30.25558974          24          4   3.750000       153   0.3120336477   -0.000000033
+  0.30000       30     215950            4/4   39.53712592          24          5   3.250000       151   0.3113176604   -0.000000032
+  → Paylaşma **0.82** eşiğinde (82 e) **2/4** tohumda tetikleniyor: 2140 aktarım (aktarımların tamamı az sayıda tohumdan geliyor — mekanizma **seyrek** çalışıyor). Eşiğin 0.82’den 0.3’ye inilmesi aktarım sayısını artırıyor (**100.9 kat**; 2140 → 215950 aktarım, 4/4 tohum). Buna karşılık zirve koloni büyüklüğü **her eşikte 24 hücre** — **tetikleme eşiği çok değişken, sonuç değişmiyor.** Enerji korunumu |-6.4e-8|.
+```
+
+## Dünya içi evrim (canlı dünyanın dalında)
+
+S-3 · Arena deneyi öğrenmenin üst sınırını aradı; bu ölçüm aynı yöntemin
+**canlı dünyanın anlık görüntüsünden açılan bir dalda** da çalışıp
+çalışmadığını sorar.
+
+⚠️ **Bu bölüm daha önce rapora hiç bağlı değildi (ölü deney)** ve
+rapora alınırken **iki gerçek hata** bulundu:
+
+1. **Kontrol kolunun kazancı gürültüydü.** Kontrol kolu (arama YOK) de
+   kazanç olarak bir sayı üretiyordu — çünkü taban örneği aramanın RNG
+   akışından ayrı çekildiği için "bulunan" ile taban **farklı rastgele
+   örneklemlerden** geliyor. Ölçülen değer: kontrol kolu **−17,7**, yani
+   arama yapılmadığı halde gürültü tedavi kolunun ham kazancından
+   (+3,3) **büyüktü**. Ham rakam gürültü tabanından küçükse anlam taşımaz.
+   Düzeltme: etki = tedavi kazancı − **gürültü tabanı** (kontrol kolunun
+   kendi kazancı).
+2. Sentinel (-Infinity) hâlâ hükmü **reddeder**: sonlu olmayan değerle
+   hüküm verilmez ("ÖLÇÜLEMEDİ").
+
+⚠️ **SINIR: TEK tohum, güven aralığı YOK.** Bu bir **protokol doğrulaması**
+("mekanizma canlı dünyanın dalında uçtan uca çalışıyor mu"), genellenebilir
+bir **etki** ölçümü değildir. Ayrıca ölçülen kazanç **dünya çıktısında**
+değil **değerlendirme skorkasında**; iki kolun canlı dünya sonucu (popülasyon,
+koloni sayısı, organizma enerjisi) ölçüldüğü gibi **aynıdır**.
+
+```
+  tohum 11 · canlı dünya 3000 tick → dal · değerlendirme 1000 tick
+  kontrol (arama yok)      taban(en iyi) 65.983 · ort 55.230 · taban ölümü 0/4 → bulunan 48.242 (kazanç -17.741) · bölünme sonrası enerji 58 e · pop 212 · 4+ 1 · süre 8398 ms
+  evrim (6 nesil)          taban(en iyi) 65.983 · ort 55.230 · taban ölümü 0/4 → bulunan 69.299 (kazanç +3.316) · bölünme sonrası enerji 58 e · pop 212 · 4+ 1 · süre 79332 ms
+    nesil eğrisi: 66.865 → 66.865 → 68.529 → 68.529 → 68.529 → 69.299
+  gürültü tabanı (arama yok): -17.741 → net etki +21.057
+  enerji rezidülü: 0.000000009 e
+  → Çevrimiçi evrim **canlı dünyanın dalında da işe yarıyor**: rastgele taban 65.983 → bulunan politika 69.299 (kazanç +3.316). Buna karşılık **arama yapmayan kontrol kolunun** kendi kazancı -17.741 — yani örneklem gürültüsü bu kadar; **net etki +21.057**. Bölünmenin ardından organizmanın enerjisi 55 → 58 e (kontrol 58 e). Arama 79332 ms sürdü. ⚠️ **TEK tohum, güven aralığı yok** — bu bir protokol doğrulamasıdır, genellenebilir bir etki ölçümü değildir.
 ```
 
 ## Bağ gücü koloni büyüklüğünü artırıyor mu?
